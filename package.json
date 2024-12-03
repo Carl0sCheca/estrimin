@@ -1,0 +1,45 @@
+{
+  "name": "estrimin-web",
+  "version": "1.0.0",
+  "private": true,
+  "target": "ES2017",
+  "type": "module",
+  "scripts": {
+    "dev": "dotenvx run -- next dev --turbopack --turbo",
+    "generate": "npx prisma generate",
+    "build": "dotenvx run -- next build",
+    "start": "dotenvx run -- next start",
+    "buildandstart": "dotenvx run -- npx prisma migrate deploy && tsx src/scripts/startup.ts && next build && next start",
+    "lint": "next lint",
+    "startup": "dotenvx run -- tsx src/scripts/startup.ts"
+  },
+  "dependencies": {
+    "@eyevinn/webrtc-player": "^0.13.0",
+    "@prisma/client": "^5.22.0",
+    "better-auth": "^1.0.6",
+    "next": "15.0.3",
+    "react": "19.0.0-rc-66855b96-20241106",
+    "react-dom": "19.0.0-rc-66855b96-20241106",
+    "react-icons": "^5.3.0",
+    "uuid": "^11.0.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "^1.25.1",
+    "@tailwindcss/forms": "^0.5.9",
+    "@types/node": "^22.8.0",
+    "@types/react": "npm:types-react@19.0.0-rc.1",
+    "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1",
+    "eslint": "^8",
+    "eslint-config-next": "15.0.3",
+    "postcss": "^8",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.15",
+    "tsx": "^4.19.1",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "@types/react": "npm:types-react@19.0.0-rc.1",
+    "@types/react-dom": "npm:types-react-dom@19.0.0-rc.1"
+  }
+}
