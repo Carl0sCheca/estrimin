@@ -1,4 +1,3 @@
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
@@ -32,8 +31,8 @@ model User {
   createdAt               DateTime
   updatedAt               DateTime
   role                    Role               @default(USER)
-  Session                 Session[]
-  Account                 Account[]
+  sessions                Session[]
+  accounts                Account[]
   Channel                 Channel?
   channelAllowListUsersId Int?
   ChannelAllowList        ChannelAllowList[] @relation("UserChannels")
@@ -54,8 +53,8 @@ model Session {
   createdAt DateTime
   updatedAt DateTime
 
-  @@map("session")
   @@unique([token])
+  @@map("session")
 }
 
 model Account {

@@ -13,3 +13,13 @@ services:
       - ./db-dev:/var/lib/postgresql/data
     networks:
       - default
+  mediamtx:
+    image: bluenviron/mediamtx
+    environment:
+      - MTX_WEBRTCADDITIONALHOSTS=ip
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro # https://github.com/bluenviron/mediamtx/blob/main/mediamtx.yml
+    ports:
+      - "9997:9997"
+      - "8889:8889"
+      - "8189:8189/udp"
