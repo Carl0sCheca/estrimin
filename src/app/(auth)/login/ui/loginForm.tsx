@@ -140,6 +140,9 @@ export default function LoginForm() {
                       "Must contain 8 or more characters"
                     )
                   }
+                  onInput={(e) =>
+                    (e.target as HTMLObjectElement).setCustomValidity("")
+                  }
                   onChange={handleChange}
                   value={formState.password}
                   autoComplete="current-password"

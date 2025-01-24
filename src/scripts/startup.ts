@@ -24,14 +24,16 @@ const main = async () => {
       },
     });
 
-    await auth.api.signUpEmail({
-      body: {
-        name: "administrator",
-        email: "chan@ge.me",
-        password: "changeme",
-        role: "ADMIN",
-      },
-    });
+    try {
+      await auth.api.signUpEmail({
+        body: {
+          name: "administrator",
+          email: "chan@ge.me",
+          password: "changeme",
+          role: "ADMIN",
+        },
+      });
+    } catch {} // This will cause an error because it cannot save to a cookie. However, I don't want to use a cookie here.
   }
 };
 

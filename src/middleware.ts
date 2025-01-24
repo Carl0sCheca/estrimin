@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { betterFetch } from "@better-fetch/fetch";
-import type { User } from "@prisma/client";
-import type { Session } from "better-auth";
-
+import type { auth } from "@/lib/auth";
 const protectedUserPaths = ["/user", "/channel"];
 const protectedAdminPaths = ["/admin"];
 const protectedAuthPaths = ["/login", "/register"];
 
+type Session = typeof auth.$Infer.Session;
+
 export default async function authMiddleware(request: NextRequest) {
-  const { data } = await betterFetch<{ session: Session; user: User }>(
-    "/api/auth/get-session",
-    {
-      baseURL: process.env.BASE_URL,
-      headers: {
-        cookie: request.headers.get("cookie") || "",
-      },
-    }
-  );
+  const { data } = await betterFetch<Session>("/api/auth/get-session", {
+    baseURL: process.env.BASE_URL,
+    headers: {
+      cookie: request.headers.get("cookie") || "",
+    },
+  });
 
   const user = data?.user;
 

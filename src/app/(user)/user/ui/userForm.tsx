@@ -302,6 +302,9 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                         "Must contain 8 or more characters"
                       )
                     }
+                    onInput={(e) =>
+                      (e.target as HTMLObjectElement).setCustomValidity("")
+                    }
                     value={formPasswordState.password}
                     onChange={handleChangePassword}
                     autoComplete="current-password"
@@ -335,6 +338,9 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                       (e.target as HTMLObjectElement).setCustomValidity(
                         "Must contain 8 or more characters"
                       )
+                    }
+                    onInput={(e) =>
+                      (e.target as HTMLObjectElement).setCustomValidity("")
                     }
                     autoComplete="new-password"
                     required
