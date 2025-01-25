@@ -105,7 +105,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
         />
         <h2
           className={
-            "mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900"
+            "mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"
           }
         >
           Channel settings
@@ -118,7 +118,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
         <div className={"mt-6 sm:mx-auto sm:w-full sm:max-w-sm"}>
           <label
             htmlFor="watchstreamstate"
-            className="block mb-2 text-sm font-medium text-gray-900"
+            className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-100"
           >
             Who can watch your streams:
           </label>
@@ -149,7 +149,9 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
             <div className={"flex items-center justify-between"}>
               <label
                 htmlFor="obstoken"
-                className={"block text-sm font-medium leading-6 text-gray-900"}
+                className={
+                  "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
+                }
               >
                 Only these users can watch yours streams
               </label>
@@ -276,7 +278,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                 <label
                   htmlFor="passwordurl"
                   className={
-                    "block text-sm font-medium leading-6 text-gray-900"
+                    "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                   }
                 >
                   Use a password to be able to watch your stream
@@ -291,7 +293,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                     value={watchOnlyPassword}
                     onChange={(e) => setWatchOnlyPassword(e.target.value)}
                     className={
-                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
 
@@ -337,7 +339,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
               <label
                 htmlFor="obstoken"
                 className={
-                  "algo mt-2 block text-sm font-medium leading-6 text-gray-900"
+                  "algo mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                 }
               >
                 Stream URL:
