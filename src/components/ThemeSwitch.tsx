@@ -23,7 +23,7 @@ export const ThemeSwitch = () => {
         .map((e) => e.valueOf())
         .indexOf(theme as string)
     );
-  }, []);
+  }, [theme]);
 
   return (
     <>

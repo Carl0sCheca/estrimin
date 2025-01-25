@@ -5,7 +5,6 @@ import { LogoutButton, ThemeSwitch } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
 import { changePassword } from "@/lib/auth-client";
 import { User } from "@prisma/client";
-import { useTheme } from "next-themes";
 import Image from "next/image";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, MouseEvent, useState } from "react";
@@ -75,8 +74,6 @@ export default function UserForm({ user, streamKey, settings }: Props) {
       [event.target.name]: event.target.value,
     });
   };
-
-  const { theme, setTheme } = useTheme();
 
   return (
     <>
