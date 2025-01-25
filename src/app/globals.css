@@ -13,6 +13,12 @@ body {
   --primary-700: #03739a;
 }
 
+[data-theme="dark"] {
+  --primary-500: #3fcbfb;
+  --primary-600: #32bde3;
+  --primary-700: #2395b4;
+}
+
 /*
 @media (prefers-color-scheme: dark) {
   :root {

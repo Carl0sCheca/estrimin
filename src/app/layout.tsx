@@ -1,4 +1,5 @@
 import "@/app/globals.css";
+import { ThemeProvider } from "next-themes";
 
 export default function RootLayout({
   children,
@@ -6,8 +7,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="bg-grey-50">{children}</body>
+    <html suppressHydrationWarning lang="en">
+      <body className="bg-gray-50 dark:bg-gray-800">
+        <ThemeProvider attribute="class" defaultTheme="system">
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

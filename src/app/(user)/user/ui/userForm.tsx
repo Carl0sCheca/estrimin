@@ -1,10 +1,11 @@
 "use client";
 
 import { createChannel, updateUser } from "@/actions";
-import { LogoutButton } from "@/components";
+import { LogoutButton, ThemeSwitch } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
 import { changePassword } from "@/lib/auth-client";
 import { User } from "@prisma/client";
+import { useTheme } from "next-themes";
 import Image from "next/image";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, MouseEvent, useState } from "react";
@@ -75,6 +76,8 @@ export default function UserForm({ user, streamKey, settings }: Props) {
     });
   };
 
+  const { theme, setTheme } = useTheme();
+
   return (
     <>
       <div>
@@ -91,7 +94,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
           </div>
           <h2
             className={
-              "mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900"
+              "mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"
             }
           >
             User settings:{" "}
@@ -109,6 +112,9 @@ export default function UserForm({ user, streamKey, settings }: Props) {
               <Link href="/admin">Admin dashboard</Link>
             </div>
           )}
+          <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700 hover:text-primary-600">
+            <ThemeSwitch />
+          </div>
         </div>
         <div className={"mt-6 sm:mx-auto sm:w-full sm:max-w-sm"}>
           <div>
@@ -182,7 +188,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                   <label
                     htmlFor="email"
                     className={
-                      "block text-sm font-medium leading-6 text-gray-900"
+                      "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                     }
                   >
                     Email
@@ -212,7 +218,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                   <label
                     htmlFor="username"
                     className={
-                      "block text-sm font-medium leading-6 text-gray-900"
+                      "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                     }
                   >
                     Username
@@ -280,7 +286,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                   <label
                     htmlFor="password"
                     className={
-                      "block text-sm font-medium leading-6 text-gray-900"
+                      "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                     }
                   >
                     Current password
@@ -320,7 +326,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                   <label
                     htmlFor="newpassword"
                     className={
-                      "block text-sm font-medium leading-6 text-gray-900"
+                      "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                     }
                   >
                     New password
@@ -365,7 +371,9 @@ export default function UserForm({ user, streamKey, settings }: Props) {
             <div className={"flex items-center justify-between"}>
               <label
                 htmlFor="obstoken"
-                className={"block text-sm font-medium leading-6 text-gray-900"}
+                className={
+                  "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
+                }
               >
                 Stream key
               </label>
@@ -410,7 +418,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
               <label
                 htmlFor="obstoken"
                 className={
-                  "algo mt-2 block text-sm font-medium leading-6 text-gray-900"
+                  "algo mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                 }
               >
                 Stream URL:

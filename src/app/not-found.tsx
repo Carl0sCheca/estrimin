@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <section className={"bg-white"}>
+    <section>
       <div className={"py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6"}>
         <div className={"mx-auto max-w-screen-sm text-center"}>
           <h1
@@ -18,12 +18,16 @@ export default function NotFound() {
           </h1>
           <p
             className={
-              "mb-4 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl"
+              "mb-4 text-3xl tracking-tight font-bold text-gray-900 dark:text-gray-100 md:text-4xl"
             }
           >
             Something&apos;s missing.
           </p>
-          <p className={"mb-4 text-lg font-light text-gray-500"}>
+          <p
+            className={
+              "mb-4 text-lg font-light text-gray-500 dark:text-gray-300"
+            }
+          >
             Sorry, we can&apos;t find that user.
           </p>
           {/* <Link

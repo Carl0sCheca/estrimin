@@ -45,7 +45,7 @@ export default function RegisterForm() {
           />
           <h2
             className={
-              "mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900"
+              "mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"
             }
           >
             Create your account
@@ -145,7 +145,7 @@ export default function RegisterForm() {
                 <label
                   htmlFor="username"
                   className={
-                    "block text-sm font-medium leading-6 text-gray-900"
+                    "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                   }
                 >
                   Username
@@ -177,7 +177,7 @@ export default function RegisterForm() {
                 <label
                   htmlFor="email"
                   className={
-                    "block text-sm font-medium leading-6 text-gray-900"
+                    "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                   }
                 >
                   Email
@@ -209,7 +209,7 @@ export default function RegisterForm() {
                 <label
                   htmlFor="password"
                   className={
-                    "block text-sm font-medium leading-6 text-gray-900"
+                    "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
                   }
                 >
                   Password
@@ -248,7 +248,9 @@ export default function RegisterForm() {
             <div>
               <label
                 htmlFor="repeatpassword"
-                className={"block text-sm font-medium leading-6 text-gray-900"}
+                className={
+                  "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
+                }
               >
                 Repeat password
               </label>
@@ -279,7 +281,11 @@ export default function RegisterForm() {
               </button>
             </div>
           </form>
-          <p className={"mt-10 text-center text-sm text-gray-500"}>
+          <p
+            className={
+              "mt-10 text-center text-sm text-gray-500 dark:text-gray-300"
+            }
+          >
             Already have an account?{" "}
             <Link
               href="/login"
