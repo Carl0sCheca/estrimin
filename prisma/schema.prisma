@@ -122,10 +122,10 @@ model Setting {
 }
 
 model RegistrationCodes {
-  id             String   @id
+  id             String    @id
   used           Boolean
   createdAt      DateTime
-  expirationDate DateTime
+  expirationDate DateTime?
 
   @@map("registrationLink")
 }
