@@ -120,3 +120,12 @@ model Setting {
 
   @@map("setting")
 }
+
+model RegistrationCodes {
+  id             String   @id
+  used           Boolean
+  createdAt      DateTime
+  expirationDate DateTime
+
+  @@map("registrationLink")
+}
