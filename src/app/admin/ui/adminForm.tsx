@@ -7,8 +7,12 @@ import { Setting } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { BiSolidSend } from "react-icons/bi";
 import { CgFormatSlash } from "react-icons/cg";
-import { RiUserFill, RiUserStarFill } from "react-icons/ri";
+import { FaCheckSquare, FaSquare } from "react-icons/fa";
+import { IoTrashBin } from "react-icons/io5";
+import { RiClipboardFill, RiUserFill, RiUserStarFill } from "react-icons/ri";
 
 interface Props {
   settings: Array<Setting>;
@@ -29,8 +33,55 @@ export function AdminForm({ settings }: Props) {
 
   const { alertNotification, showAlert } = useAlertNotification();
 
+  const [foldedRegistrationLinks, setFoldedRegistrationLinks] = useState(true);
+  const [expiresRegistrationLink, setExpiresRegistrationLink] = useState(false);
+  const [expiresDate, setExpiresDate] = useState(
+    new Date().toJSON().slice(0, 10)
+  );
+
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [tooltipText, setTooltipText] = useState("");
+
+  const tooltipHandleMouseEnter = (
+    event: React.MouseEvent<HTMLElement>,
+    text: string
+  ) => {
+    if (!event.target) return;
+
+    const rect = (event.target as HTMLButtonElement).getBoundingClientRect();
+
+    setTooltipPosition({
+      x: rect.left + window.scrollX,
+      y: rect.top + window.scrollY - 60,
+    });
+
+    setTooltipText(text);
+
+    setTooltipVisible(true);
+  };
+
+  const tooltipHandleMouseLeave = () => {
+    setTooltipVisible(false);
+    setTooltipText("");
+  };
+
   return (
     <>
+      {tooltipVisible &&
+        createPortal(
+          <span
+            className="text-center cursor-pointer p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md fixed"
+            style={{
+              left: `${tooltipPosition.x - 6}px`,
+              top: `${tooltipPosition.y + 20}px`,
+            }}
+            onMouseEnter={tooltipHandleMouseLeave}
+          >
+            {tooltipText}
+          </span>,
+          document.body
+        )}
       <Notification state={alertNotification} />
       <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
         <Image
@@ -71,7 +122,6 @@ export function AdminForm({ settings }: Props) {
             </span>
           </label>
         </div>
-
         <div className="mt-6">
           <div className={"flex items-center justify-between"}>
             <label
@@ -132,6 +182,126 @@ export function AdminForm({ settings }: Props) {
                   </span>
                 </div>
               </button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-6">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <input
+              type="checkbox"
+              id="accordion"
+              value={`${foldedRegistrationLinks}`}
+              // onChange={setExpiresRegistrationLink}
+              className="peer hidden"
+            />
+            <label
+              htmlFor="accordion"
+              onClick={() =>
+                setFoldedRegistrationLinks(!foldedRegistrationLinks)
+              }
+              className="select-none flex items-center justify-between p-4 bg-primary-600 text-white cursor-pointer hover:bg-primary-500 transition-colors"
+            >
+              <span className="text-lg font-semibold">Registration links</span>
+              <svg
+                className={`w-6 h-6 transition-transform ${
+                  foldedRegistrationLinks ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                ></path>
+              </svg>
+            </label>
+            <div
+              className={`max-h-0 overflow-auto transition-all duration-300 ${
+                !foldedRegistrationLinks ? "max-h-[250px]" : ""
+              }`}
+            >
+              <div className="p-4">
+                <div className="my-5">
+                  Create a register link
+                  <div className="flex justify-between min-h-[50px]">
+                    <div className="flex space-x-5">
+                      <label className="inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          onChange={async () => {
+                            setExpiresRegistrationLink(
+                              !expiresRegistrationLink
+                            );
+                          }}
+                          checked={expiresRegistrationLink}
+                          name="expires"
+                          className="sr-only peer"
+                        />
+                        <div className="p-2">Expires?</div>
+                        <div
+                          className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
+                        ></div>
+                      </label>
+                      <input
+                        className={`text-black rounded ${
+                          expiresRegistrationLink ? "" : "hidden"
+                        }`}
+                        type="date"
+                        id="expirationDate"
+                        value={expiresDate}
+                        onChange={(event) => setExpiresDate(event.target.value)}
+                        min={new Date().toJSON().slice(0, 10)}
+                      />
+                    </div>
+                    <button
+                      className="block p-2 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                      onMouseEnter={(e) =>
+                        tooltipHandleMouseEnter(e, "Generate link")
+                      }
+                      onMouseLeave={tooltipHandleMouseLeave}
+                      onClick={async () => {
+                        console.log("click");
+                      }}
+                    >
+                      <BiSolidSend />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex space-x-2 justify-center bg-slate-300 hover:bg-slate-500 rounded">
+                  <button
+                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Copy URL")}
+                    onMouseLeave={tooltipHandleMouseLeave}
+                  >
+                    <div
+                      className={
+                        "relative flex text-center justify-center py-1.5"
+                      }
+                    >
+                      <div className="flex align-middle justify-center items-center text-base">
+                        <RiClipboardFill />
+                      </div>
+                    </div>
+                  </button>
+                  <div className="block bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6">
+                    exp date
+                  </div>
+                  <button className="block bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6">
+                    <FaCheckSquare />
+                    <FaSquare />
+                  </button>
+                  <button
+                    className="block bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Remove ")}
+                    onMouseLeave={tooltipHandleMouseLeave}
+                  >
+                    <IoTrashBin />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
