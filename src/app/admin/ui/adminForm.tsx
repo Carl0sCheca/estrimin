@@ -18,6 +18,12 @@ interface Props {
   settings: Array<Setting>;
 }
 
+interface RegistrationLink {
+  url: string;
+  expirationDate: Date;
+  expired: boolean;
+}
+
 export function AdminForm({ settings }: Props) {
   const initRegisterState: boolean = JSON.parse(
     settings.find((p) => p.name === "DISABLE_REGISTER")?.value ?? "false"
@@ -33,7 +39,7 @@ export function AdminForm({ settings }: Props) {
 
   const { alertNotification, showAlert } = useAlertNotification();
 
-  const [foldedRegistrationLinks, setFoldedRegistrationLinks] = useState(true);
+  const [foldedRegistrationLinks, setFoldedRegistrationLinks] = useState(false);
   const [expiresRegistrationLink, setExpiresRegistrationLink] = useState(false);
   const [expiresDate, setExpiresDate] = useState(
     new Date().toJSON().slice(0, 10)
@@ -204,7 +210,7 @@ export function AdminForm({ settings }: Props) {
               <span className="text-lg font-semibold">Registration links</span>
               <svg
                 className={`w-6 h-6 transition-transform ${
-                  foldedRegistrationLinks ? "rotate-180" : ""
+                  !foldedRegistrationLinks ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -219,13 +225,15 @@ export function AdminForm({ settings }: Props) {
               </svg>
             </label>
             <div
-              className={`max-h-0 overflow-auto transition-all duration-300 ${
+              className={`max-h-0 overflow-y-scroll transition-all duration-300 ${
                 !foldedRegistrationLinks ? "max-h-[250px]" : ""
               }`}
             >
               <div className="p-4">
-                <div className="my-5">
-                  Create a register link
+                <div className="mb-6 overflow-y-hidden">
+                  <div className="text-sm font-medium">
+                    Generate registration link
+                  </div>
                   <div className="flex justify-between min-h-[50px]">
                     <div className="flex space-x-5">
                       <label className="inline-flex items-center cursor-pointer">
@@ -240,7 +248,7 @@ export function AdminForm({ settings }: Props) {
                           name="expires"
                           className="sr-only peer"
                         />
-                        <div className="p-2">Expires?</div>
+                        <div className="pr-2 select-none">Expires?</div>
                         <div
                           className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
                         ></div>
@@ -257,7 +265,7 @@ export function AdminForm({ settings }: Props) {
                       />
                     </div>
                     <button
-                      className="block p-2 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                      className="flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(e, "Generate link")
                       }
@@ -266,35 +274,31 @@ export function AdminForm({ settings }: Props) {
                         console.log("click");
                       }}
                     >
-                      <BiSolidSend />
+                      <div className="py-1.5 text-lg">
+                        <BiSolidSend />
+                      </div>
                     </button>
                   </div>
                 </div>
-                <div className="flex space-x-2 justify-center bg-slate-300 hover:bg-slate-500 rounded">
+                <div className="flex justify-between  bg-slate-300 hover:bg-slate-500 rounded">
                   <button
-                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    className="group flex justify-center items-center w-2/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
                     onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Copy URL")}
                     onMouseLeave={tooltipHandleMouseLeave}
                   >
-                    <div
-                      className={
-                        "relative flex text-center justify-center py-1.5"
-                      }
-                    >
-                      <div className="flex align-middle justify-center items-center text-base">
-                        <RiClipboardFill />
-                      </div>
+                    <div className="py-1.5 text-lg">
+                      <RiClipboardFill />
                     </div>
                   </button>
-                  <div className="block bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6">
-                    exp date
+                  <div className="flex w-full justify-center items-center p-2 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6">
+                    {new Date().toJSON().slice(0, 10)}
                   </div>
-                  <button className="block bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6">
+                  <button className="flex w-full justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6">
                     <FaCheckSquare />
                     <FaSquare />
                   </button>
                   <button
-                    className="block bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    className="flex w-full justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
                     onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Remove ")}
                     onMouseLeave={tooltipHandleMouseLeave}
                   >

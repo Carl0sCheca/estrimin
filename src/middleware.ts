@@ -29,7 +29,12 @@ export default async function authMiddleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", baseURL));
   }
 
-  if (protectedAuthPaths.includes(request.nextUrl.pathname) && user) {
+  if (
+    protectedAuthPaths.some((path) =>
+      request.nextUrl.pathname.startsWith(path)
+    ) &&
+    user
+  ) {
     return NextResponse.redirect(new URL("/", baseURL));
   }
 
