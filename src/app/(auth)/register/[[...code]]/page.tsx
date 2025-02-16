@@ -17,6 +17,7 @@ interface Props {
 
 export default async function RegisterPage(props: Props) {
   const params = await props.params;
+  let code: string | undefined;
 
   if (!params.code) {
     const disableRegister: boolean = JSON.parse(
@@ -31,9 +32,13 @@ export default async function RegisterPage(props: Props) {
       redirect("/user");
     }
   } else {
-    const code = params.code.at(0);
+    code = params.code.at(0);
 
-    if (!code) {
+    const validCode = await prisma.registrationCodes.findFirst({
+      where: { id: code },
+    });
+
+    if (!code || !validCode || validCode.used) {
       redirect("/user");
     }
   }
@@ -42,7 +47,7 @@ export default async function RegisterPage(props: Props) {
     <div
       className={"flex min-h-full flex-col justify-center px-6 py-12 lg:px-8"}
     >
-      <RegisterForm />
+      <RegisterForm registrationCode={code} />
     </div>
   );
 }

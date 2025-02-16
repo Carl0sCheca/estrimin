@@ -1,30 +1,36 @@
 "use client";
 
-import { changeUserRoleAction, disableRegistration } from "@/actions";
+import {
+  changeUserRoleAction,
+  deleteRegistrationCodesAction,
+  disableRegistration,
+  generateRegistrationCode,
+  getRegistrationCodesAction,
+} from "@/actions";
 import { Notification, useAlertNotification } from "@/components";
-import { ChangeUserRoleResponse } from "@/interfaces";
+import {
+  ChangeUserRoleResponse,
+  GenerateRegistrationCodeRequest,
+  RegistrationCodeDto,
+} from "@/interfaces";
 import { Setting } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BiSolidSend } from "react-icons/bi";
 import { CgFormatSlash } from "react-icons/cg";
-import { FaCheckSquare, FaSquare } from "react-icons/fa";
+import { FaCheckSquare, FaMinusSquare, FaSquare } from "react-icons/fa";
+import { ImInfinite } from "react-icons/im";
 import { IoTrashBin } from "react-icons/io5";
 import { RiClipboardFill, RiUserFill, RiUserStarFill } from "react-icons/ri";
 
 interface Props {
   settings: Array<Setting>;
+  baseUrl: string;
 }
 
-interface RegistrationLink {
-  url: string;
-  expirationDate: Date;
-  expired: boolean;
-}
-
-export function AdminForm({ settings }: Props) {
+export function AdminForm({ settings, baseUrl }: Props) {
   const initRegisterState: boolean = JSON.parse(
     settings.find((p) => p.name === "DISABLE_REGISTER")?.value ?? "false"
   );
@@ -39,15 +45,66 @@ export function AdminForm({ settings }: Props) {
 
   const { alertNotification, showAlert } = useAlertNotification();
 
-  const [foldedRegistrationLinks, setFoldedRegistrationLinks] = useState(false);
-  const [expiresRegistrationLink, setExpiresRegistrationLink] = useState(false);
-  const [expiresDate, setExpiresDate] = useState(
-    new Date().toJSON().slice(0, 10)
-  );
+  const [foldedRegistrationCodes, setFoldedRegistrationCodes] = useState(true);
+  const [expiresRegistrationCode, setExpiresRegistrationCode] = useState(false);
+  const [expiresDate, setExpiresDate] = useState("");
 
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [tooltipText, setTooltipText] = useState("");
+  const [tooltipTargetRect, setTooltipTargetRect] = useState({
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+  });
+  const tooltipRef = useRef(null);
+
+  const [registrationCodes, setRegistrationCodes] = useState<
+    Array<RegistrationCodeDto>
+  >([]);
+
+  useEffect(() => {
+    const getRegistrationCodes = async () => {
+      const regLinksResponse = await getRegistrationCodesAction();
+
+      if (
+        !regLinksResponse ||
+        !regLinksResponse.ok ||
+        !regLinksResponse.registrationCodes
+      ) {
+        return;
+      }
+
+      setRegistrationCodes(regLinksResponse.registrationCodes);
+    };
+
+    getRegistrationCodes();
+  }, []);
+
+  useEffect(() => {
+    if (!tooltipRef.current) {
+      return;
+    }
+
+    const rect = (
+      tooltipRef.current as HTMLSpanElement
+    ).getBoundingClientRect();
+
+    let y = tooltipTargetRect.y - rect.height - 3;
+
+    if (tooltipTargetRect.y - tooltipTargetRect.height < 0) {
+      y = tooltipTargetRect.y + rect.height + 9;
+    }
+
+    const x =
+      tooltipTargetRect.x + tooltipTargetRect.width * 0.5 - rect.width * 0.5;
+
+    setTooltipPosition({
+      x,
+      y,
+    });
+  }, [tooltipText, tooltipTargetRect]);
 
   const tooltipHandleMouseEnter = (
     event: React.MouseEvent<HTMLElement>,
@@ -57,18 +114,19 @@ export function AdminForm({ settings }: Props) {
 
     const rect = (event.target as HTMLButtonElement).getBoundingClientRect();
 
-    setTooltipPosition({
-      x: rect.left + window.scrollX,
-      y: rect.top + window.scrollY - 60,
+    setTooltipTargetRect({
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
     });
-
     setTooltipText(text);
-
     setTooltipVisible(true);
   };
 
   const tooltipHandleMouseLeave = () => {
     setTooltipVisible(false);
+    setTooltipPosition({ x: -99999, y: -99999 });
     setTooltipText("");
   };
 
@@ -79,10 +137,11 @@ export function AdminForm({ settings }: Props) {
           <span
             className="text-center cursor-pointer p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md fixed"
             style={{
-              left: `${tooltipPosition.x - 6}px`,
-              top: `${tooltipPosition.y + 20}px`,
+              left: `${tooltipPosition.x}px`,
+              top: `${tooltipPosition.y}px`,
             }}
             onMouseEnter={tooltipHandleMouseLeave}
+            ref={tooltipRef}
           >
             {tooltipText}
           </span>,
@@ -196,21 +255,20 @@ export function AdminForm({ settings }: Props) {
             <input
               type="checkbox"
               id="accordion"
-              value={`${foldedRegistrationLinks}`}
-              // onChange={setExpiresRegistrationLink}
+              value={`${foldedRegistrationCodes}`}
               className="peer hidden"
             />
             <label
               htmlFor="accordion"
               onClick={() =>
-                setFoldedRegistrationLinks(!foldedRegistrationLinks)
+                setFoldedRegistrationCodes(!foldedRegistrationCodes)
               }
               className="select-none flex items-center justify-between p-4 bg-primary-600 text-white cursor-pointer hover:bg-primary-500 transition-colors"
             >
-              <span className="text-lg font-semibold">Registration links</span>
+              <span className="text-lg font-semibold">Registration codes</span>
               <svg
                 className={`w-6 h-6 transition-transform ${
-                  !foldedRegistrationLinks ? "rotate-180" : ""
+                  !foldedRegistrationCodes ? "rotate-180" : ""
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -226,7 +284,7 @@ export function AdminForm({ settings }: Props) {
             </label>
             <div
               className={`max-h-0 overflow-y-scroll transition-all duration-300 ${
-                !foldedRegistrationLinks ? "max-h-[250px]" : ""
+                !foldedRegistrationCodes ? "max-h-[450px]" : ""
               }`}
             >
               <div className="p-4">
@@ -240,11 +298,15 @@ export function AdminForm({ settings }: Props) {
                         <input
                           type="checkbox"
                           onChange={async () => {
-                            setExpiresRegistrationLink(
-                              !expiresRegistrationLink
+                            setExpiresRegistrationCode(
+                              !expiresRegistrationCode
                             );
+
+                            if (!expiresDate) {
+                              setExpiresDate(new Date().toJSON().slice(0, 10));
+                            }
                           }}
-                          checked={expiresRegistrationLink}
+                          checked={expiresRegistrationCode}
                           name="expires"
                           className="sr-only peer"
                         />
@@ -255,7 +317,7 @@ export function AdminForm({ settings }: Props) {
                       </label>
                       <input
                         className={`text-black rounded ${
-                          expiresRegistrationLink ? "" : "hidden"
+                          expiresRegistrationCode ? "" : "hidden"
                         }`}
                         type="date"
                         id="expirationDate"
@@ -271,7 +333,32 @@ export function AdminForm({ settings }: Props) {
                       }
                       onMouseLeave={tooltipHandleMouseLeave}
                       onClick={async () => {
-                        console.log("click");
+                        const request: GenerateRegistrationCodeRequest = {};
+                        if (expiresRegistrationCode) {
+                          request.expirationDate = new Date(expiresDate);
+                        }
+
+                        const registrationCodeResponse =
+                          await generateRegistrationCode(request);
+
+                        if (
+                          !registrationCodeResponse ||
+                          !registrationCodeResponse.id
+                        ) {
+                          return;
+                        }
+
+                        setRegistrationCodes((prevRegistrationCodes) => [
+                          ...prevRegistrationCodes,
+                          {
+                            id: registrationCodeResponse.id as string,
+                            expirationDate:
+                              registrationCodeResponse.expirationDate || null,
+                            used: false,
+                            createdAt: new Date(),
+                            user: null,
+                          },
+                        ]);
                       }}
                     >
                       <div className="py-1.5 text-lg">
@@ -280,31 +367,89 @@ export function AdminForm({ settings }: Props) {
                     </button>
                   </div>
                 </div>
-                <div className="flex justify-between  bg-slate-300 hover:bg-slate-500 rounded">
-                  <button
-                    className="group flex justify-center items-center w-2/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
-                    onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Copy URL")}
-                    onMouseLeave={tooltipHandleMouseLeave}
+                {registrationCodes.map((registrationCode) => (
+                  <div
+                    key={registrationCode.id}
+                    className="flex justify-between my-2 dark:hover:bg-slate-300 dark:bg-slate-500 bg-slate-300 hover:bg-slate-500 rounded"
                   >
-                    <div className="py-1.5 text-lg">
-                      <RiClipboardFill />
+                    <button
+                      className="group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      onMouseEnter={(e) =>
+                        tooltipHandleMouseEnter(e, "Copy URL")
+                      }
+                      onMouseLeave={tooltipHandleMouseLeave}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(
+                            `${baseUrl}/register/${registrationCode.id}`
+                          );
+                        } catch {}
+                      }}
+                    >
+                      <div className="py-1.5 text-lg">
+                        <RiClipboardFill />
+                      </div>
+                    </button>
+                    <div className="flex cursor-default m-2 w-full justify-center items-center p-2 bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6">
+                      {registrationCode.expirationDate ? (
+                        registrationCode.expirationDate.toJSON().slice(0, 10)
+                      ) : (
+                        <ImInfinite />
+                      )}
                     </div>
-                  </button>
-                  <div className="flex w-full justify-center items-center p-2 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6">
-                    {new Date().toJSON().slice(0, 10)}
+                    <button
+                      className="flex cursor-default m-2 w-1/2 justify-center items-center bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      onMouseEnter={(e) =>
+                        tooltipHandleMouseEnter(
+                          e,
+                          registrationCode.expirationDate &&
+                            new Date(new Date().toJSON().slice(0, 10)) >
+                              registrationCode.expirationDate
+                            ? "Expired"
+                            : registrationCode.used
+                            ? `Used by ${registrationCode.user!.name}`
+                            : "Not used"
+                        )
+                      }
+                      onMouseLeave={tooltipHandleMouseLeave}
+                    >
+                      {registrationCode.expirationDate &&
+                      new Date(new Date().toJSON().slice(0, 10)) >
+                        registrationCode.expirationDate ? (
+                        <FaMinusSquare />
+                      ) : registrationCode.used ? (
+                        <FaCheckSquare />
+                      ) : (
+                        <FaSquare />
+                      )}
+                    </button>
+                    <button
+                      className="flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      onMouseEnter={(e) =>
+                        tooltipHandleMouseEnter(e, "Delete ")
+                      }
+                      onMouseLeave={tooltipHandleMouseLeave}
+                      onClick={async () => {
+                        const deleteResponse =
+                          await deleteRegistrationCodesAction(
+                            registrationCode.id
+                          );
+
+                        if (!deleteResponse) {
+                          return;
+                        }
+
+                        setRegistrationCodes((prevRegistrationCodes) =>
+                          prevRegistrationCodes.filter(
+                            (code) => code.id !== registrationCode.id
+                          )
+                        );
+                      }}
+                    >
+                      <IoTrashBin />
+                    </button>
                   </div>
-                  <button className="flex w-full justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6">
-                    <FaCheckSquare />
-                    <FaSquare />
-                  </button>
-                  <button
-                    className="flex w-full justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
-                    onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Remove ")}
-                    onMouseLeave={tooltipHandleMouseLeave}
-                  >
-                    <IoTrashBin />
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
           </div>

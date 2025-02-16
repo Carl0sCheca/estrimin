@@ -1,6 +1,13 @@
 "use server";
 
-import { ChangeUserRoleResponse, DisableRegisterResponse } from "@/interfaces";
+import {
+  ChangeUserRoleResponse,
+  DeleteRegistrationCodesResponse,
+  DisableRegisterResponse,
+  GenerateRegistrationCodeRequest,
+  GenerateRegistrationCodeResponse,
+  GetRegistrationCodesResponse,
+} from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
@@ -88,6 +95,77 @@ export const changeUserRoleAction = async (
   } catch {
     response.message = "An error has ocurred";
   }
+
+  return response;
+};
+
+export const generateRegistrationCode = async (
+  request: GenerateRegistrationCodeRequest
+): Promise<GenerateRegistrationCodeResponse> => {
+  const response: GenerateRegistrationCodeResponse = {
+    ok: false,
+  };
+
+  const registrationCode = await prisma.registrationCodes.create({
+    data: {
+      expirationDate: request.expirationDate,
+    },
+  });
+
+  if (!registrationCode) {
+    return response;
+  }
+
+  response.expirationDate = registrationCode.expirationDate;
+  response.ok = true;
+  response.id = registrationCode.id;
+
+  return response;
+};
+
+export const getRegistrationCodesAction =
+  async (): Promise<GetRegistrationCodesResponse> => {
+    const response: GetRegistrationCodesResponse = {
+      ok: false,
+    };
+
+    const registrationCodes = await prisma.registrationCodes.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        createdAt: true,
+        used: true,
+        id: true,
+        expirationDate: true,
+        user: { select: { name: true } },
+      },
+    });
+
+    if (!registrationCodes) {
+      return response;
+    }
+
+    response.registrationCodes = registrationCodes;
+    response.ok = true;
+
+    return response;
+  };
+
+export const deleteRegistrationCodesAction = async (
+  id: string
+): Promise<DeleteRegistrationCodesResponse> => {
+  const response: DeleteRegistrationCodesResponse = {
+    ok: false,
+  };
+
+  try {
+    await prisma.registrationCodes.delete({
+      where: { id },
+    });
+  } catch {
+    return response;
+  }
+
+  response.ok = true;
 
   return response;
 };

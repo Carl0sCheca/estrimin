@@ -11,13 +11,14 @@ export const revalidate = 0;
 
 export default async function AdminPage() {
   const settings: Array<Setting> = await prisma.setting.findMany();
+  const baseUrl = process.env.BASE_URL || "";
 
   return (
     <>
       <div
         className={"flex min-h-full flex-col justify-center px-6 py-12 lg:px-8"}
       >
-        <AdminForm settings={settings} />
+        <AdminForm settings={settings} baseUrl={baseUrl} />
       </div>
     </>
   );

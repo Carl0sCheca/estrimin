@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "registrationLink" ALTER COLUMN "used" SET DEFAULT false,
+ALTER COLUMN "createdAt" SET DEFAULT CURRENT_TIMESTAMP;

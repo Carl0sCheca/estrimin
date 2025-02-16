@@ -19,15 +19,22 @@ export enum NameError {
   Invalid = "Invalid name",
 }
 
+export enum RegistrationCodeError {
+  None = "",
+  Invalid = "Registration code is invalid",
+  Expired = "Registration code has expired",
+}
+
 export enum ErrorType {
   Email,
   Name,
   Password,
+  RegistrationCode,
   Unknown,
 }
 
 export interface RegisterResponse {
   ok: boolean;
   errorType?: ErrorType;
-  message?: EmailError | PasswordError | NameError;
+  message?: EmailError | PasswordError | NameError | RegistrationCodeError;
 }
