@@ -5,6 +5,7 @@ import {
   ErrorType,
   NameError,
   RegisterResponse,
+  RegistrationCodeError,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -14,7 +15,8 @@ import { checkValidUsername } from "./user";
 export const registerAction = async (
   email: string,
   password: string,
-  name: string
+  name: string,
+  registrationCode: string | undefined
 ) => {
   const response: RegisterResponse = {
     ok: false,
@@ -51,6 +53,31 @@ export const registerAction = async (
   }
 
   try {
+    if (registrationCode) {
+      const validCode = await prisma.registrationCodes.findFirst({
+        where: { id: registrationCode },
+      });
+
+      if (
+        !validCode ||
+        validCode.used ||
+        (validCode.expirationDate && validCode.expirationDate < new Date())
+      ) {
+        if (
+          validCode &&
+          validCode.expirationDate &&
+          validCode.expirationDate < new Date()
+        ) {
+          response.message = RegistrationCodeError.Expired;
+        } else {
+          response.message = RegistrationCodeError.Invalid;
+        }
+
+        response.errorType = ErrorType.RegistrationCode;
+        return response;
+      }
+    }
+
     const user = await auth.api.signUpEmail({
       body: {
         name,
@@ -74,6 +101,18 @@ export const registerAction = async (
 
     if (session.user) {
       await createChannel(session.user);
+    }
+
+    if (registrationCode) {
+      await prisma.registrationCodes.update({
+        where: {
+          id: registrationCode,
+          usedById: session.user.id,
+        },
+        data: {
+          used: true,
+        },
+      });
     }
 
     response.ok = true;

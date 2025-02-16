@@ -1,13 +1,23 @@
 "use client";
 
 import { registerAction } from "@/actions";
-import { EmailError, ErrorType, NameError, PasswordError } from "@/interfaces";
+import {
+  EmailError,
+  ErrorType,
+  NameError,
+  PasswordError,
+  RegistrationCodeError,
+} from "@/interfaces";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useState } from "react";
 
-export default function RegisterForm() {
+interface Props {
+  registrationCode?: string;
+}
+
+export default function RegisterForm({ registrationCode }: Props) {
   const [formState, setFormState] = useState({
     email: "",
     password: "",
@@ -19,6 +29,7 @@ export default function RegisterForm() {
     email: EmailError.None,
     password: PasswordError.None,
     name: NameError.None,
+    registrationCode: RegistrationCodeError.None,
   });
 
   const [buttonDisabled, setButtonDisabled] = useState(false);
@@ -69,6 +80,7 @@ export default function RegisterForm() {
                 email: EmailError.None,
                 password: PasswordError.None,
                 name: NameError.None,
+                registrationCode: RegistrationCodeError.None,
               });
 
               const email = formData.get("email")?.toString();
@@ -112,7 +124,12 @@ export default function RegisterForm() {
                 return;
               }
 
-              const response = await registerAction(email, password, name);
+              const response = await registerAction(
+                email,
+                password,
+                name,
+                registrationCode
+              );
 
               if (!response.ok) {
                 if (response.errorType === ErrorType.Email) {
@@ -129,6 +146,11 @@ export default function RegisterForm() {
                   setErrorState((prevState) => ({
                     ...prevState,
                     name: response.message as NameError,
+                  }));
+                } else if (response.errorType === ErrorType.RegistrationCode) {
+                  setErrorState((prevState) => ({
+                    ...prevState,
+                    registrationCode: response.message as RegistrationCodeError,
                   }));
                 }
 
@@ -152,7 +174,11 @@ export default function RegisterForm() {
                 </label>
                 <div className={"text-sm"}>
                   <span className={"font-semibold text-red-500"}>
-                    {errorState.name.toString()}
+                    {errorState.name !== NameError.None &&
+                      errorState.name.toString()}
+                    {errorState.registrationCode !==
+                      RegistrationCodeError.None &&
+                      errorState.registrationCode.toString()}
                   </span>
                 </div>
               </div>

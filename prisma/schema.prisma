@@ -23,19 +23,20 @@ enum ChannelWatchOnly {
 }
 
 model User {
-  id                      String             @id
-  name                    String             @unique @db.Citext
+  id                      String              @id
+  name                    String              @unique @db.Citext
   email                   String
   emailVerified           Boolean
   image                   String?
   createdAt               DateTime
   updatedAt               DateTime
-  role                    Role               @default(USER)
+  role                    Role                @default(USER)
   sessions                Session[]
   accounts                Account[]
   Channel                 Channel?
   channelAllowListUsersId Int?
-  ChannelAllowList        ChannelAllowList[] @relation("UserChannels")
+  ChannelAllowList        ChannelAllowList[]  @relation("UserChannels")
+  RegistrationCodes       RegistrationCodes[]
 
   @@unique([email])
   @@map("user")
@@ -119,4 +120,16 @@ model Setting {
   value String
 
   @@map("setting")
+}
+
+model RegistrationCodes {
+  id             String    @id @default(uuid())
+  used           Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  expirationDate DateTime?
+  usedById       String?
+
+  user User? @relation(fields: [usedById], references: [id], onDelete: NoAction)
+
+  @@map("registrationCodes")
 }
