@@ -163,5 +163,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (process.env.NTFY_ENABLED === "true") {
+    const user: string = process.env.NTFY_USER || "";
+    const password: string = process.env.NTFY_PASSWORD || "";
+
+    const auth = Buffer.from(user + ":" + password).toString("base64");
+
+    const response = await fetch(
+      `${process.env.NTFY_URL}/${process.env.NTFY_TOPIC}`,
+      {
+        method: "POST",
+        body: `🔴 ${userChannel.user.name} is streaming`,
+        headers: {
+          Authorization: `Basic ${auth}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("Error while trying to send the notification");
+    }
+  }
+
   return NextResponse.json({ code: 0 });
 }
