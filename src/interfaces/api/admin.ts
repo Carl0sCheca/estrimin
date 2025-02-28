@@ -35,3 +35,13 @@ export interface GetRegistrationCodesResponse {
 export interface DeleteRegistrationCodesResponse {
   ok: boolean;
 }
+
+export interface LiveChannelItem {
+  name: string;
+  ready: boolean;
+  readyTime: Date;
+}
+
+export interface GetLiveChannelsResponse {
+  items: Array<LiveChannelItem>;
+}
