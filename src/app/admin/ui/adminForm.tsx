@@ -181,7 +181,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
               name="disableregister"
               className="sr-only peer"
             />
-            <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
             <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-100">
               Disable registration
             </span>
@@ -207,7 +207,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 value={changeUserRole}
                 onChange={(e) => setChangeUserRole(e.target.value)}
                 className={
-                  "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                  "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                 }
               />
 
@@ -234,7 +234,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                   setButtonsState({ ...buttonsState, changeRole: false });
                 }}
                 disabled={buttonsState.changeRole}
-                className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
               >
                 <div className={"relative flex text-center justify-center"}>
                   <div className="flex align-middle justify-center items-center text-base">
@@ -312,7 +312,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                         />
                         <div className="pr-2 select-none">Expires?</div>
                         <div
-                          className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
+                          className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
                         ></div>
                       </label>
                       <input
@@ -327,7 +327,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                       />
                     </div>
                     <button
-                      className="flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                      className="flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(e, "Generate link")
                       }
@@ -370,10 +370,10 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 {registrationCodes.map((registrationCode) => (
                   <div
                     key={registrationCode.id}
-                    className="flex justify-between my-2 dark:hover:bg-slate-300 dark:bg-slate-500 bg-slate-300 hover:bg-slate-500 rounded"
+                    className="flex justify-between my-2 dark:hover:bg-slate-300 dark:bg-slate-500 bg-slate-300 hover:bg-slate-500 rounded-sm"
                   >
                     <button
-                      className="group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      className="group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(e, "Copy URL")
                       }
@@ -390,7 +390,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                         <RiClipboardFill />
                       </div>
                     </button>
-                    <div className="flex cursor-default m-2 w-full justify-center items-center p-2 bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6">
+                    <div className="flex cursor-default m-2 w-full justify-center items-center p-2 bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6">
                       {registrationCode.expirationDate ? (
                         registrationCode.expirationDate.toJSON().slice(0, 10)
                       ) : (
@@ -398,7 +398,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                       )}
                     </div>
                     <button
-                      className="flex cursor-default m-2 w-1/2 justify-center items-center bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      className="flex cursor-default m-2 w-1/2 justify-center items-center bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(
                           e,
@@ -424,7 +424,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                       )}
                     </button>
                     <button
-                      className="flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      className="flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(e, "Delete ")
                       }

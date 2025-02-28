@@ -205,7 +205,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                     onChange={handleChange}
                     value={formState.email}
                     className={
-                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
                 </div>
@@ -230,7 +230,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                     value={formState.name}
                     required
                     className={
-                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
                 </div>
@@ -239,7 +239,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                 type="submit"
                 disabled={button}
                 className={
-                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                 }
               >
                 Save
@@ -313,7 +313,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                     autoComplete="current-password"
                     required
                     className={
-                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
                 </div>
@@ -348,7 +348,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                     autoComplete="new-password"
                     required
                     className={
-                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
                 </div>
@@ -357,7 +357,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                 type="submit"
                 disabled={button}
                 className={
-                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                 }
               >
                 Change password
@@ -385,7 +385,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                   value={formState.token}
                   onChange={handleChange}
                   className={
-                    "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                    "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   }
                 />
 
@@ -400,7 +400,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                       });
                     }
                   }}
-                  className="group block w-1/5 bg-primary-600 hover:bg-primary-500  rounded-r-md py-1.5 text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                  className="group block w-1/5 bg-primary-600 hover:bg-primary-500  rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                 >
                   <div className={"relative flex text-center justify-center"}>
                     <VscDebugRestart />
