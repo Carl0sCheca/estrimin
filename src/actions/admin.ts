@@ -6,7 +6,9 @@ import {
   DisableRegisterResponse,
   GenerateRegistrationCodeRequest,
   GenerateRegistrationCodeResponse,
+  GetLiveChannelsResponse,
   GetRegistrationCodesResponse,
+  LiveChannelItem,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -169,3 +171,25 @@ export const deleteRegistrationCodesAction = async (
 
   return response;
 };
+
+export const getLiveChannelsAction =
+  async (): Promise<GetLiveChannelsResponse> => {
+    const response: GetLiveChannelsResponse = {
+      items: [],
+    };
+
+    const request = await fetch(`${process.env.STREAM_API_URL}/v3/paths/list`, {
+      method: "GET",
+    });
+
+    if (request.ok) {
+      const responseApi = await request.json();
+      if (responseApi) {
+        response.items = responseApi.items.map((i: LiveChannelItem) => {
+          return { name: i.name, ready: i.ready, readyTime: i.readyTime };
+        });
+      }
+    }
+
+    return response;
+  };

@@ -5,12 +5,14 @@ import {
   deleteRegistrationCodesAction,
   disableRegistration,
   generateRegistrationCode,
+  getLiveChannelsAction,
   getRegistrationCodesAction,
 } from "@/actions";
 import { Notification, useAlertNotification } from "@/components";
 import {
   ChangeUserRoleResponse,
   GenerateRegistrationCodeRequest,
+  LiveChannelItem,
   RegistrationCodeDto,
 } from "@/interfaces";
 import { Setting } from "@prisma/client";
@@ -64,6 +66,17 @@ export function AdminForm({ settings, baseUrl }: Props) {
     Array<RegistrationCodeDto>
   >([]);
 
+  const [foldedLiveChannel, setFoldedLiveChannels] = useState(true);
+  const [liveChannels, setLiveChannels] = useState<Array<LiveChannelItem>>([]);
+
+  const getDiffTimeInMinutes = (date1: Date, date2: Date): number => {
+    return Math.floor(
+      Math.abs(new Date(date1).getTime() - new Date(date2).getTime()) /
+        1000 /
+        60
+    );
+  };
+
   useEffect(() => {
     const getRegistrationCodes = async () => {
       const regLinksResponse = await getRegistrationCodesAction();
@@ -79,7 +92,15 @@ export function AdminForm({ settings, baseUrl }: Props) {
       setRegistrationCodes(regLinksResponse.registrationCodes);
     };
 
+    const getLiveChannels = async () => {
+      const response = await getLiveChannelsAction();
+
+      setLiveChannels(response.items);
+    };
+
     getRegistrationCodes();
+
+    getLiveChannels();
   }, []);
 
   useEffect(() => {
@@ -181,7 +202,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
               name="disableregister"
               className="sr-only peer"
             />
-            <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
             <span className="ms-3 text-sm font-medium text-gray-900 dark:text-gray-100">
               Disable registration
             </span>
@@ -207,7 +228,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 value={changeUserRole}
                 onChange={(e) => setChangeUserRole(e.target.value)}
                 className={
-                  "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                  "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                 }
               />
 
@@ -234,7 +255,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                   setButtonsState({ ...buttonsState, changeRole: false });
                 }}
                 disabled={buttonsState.changeRole}
-                className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
               >
                 <div className={"relative flex text-center justify-center"}>
                   <div className="flex align-middle justify-center items-center text-base">
@@ -312,7 +333,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                         />
                         <div className="pr-2 select-none">Expires?</div>
                         <div
-                          className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
+                          className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
                         ></div>
                       </label>
                       <input
@@ -327,7 +348,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                       />
                     </div>
                     <button
-                      className="flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                      className="flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(e, "Generate link")
                       }
@@ -370,10 +391,10 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 {registrationCodes.map((registrationCode) => (
                   <div
                     key={registrationCode.id}
-                    className="flex justify-between my-2 dark:hover:bg-slate-300 dark:bg-slate-500 bg-slate-300 hover:bg-slate-500 rounded"
+                    className="flex justify-between my-2 dark:hover:bg-slate-300 dark:bg-slate-500 bg-slate-300 hover:bg-slate-500 rounded-sm"
                   >
                     <button
-                      className="group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      className="group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(e, "Copy URL")
                       }
@@ -390,7 +411,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                         <RiClipboardFill />
                       </div>
                     </button>
-                    <div className="flex cursor-default m-2 w-full justify-center items-center p-2 bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6">
+                    <div className="flex cursor-default m-2 w-full justify-center items-center p-2 bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6">
                       {registrationCode.expirationDate ? (
                         registrationCode.expirationDate.toJSON().slice(0, 10)
                       ) : (
@@ -398,7 +419,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                       )}
                     </div>
                     <button
-                      className="flex cursor-default m-2 w-1/2 justify-center items-center bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      className="flex cursor-default m-2 w-1/2 justify-center items-center bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(
                           e,
@@ -424,7 +445,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                       )}
                     </button>
                     <button
-                      className="flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:leading-6"
+                      className="flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
                       onMouseEnter={(e) =>
                         tooltipHandleMouseEnter(e, "Delete ")
                       }
@@ -450,6 +471,95 @@ export function AdminForm({ settings, baseUrl }: Props) {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <input
+              type="checkbox"
+              id="accordion"
+              value={`${foldedLiveChannel}`}
+              className="peer hidden"
+            />
+            <label
+              htmlFor="accordion"
+              onClick={() => setFoldedLiveChannels(!foldedLiveChannel)}
+              className="select-none flex items-center justify-between p-4 bg-primary-600 text-white cursor-pointer hover:bg-primary-500 transition-colors"
+            >
+              <span className="text-lg font-semibold">Live channels</span>
+              <svg
+                className={`w-6 h-6 transition-transform ${
+                  !foldedLiveChannel ? "rotate-180" : ""
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                ></path>
+              </svg>
+            </label>
+            <div
+              className={`max-h-0 overflow-y-scroll transition-all duration-300 ${
+                !foldedLiveChannel ? "max-h-[450px]" : ""
+              }`}
+            >
+              <div className="p-4">
+                <div
+                  role="status"
+                  className={`${
+                    liveChannels.length == 0 ? "flex" : "hidden"
+                  } justify-center`}
+                >
+                  <svg
+                    aria-hidden="true"
+                    className="w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+                    viewBox="0 0 100 101"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                      fill={"#3fcbfb"}
+                    />
+                  </svg>
+                  <span className="sr-only">Loading...</span>
+                </div>
+                {liveChannels
+                  .filter((channel) => channel.ready)
+                  .map((channel, i) => {
+                    return (
+                      <div key={i} className="flex py-1 px-2">
+                        <a
+                          className="w-1/2"
+                          href={`${baseUrl}/${channel.name}`}
+                          target="_blank"
+                        >
+                          {channel.name}
+                        </a>
+                        <div className="w-1/2 text-right">
+                          {getDiffTimeInMinutes(new Date(), channel.readyTime)}{" "}
+                          minute
+                          {getDiffTimeInMinutes(new Date(), channel.readyTime) >
+                          1
+                            ? "s"
+                            : ""}{" "}
+                          ago
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>

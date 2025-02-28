@@ -204,13 +204,13 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                     required
                     onChange={(e) => setAddUserAllowlist(e.target.value)}
                     className={
-                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
 
                   <button
                     disabled={buttonsState.addUserAllowlist}
-                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                   >
                     <div className={"relative flex text-center justify-center"}>
                       <div className="flex align-middle justify-center items-center text-base">
@@ -253,7 +253,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                       >
                         <li className="flex w-full p-2 text-left">
                           <div
-                            className="flex-grow w-11/12 truncate select-none"
+                            className="grow w-11/12 truncate select-none"
                             title={elem.user.name}
                             onMouseOver={handleMouseOver}
                           >
@@ -293,7 +293,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                     value={watchOnlyPassword}
                     onChange={(e) => setWatchOnlyPassword(e.target.value)}
                     className={
-                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
 
@@ -321,7 +321,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                       });
                     }}
                     disabled={buttonsState.changePassword}
-                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-sm ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                   >
                     <div className={"relative flex text-center justify-center"}>
                       <div className="flex align-middle justify-center items-center text-base">
