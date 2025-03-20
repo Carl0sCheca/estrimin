@@ -175,6 +175,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         body: `🔴 ${userChannel.user.name} is streaming`,
         headers: {
+          Click: `${process.env.BASE_URL}/${userChannel.user.name}`,
           Authorization: `Basic ${auth}`,
         },
       }
