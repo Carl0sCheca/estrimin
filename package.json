@@ -14,7 +14,6 @@
     "startup": "dotenvx run -- tsx src/scripts/startup.ts"
   },
   "dependencies": {
-    "@eyevinn/webrtc-player": "^0.13.0",
     "@prisma/client": "^6.5.0",
     "better-auth": "^1.2.4",
     "next": "15.2.4",
@@ -23,6 +22,7 @@
     "react-dom": "19.0.0",
     "react-icons": "^5.5.0",
     "uuid": "^11.1.0",
+    "whep-player": "git://github.com/Carl0sCheca/whep-player-lib.git",
     "zod": "^3.24.2"
   },
   "devDependencies": {
