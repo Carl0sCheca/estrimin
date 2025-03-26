@@ -178,18 +178,23 @@ export const getLiveChannelsAction =
       items: [],
     };
 
-    const request = await fetch(`${process.env.STREAM_API_URL}/v3/paths/list`, {
-      method: "GET",
-    });
+    try {
+      const request = await fetch(
+        `${process.env.STREAM_API_URL}/v3/paths/list`,
+        {
+          method: "GET",
+        }
+      );
 
-    if (request.ok) {
-      const responseApi = await request.json();
-      if (responseApi) {
-        response.items = responseApi.items.map((i: LiveChannelItem) => {
-          return { name: i.name, ready: i.ready, readyTime: i.readyTime };
-        });
+      if (request.ok) {
+        const responseApi = await request.json();
+        if (responseApi) {
+          response.items = responseApi.items.map((i: LiveChannelItem) => {
+            return { name: i.name, ready: i.ready, readyTime: i.readyTime };
+          });
+        }
       }
-    }
+    } catch {}
 
     return response;
   };

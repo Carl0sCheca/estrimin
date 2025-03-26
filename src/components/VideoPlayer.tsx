@@ -1,8 +1,8 @@
 "use client";
 
 import { ReactElement, useEffect, useRef } from "react";
-import { WebRTCPlayer } from "@eyevinn/webrtc-player";
 import { useSearchParams } from "next/navigation";
+import { WhepPlayer } from "whep-player";
 
 interface Props {
   url: string;
@@ -21,50 +21,23 @@ export function VideoPlayer({ url, className }: Props): ReactElement {
 
       if (!video) return;
 
-      const player = new WebRTCPlayer({
+      const player = WhepPlayer({
         video,
-        type: "whep",
-        statsTypeFilter: "^candidate-*|^inbound-rtp",
+        url: `${url}${
+          password
+            ? `${url.includes("session") ? "&" : "?"}password=${password}`
+            : ``
+        }`,
       });
 
-      await player.load(
-        new URL(
-          url +
-            `${
-              password
-                ? `${url.includes("session") ? "&" : "?"}password=${password}`
-                : ``
-            }`
-        )
-      );
-      // player.unmute();
-
-      try {
-        await video.play();
-      } catch {
-        return;
-      }
-
-      // player.on("no-media", () => {
-      //   console.log("media timeout occured");
-      // });
-      // player.on("media-recovered", () => {
-      //   console.log("media recovered");
-      // });
-
-      // Subscribe for RTC stats: `stats:${RTCStatsType}`
-      // player.on("stats:inbound-rtp", (report) => {
-      //   if (report.kind === "video") {
-      //     console.log(report);
-      //   }
-      // });
+      player.load();
     };
 
     startPlay();
   }, [url, password]);
 
   return (
-    <div className={className}>
+    <div className={`${className} relative group`}>
       <video
         className="flex h-full w-full bg-black"
         ref={videoRef}
