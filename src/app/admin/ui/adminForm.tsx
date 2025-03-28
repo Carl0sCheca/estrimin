@@ -24,6 +24,7 @@ import { BiSolidSend } from "react-icons/bi";
 import { CgFormatSlash } from "react-icons/cg";
 import { FaCheckSquare, FaMinusSquare, FaSquare } from "react-icons/fa";
 import { ImInfinite } from "react-icons/im";
+import { IoMdPeople } from "react-icons/io";
 import { IoTrashBin } from "react-icons/io5";
 import { RiClipboardFill, RiUserFill, RiUserStarFill } from "react-icons/ri";
 
@@ -179,6 +180,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
           width={256}
           height={256}
           alt="Logo"
+          priority={true}
           src="/logo.png"
         />
         <h2
@@ -464,11 +466,19 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 return (
                   <div key={i} className="flex py-1 px-2">
                     <a
-                      className="w-1/2"
+                      className="w-1/2 inline-flex items-center truncate"
                       href={`${baseUrl}/${channel.name}`}
                       target="_blank"
                     >
-                      {channel.name}
+                      <div
+                        className="items-center truncate"
+                        title={channel.name}
+                      >
+                        {channel.name}
+                      </div>
+                      <div className="flex items-center">
+                        <IoMdPeople className="ml-2" /> {channel.viewers}
+                      </div>
                     </a>
                     <div className="w-1/2 text-right">
                       {getDiffTimeInMinutes(new Date(), channel.readyTime)}{" "}

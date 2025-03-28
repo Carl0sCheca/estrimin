@@ -8,7 +8,6 @@ import {
   GenerateRegistrationCodeResponse,
   GetLiveChannelsResponse,
   GetRegistrationCodesResponse,
-  LiveChannelItem,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -189,9 +188,21 @@ export const getLiveChannelsAction =
       if (request.ok) {
         const responseApi = await request.json();
         if (responseApi) {
-          response.items = responseApi.items.map((i: LiveChannelItem) => {
-            return { name: i.name, ready: i.ready, readyTime: i.readyTime };
-          });
+          response.items = responseApi.items.map(
+            (i: {
+              name: string;
+              ready: boolean;
+              readyTime: Date;
+              readers: [];
+            }) => {
+              return {
+                name: i.name,
+                ready: i.ready,
+                readyTime: i.readyTime,
+                viewers: i.readers.length,
+              };
+            }
+          );
         }
       }
     } catch {}
