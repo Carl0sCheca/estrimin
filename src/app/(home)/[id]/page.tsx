@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { UserVideoButton, VideoPlayer } from "@/components";
+import { VideoPlayer } from "@/components";
 import prisma from "@/lib/prisma";
 import NotFound from "@/app/not-found";
 import { auth } from "@/lib/auth";
@@ -54,8 +54,11 @@ export default async function StreamingUser(props: Props) {
 
   return (
     <div className={"flex h-full w-full z-0"}>
-      <UserVideoButton />
-      <VideoPlayer className={`flex-auto h-full w-full`} url={url} />
+      <VideoPlayer
+        className={`flex-auto h-full w-full`}
+        url={url}
+        channelName={params.id.toLowerCase()}
+      />
     </div>
   );
 }

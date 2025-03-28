@@ -40,6 +40,7 @@ export interface LiveChannelItem {
   name: string;
   ready: boolean;
   readyTime: Date;
+  viewers: number;
 }
 
 export interface GetLiveChannelsResponse {

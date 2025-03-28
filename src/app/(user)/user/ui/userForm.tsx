@@ -83,6 +83,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
             className={"mx-auto h-20 w-auto"}
             width={256}
             height={256}
+            priority={true}
             alt="Logo"
             src="/logo.png"
           />
