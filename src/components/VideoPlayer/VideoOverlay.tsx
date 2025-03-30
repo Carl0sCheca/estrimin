@@ -93,7 +93,7 @@ export const VideoOverlay = ({ playerState, viewers }: Props) => {
     >
       <div className={`ml-6 absolute h-full flex items-center justify-center`}>
         <span
-          className={`select-none rounded-md border-0 p-1 text-gray-900 dark:text-gray-100 shadow-xs ring-1 ring-inset ${
+          className={`select-none rounded-md border-0 p-1 text-gray-900 shadow-xs ring-1 ring-inset ${
             playerState === PlayerState.ONLINE
               ? "bg-primary-500 ring-primary-600"
               : "bg-gray-300 ring-gray-400"
