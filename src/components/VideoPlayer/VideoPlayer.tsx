@@ -39,7 +39,17 @@ export function VideoPlayer({
       intervalRef.current = setInterval(callback, duration);
     };
 
+    const closePlayer = async () => {
+      if (!playerRef.current) {
+        return;
+      }
+      clearCurrentInterval();
+      await playerRef.current.unload();
+    };
+
     const startPlay = async () => {
+      if (playerRef.current) return;
+
       const video = videoRef.current;
       if (!video) return;
 
@@ -87,6 +97,10 @@ export function VideoPlayer({
     };
 
     startPlay();
+
+    return () => {
+      closePlayer();
+    };
   }, [url, password, channelName]);
 
   return (
