@@ -294,7 +294,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                     value={watchOnlyPassword}
                     onChange={(e) => setWatchOnlyPassword(e.target.value)}
                     className={
-                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 dark:text-gray-100 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
                   />
 
