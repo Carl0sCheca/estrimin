@@ -21,10 +21,14 @@ export default async function ChannelPage() {
     redirect("/login");
   }
 
-  const settings: { streamUrl: string; settings: Array<Setting> } = {
+  const settings: {
+    streamUrl: string;
+    settings: Array<Setting>;
+  } = {
     streamUrl: process.env.BASE_URL || "",
     settings: await prisma.setting.findMany(),
   };
+
   const userChannel = await prisma.channel.findFirst({
     where: { userId: session.user.id },
     select: {
@@ -32,6 +36,7 @@ export default async function ChannelPage() {
       user: true,
       watchOnly: true,
       watchOnlyPassword: true,
+      token: true,
       channelAllowList: {
         select: {
           id: true,

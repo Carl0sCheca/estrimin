@@ -25,18 +25,26 @@ import {
 import { ChannelWatchOnly, Role, Setting } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, MouseEvent, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  MouseEvent,
+  MouseEventHandler,
+  useRef,
+  useState,
+} from "react";
 
 import {
   RiSave3Fill,
   RiUserFollowFill,
   RiUserUnfollowFill,
 } from "react-icons/ri";
+import { StreamKey } from "./streamKey";
 
 interface userChannel {
   id: number;
   watchOnly: ChannelWatchOnly;
   watchOnlyPassword: string | null;
+  token: string;
   user: {
     id: string;
     role: Role;
@@ -52,11 +60,14 @@ interface userChannel {
 }
 
 interface Props {
-  settings: { streamUrl: string; settings: Array<Setting> };
+  settings: {
+    streamUrl: string;
+    settings: Array<Setting>;
+  };
   userChannel: userChannel;
 }
 
-export function ChannelSettingsForm({ settings, userChannel }: Props) {
+export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
   const [watchOnlyOption, setWatchOnlyOption] = useState<ChannelWatchOnly>(
     userChannel.watchOnly
   );
@@ -123,10 +134,16 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
         </h2>
 
         <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700">
-          <Link href="/user">User settings</Link>
         </div>
-
-        <div className={"mt-6 sm:mx-auto sm:w-full sm:max-w-sm"}>
+        <div className="mt-6">
+          <StreamKey
+            tooltipMouseEnter={tooltipMouseEnter as MouseEventHandler}
+            tooltipMouseLeave={tooltipMouseLeave as MouseEventHandler}
+            settings={settings}
+            userChannel={userChannel}
+          />
+        </div>
+        <div className={"mt-3 sm:mx-auto sm:w-full sm:max-w-sm"}>
           <label
             htmlFor="watchstreamstate"
             className="block mb-2 text-sm font-medium text-gray-900 dark:text-gray-100"

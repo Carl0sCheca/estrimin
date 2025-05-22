@@ -1,14 +1,13 @@
 "use client";
 
-import { createChannel, updateUser } from "@/actions";
-import { LogoutButton, ThemeSwitch, Tooltip, useTooltip } from "@/components";
+import { updateUser } from "@/actions";
+import { LogoutButton, ThemeSwitch } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
 import { changePassword } from "@/lib/auth-client";
 import { User } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, FormEvent, MouseEvent, useRef, useState } from "react";
-import { VscDebugRestart } from "react-icons/vsc";
+import { ChangeEvent, FormEvent, useState } from "react";
 
 enum FormNameError {
   None = "",
@@ -29,17 +28,12 @@ enum FormPasswordError {
 
 interface Props {
   user: User;
-  streamKey: string;
-  settings: {
-    streamUrl: string | undefined;
-  };
 }
 
-export default function UserForm({ user, streamKey, settings }: Props) {
+export default function UserForm({ user }: Props) {
   const [formState, setFormState] = useState({
     name: user.name,
     email: user.email,
-    token: streamKey,
   });
 
   const [formPasswordState, setFormPasswordState] = useState({
@@ -49,21 +43,11 @@ export default function UserForm({ user, streamKey, settings }: Props) {
 
   const [button, setButton] = useState(false);
 
-  const [tooltip, setTooltip] = useState({
-    x: 0,
-    y: 0,
-    visible: false,
-  });
-
   const [errorState, setErrorState] = useState({
     name: FormNameError.None,
     email: FormEmailError.None,
     password: FormPasswordError.None,
   });
-
-  const tooltipRef = useRef(null);
-  const { tooltipState, tooltipMouseEnter, tooltipMouseLeave } =
-    useTooltip(tooltipRef);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFormState({
@@ -81,7 +65,6 @@ export default function UserForm({ user, streamKey, settings }: Props) {
 
   return (
     <>
-      <Tooltip state={tooltipState} tooltipRef={tooltipRef} />
       <div>
         <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
           <Image
@@ -369,120 +352,6 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                 Change password
               </button>
             </form>
-          </div>
-          <div className="mt-6">
-            <div className={"flex items-center justify-between"}>
-              <label
-                htmlFor="obstoken"
-                className={
-                  "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
-                }
-              >
-                Stream key
-              </label>
-            </div>
-            <div className={"mt-2"}>
-              <div className="flex">
-                <input
-                  id="token"
-                  name="token"
-                  type="text"
-                  readOnly
-                  value={formState.token}
-                  onChange={handleChange}
-                  className={
-                    "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                  }
-                />
-
-                <button
-                  onMouseEnter={(e) => tooltipMouseEnter(e, "Regenerate token")}
-                  onMouseLeave={tooltipMouseLeave}
-                  onClick={async () => {
-                    const tokenResponse = await createChannel();
-
-                    if (tokenResponse.ok && tokenResponse.data) {
-                      setFormState({
-                        ...formState,
-                        token: tokenResponse.data,
-                      });
-                    }
-                  }}
-                  className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
-                >
-                  <div className={"relative flex text-center justify-center"}>
-                    <VscDebugRestart />
-                  </div>
-                </button>
-              </div>
-            </div>
-            <div className={"items-center justify-between"}>
-              <label
-                htmlFor="obstoken"
-                className={
-                  "algo mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
-                }
-              >
-                Stream URL:
-                <div className="flex w-full">
-                  <div
-                    className="text-primary-600 cursor-pointer h-12 overflow-x-auto whitespace-nowrap"
-                    onClick={() => {
-                      if (formState.token) {
-                        const url = `${
-                          settings.streamUrl
-                        }/${user.name.toLowerCase()}/whip?token=${
-                          formState.token
-                        }`;
-                        navigator.clipboard.writeText(url);
-                      }
-                    }}
-                  >
-                    <div
-                      className="flex h-full"
-                      onMouseEnter={(e: MouseEvent) => {
-                        setTooltip({
-                          ...tooltip,
-                          visible: true,
-                          x: e.pageX - 20,
-                          y: e.pageY + 20,
-                        });
-                      }}
-                      onMouseLeave={() => {
-                        setTooltip({
-                          ...tooltip,
-                          visible: false,
-                        });
-                      }}
-                      onMouseMove={(e: MouseEvent) => {
-                        setTooltip({
-                          ...tooltip,
-                          visible: true,
-                          x: e.pageX - 20,
-                          y: e.pageY + 20,
-                        });
-                      }}
-                    >
-                      {`${
-                        settings.streamUrl
-                      }/${user.name.toLowerCase()}/whip?token=${
-                        formState.token
-                      }`}
-                    </div>
-                  </div>
-                  <span
-                    style={{ left: tooltip.x, top: tooltip.y }}
-                    className={`${
-                      tooltip.visible
-                        ? "opacity-100 visible"
-                        : "opacity-0 invisible"
-                    } transition-opacity select-none p-2 duration-1000 bg-gray-800 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute -translate-x-0 -translate-y-1/2 m-4 mx-auto`}
-                  >
-                    Copy URL
-                  </span>
-                </div>
-              </label>
-            </div>
           </div>
         </div>
       </div>

@@ -25,7 +25,6 @@ import { Setting } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { BiSolidSend } from "react-icons/bi";
 import { CgFormatSlash } from "react-icons/cg";
 import { FaCheckSquare, FaMinusSquare, FaSquare } from "react-icons/fa";
