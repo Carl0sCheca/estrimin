@@ -73,9 +73,11 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
     event: React.MouseEvent<HTMLElement>,
     text: string
   ) => {
-    if (!event.target) return;
+    if (!event.currentTarget) return;
 
-    const rect = (event.target as HTMLButtonElement).getBoundingClientRect();
+    const rect = (
+      event.currentTarget as HTMLButtonElement
+    ).getBoundingClientRect();
 
     const scrollY = event.pageY - event.clientY;
 
