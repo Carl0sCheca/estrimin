@@ -6,7 +6,12 @@ import {
   removeUserAllowlistAction,
   setPasswordChannelAction,
 } from "@/actions";
-import { Notification, useAlertNotification } from "@/components";
+import {
+  Notification,
+  Tooltip,
+  useAlertNotification,
+  useTooltip,
+} from "@/components";
 import {
   AddUserAllowlistRequest,
   AddUserAllowlistResponse,
@@ -20,7 +25,7 @@ import {
 import { ChannelWatchOnly, Role, Setting } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, MouseEvent, useRef, useState } from "react";
 
 import {
   RiSave3Fill,
@@ -78,6 +83,10 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
 
   const { alertNotification, showAlert } = useAlertNotification();
 
+  const tooltipRef = useRef(null);
+  const { tooltipState, tooltipMouseEnter, tooltipMouseLeave } =
+    useTooltip(tooltipRef);
+
   const isOverflowX = (element: HTMLElement) =>
     element.offsetWidth < element.scrollWidth;
 
@@ -94,6 +103,7 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
 
   return (
     <>
+      <Tooltip state={tooltipState} tooltipRef={tooltipRef} />
       <Notification state={alertNotification} />
       <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
         <Image
@@ -211,15 +221,14 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
 
                   <button
                     disabled={buttonsState.addUserAllowlist}
-                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    onMouseEnter={(e) => tooltipMouseEnter(e, "Add user")}
+                    onMouseLeave={tooltipMouseLeave}
+                    className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                   >
                     <div className={"relative flex text-center justify-center"}>
                       <div className="flex align-middle justify-center items-center text-base">
                         <RiUserFollowFill />
                       </div>
-                      <span className="cursor-pointer hover:hidden invisible group-hover:visible group-hover:opacity-100 transition-all p-2 bg-gray-800 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute left-full -translate-x-full -translate-y-[65px] opacity-0 m-4 mx-auto">
-                        Add user
-                      </span>
                     </div>
                   </button>
                 </form>
@@ -299,6 +308,8 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                   />
 
                   <button
+                    onMouseEnter={(e) => tooltipMouseEnter(e, "Save")}
+                    onMouseLeave={tooltipMouseLeave}
                     onClick={async () => {
                       setButtonsState({
                         ...buttonsState,
@@ -322,15 +333,12 @@ export function ChannelSettingsForm({ settings, userChannel }: Props) {
                       });
                     }}
                     disabled={buttonsState.changePassword}
-                    className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                   >
                     <div className={"relative flex text-center justify-center"}>
                       <div className="flex align-middle justify-center items-center text-base">
                         <RiSave3Fill />
                       </div>
-                      <span className="cursor-pointer hover:hidden invisible group-hover:visible group-hover:opacity-100 transition-all p-2 bg-gray-800 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute left-full -translate-x-full -translate-y-[65px] opacity-0 m-4 mx-auto">
-                        Save
-                      </span>
                     </div>
                   </button>
                 </div>

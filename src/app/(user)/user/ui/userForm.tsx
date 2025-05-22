@@ -1,13 +1,13 @@
 "use client";
 
 import { createChannel, updateUser } from "@/actions";
-import { LogoutButton, ThemeSwitch } from "@/components";
+import { LogoutButton, ThemeSwitch, Tooltip, useTooltip } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
 import { changePassword } from "@/lib/auth-client";
 import { User } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, FormEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, FormEvent, MouseEvent, useRef, useState } from "react";
 import { VscDebugRestart } from "react-icons/vsc";
 
 enum FormNameError {
@@ -61,6 +61,10 @@ export default function UserForm({ user, streamKey, settings }: Props) {
     password: FormPasswordError.None,
   });
 
+  const tooltipRef = useRef(null);
+  const { tooltipState, tooltipMouseEnter, tooltipMouseLeave } =
+    useTooltip(tooltipRef);
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFormState({
       ...formState,
@@ -77,6 +81,7 @@ export default function UserForm({ user, streamKey, settings }: Props) {
 
   return (
     <>
+      <Tooltip state={tooltipState} tooltipRef={tooltipRef} />
       <div>
         <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
           <Image
@@ -391,6 +396,8 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                 />
 
                 <button
+                  onMouseEnter={(e) => tooltipMouseEnter(e, "Regenerate token")}
+                  onMouseLeave={tooltipMouseLeave}
                   onClick={async () => {
                     const tokenResponse = await createChannel();
 
@@ -401,13 +408,10 @@ export default function UserForm({ user, streamKey, settings }: Props) {
                       });
                     }
                   }}
-                  className="group block w-1/5 bg-primary-600 hover:bg-primary-500  rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                  className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                 >
                   <div className={"relative flex text-center justify-center"}>
                     <VscDebugRestart />
-                    <span className="cursor-pointer hover:hidden invisible group-hover:visible group-hover:opacity-100 transition-all p-2 bg-gray-800 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute left-full -translate-x-full -translate-y-[85px] opacity-0 m-4 mx-auto">
-                      Regenerate token
-                    </span>
                   </div>
                 </button>
               </div>

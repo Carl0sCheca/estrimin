@@ -8,7 +8,13 @@ import {
   getLiveChannelsAction,
   getRegistrationCodesAction,
 } from "@/actions";
-import { Collapsible, Notification, useAlertNotification } from "@/components";
+import {
+  Collapsible,
+  Notification,
+  Tooltip,
+  useAlertNotification,
+  useTooltip,
+} from "@/components";
 import {
   ChangeUserRoleResponse,
   GenerateRegistrationCodeRequest,
@@ -48,19 +54,12 @@ export function AdminForm({ settings, baseUrl }: Props) {
 
   const { alertNotification, showAlert } = useAlertNotification();
 
+  const tooltipRef = useRef(null);
+  const { tooltipState, tooltipMouseEnter, tooltipMouseLeave } =
+    useTooltip(tooltipRef);
+
   const [expiresRegistrationCode, setExpiresRegistrationCode] = useState(false);
   const [expiresDate, setExpiresDate] = useState("");
-
-  const [tooltipVisible, setTooltipVisible] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [tooltipText, setTooltipText] = useState("");
-  const [tooltipTargetRect, setTooltipTargetRect] = useState({
-    width: 0,
-    height: 0,
-    x: 0,
-    y: 0,
-  });
-  const tooltipRef = useRef(null);
 
   const [registrationCodes, setRegistrationCodes] = useState<
     Array<RegistrationCodeDto>
@@ -108,71 +107,9 @@ export function AdminForm({ settings, baseUrl }: Props) {
     return () => clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
-    if (!tooltipRef.current) {
-      return;
-    }
-
-    const rect = (
-      tooltipRef.current as HTMLSpanElement
-    ).getBoundingClientRect();
-
-    let y = tooltipTargetRect.y - rect.height - 3;
-
-    if (tooltipTargetRect.y - tooltipTargetRect.height < 0) {
-      y = tooltipTargetRect.y + rect.height + 9;
-    }
-
-    const x =
-      tooltipTargetRect.x + tooltipTargetRect.width * 0.5 - rect.width * 0.5;
-
-    setTooltipPosition({
-      x,
-      y,
-    });
-  }, [tooltipText, tooltipTargetRect]);
-
-  const tooltipHandleMouseEnter = (
-    event: React.MouseEvent<HTMLElement>,
-    text: string
-  ) => {
-    if (!event.target) return;
-
-    const rect = (event.target as HTMLButtonElement).getBoundingClientRect();
-
-    setTooltipTargetRect({
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-    });
-    setTooltipText(text);
-    setTooltipVisible(true);
-  };
-
-  const tooltipHandleMouseLeave = () => {
-    setTooltipVisible(false);
-    setTooltipPosition({ x: -99999, y: -99999 });
-    setTooltipText("");
-  };
-
   return (
     <>
-      {tooltipVisible &&
-        createPortal(
-          <span
-            className="text-center cursor-pointer p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md fixed"
-            style={{
-              left: `${tooltipPosition.x}px`,
-              top: `${tooltipPosition.y}px`,
-            }}
-            onMouseEnter={tooltipHandleMouseLeave}
-            ref={tooltipRef}
-          >
-            {tooltipText}
-          </span>,
-          document.body
-        )}
+      <Tooltip state={tooltipState} tooltipRef={tooltipRef} />
       <Notification state={alertNotification} />
       <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
         <Image
@@ -237,6 +174,8 @@ export function AdminForm({ settings, baseUrl }: Props) {
               />
 
               <button
+                onMouseEnter={(e) => tooltipMouseEnter(e, "Switch role")}
+                onMouseLeave={tooltipMouseLeave}
                 onClick={async () => {
                   setButtonsState({ ...buttonsState, changeRole: true });
                   const changeUserRoleResponse: ChangeUserRoleResponse =
@@ -259,7 +198,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                   setButtonsState({ ...buttonsState, changeRole: false });
                 }}
                 disabled={buttonsState.changeRole}
-                className="group block w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md py-1.5 text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                className="flex w-1/5 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
               >
                 <div className={"relative flex text-center justify-center"}>
                   <div className="flex align-middle justify-center items-center text-base">
@@ -267,9 +206,6 @@ export function AdminForm({ settings, baseUrl }: Props) {
                     <CgFormatSlash />
                     <RiUserFill />
                   </div>
-                  <span className="cursor-pointer hover:hidden invisible group-hover:visible group-hover:opacity-100 transition-all p-2 bg-gray-800 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute left-full -translate-x-full -translate-y-[65px] opacity-0 m-4 mx-auto">
-                    Switch role
-                  </span>
                 </div>
               </button>
             </div>
@@ -315,10 +251,8 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 </div>
                 <button
                   className="flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
-                  onMouseEnter={(e) =>
-                    tooltipHandleMouseEnter(e, "Generate link")
-                  }
-                  onMouseLeave={tooltipHandleMouseLeave}
+                  onMouseEnter={(e) => tooltipMouseEnter(e, "Generate link")}
+                  onMouseLeave={tooltipMouseLeave}
                   onClick={async () => {
                     const request: GenerateRegistrationCodeRequest = {};
                     if (expiresRegistrationCode) {
@@ -361,8 +295,8 @@ export function AdminForm({ settings, baseUrl }: Props) {
               >
                 <button
                   className="group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
-                  onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Copy URL")}
-                  onMouseLeave={tooltipHandleMouseLeave}
+                  onMouseEnter={(e) => tooltipMouseEnter(e, "Copy URL")}
+                  onMouseLeave={tooltipMouseLeave}
                   onClick={async () => {
                     try {
                       await navigator.clipboard.writeText(
@@ -385,7 +319,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 <button
                   className="flex cursor-default m-2 w-1/2 justify-center items-center bg-primary-600 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
                   onMouseEnter={(e) =>
-                    tooltipHandleMouseEnter(
+                    tooltipMouseEnter(
                       e,
                       registrationCode.expirationDate &&
                         new Date(new Date().toJSON().slice(0, 10)) >
@@ -396,7 +330,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
                         : "Not used"
                     )
                   }
-                  onMouseLeave={tooltipHandleMouseLeave}
+                  onMouseLeave={tooltipMouseLeave}
                 >
                   {registrationCode.expirationDate &&
                   new Date(new Date().toJSON().slice(0, 10)) >
@@ -410,8 +344,8 @@ export function AdminForm({ settings, baseUrl }: Props) {
                 </button>
                 <button
                   className="flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
-                  onMouseEnter={(e) => tooltipHandleMouseEnter(e, "Delete ")}
-                  onMouseLeave={tooltipHandleMouseLeave}
+                  onMouseEnter={(e) => tooltipMouseEnter(e, "Delete ")}
+                  onMouseLeave={tooltipMouseLeave}
                   onClick={async () => {
                     const deleteResponse = await deleteRegistrationCodesAction(
                       registrationCode.id
