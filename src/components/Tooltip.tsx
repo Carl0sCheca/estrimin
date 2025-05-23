@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, RefObject, MouseEventHandler } from "react";
+import { useState, useEffect, RefObject } from "react";
 import { createPortal } from "react-dom";
 
 type Rect = {
@@ -30,7 +30,7 @@ interface TooltipProps {
 export const useTooltip = (tooltipRef: RefObject<null>) => {
   const [tooltipState, setTooltipState] = useState<TooltipState>({
     visible: false,
-    position: { x: 0, y: 0 },
+    position: { x: -999999, y: -999999 },
     text: "",
     targetRect: {
       width: 0,
@@ -41,7 +41,7 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
   });
 
   useEffect(() => {
-    if (!tooltipRef.current) {
+    if (!tooltipRef.current || !tooltipState.visible) {
       return;
     }
 
@@ -60,14 +60,14 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
       tooltipState.targetRect.width * 0.5 -
       rect.width * 0.5;
 
-    setTooltipState({
-      ...tooltipState,
+    setTooltipState((prevState) => ({
+      ...prevState,
       position: {
         x,
         y,
       },
-    });
-  }, [tooltipState.targetRect, tooltipState.text]);
+    }));
+  }, [tooltipState.targetRect, tooltipState.text, tooltipState.visible]);
 
   const tooltipMouseEnter = (
     event: React.MouseEvent<HTMLElement>,
@@ -81,8 +81,8 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
 
     const scrollY = event.pageY - event.clientY;
 
-    setTooltipState({
-      ...tooltipState,
+    setTooltipState((prevState) => ({
+      ...prevState,
       targetRect: {
         x: rect.x,
         y: rect.y + scrollY,
@@ -91,16 +91,18 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
       },
       text,
       visible: true,
-    });
+    }));
   };
 
   const tooltipMouseLeave = () => {
-    setTooltipState({
-      ...tooltipState,
-      text: "",
+    setTooltipState((prevState) => ({
+      ...prevState,
+      position: {
+        x: -999999,
+        y: -999999,
+      },
       visible: false,
-      position: { x: -99999, y: -99999 },
-    });
+    }));
   };
 
   return { tooltipState, tooltipMouseEnter, tooltipMouseLeave };
