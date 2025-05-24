@@ -42,6 +42,10 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
     },
   });
 
+  const [tooltipPosition, setTooltipPosition] = useState<"top" | "bottom">(
+    "top"
+  );
+
   useEffect(() => {
     if (!tooltipRef.current || !tooltipState.visible) {
       return;
@@ -58,10 +62,22 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
       tooltipState.targetRect.originalY -
         tooltipState.targetRect.height -
         gapY <
-      0
+        0 ||
+      tooltipPosition === "bottom"
     ) {
-      const positionDown = -tooltipState.targetRect.height * 2 - gapY * 2;
-      y -= positionDown;
+      if (
+        (tooltipPosition === "bottom" &&
+          tooltipState.targetRect.originalY +
+            tooltipState.targetRect.height +
+            rect.height +
+            gapY * 2 <=
+            window.innerHeight) ||
+        tooltipPosition !== "bottom"
+      ) {
+        const positionDown =
+          -tooltipState.targetRect.height - rect.height - gapY * 2;
+        y -= positionDown;
+      }
     }
 
     const x =
@@ -80,9 +96,12 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
 
   const tooltipMouseEnter = (
     event: React.MouseEvent<HTMLElement>,
-    text: string
+    text: string,
+    defaultPosition: "top" | "bottom" = "top"
   ) => {
     if (!event.currentTarget) return;
+
+    setTooltipPosition(defaultPosition);
 
     const rect = (
       event.currentTarget as HTMLButtonElement
