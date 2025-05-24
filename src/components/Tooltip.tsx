@@ -8,6 +8,7 @@ type Rect = {
   height: number;
   x: number;
   y: number;
+  originalY: number;
 };
 
 type Position = {
@@ -37,6 +38,7 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
       height: 0,
       x: 0,
       y: 0,
+      originalY: 0,
     },
   });
 
@@ -49,10 +51,17 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
       tooltipRef.current as HTMLSpanElement
     ).getBoundingClientRect();
 
-    let y = tooltipState.targetRect.y - rect.height - 3;
+    const gapY = 3;
+    let y = tooltipState.targetRect.y - rect.height - gapY;
 
-    if (tooltipState.targetRect.y - tooltipState.targetRect.height < 0) {
-      y = tooltipState.targetRect.y + rect.height + 9;
+    if (
+      tooltipState.targetRect.originalY -
+        tooltipState.targetRect.height -
+        gapY <
+      0
+    ) {
+      const positionDown = -tooltipState.targetRect.height * 2 - gapY * 2;
+      y -= positionDown;
     }
 
     const x =
@@ -86,6 +95,7 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
       targetRect: {
         x: rect.x,
         y: rect.y + scrollY,
+        originalY: rect.y,
         width: rect.width,
         height: rect.height,
       },
