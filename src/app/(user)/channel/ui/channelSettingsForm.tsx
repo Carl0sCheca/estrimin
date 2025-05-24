@@ -76,12 +76,6 @@ export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
     userChannel.watchOnlyPassword || ""
   );
 
-  const [tooltip, setTooltip] = useState({
-    x: 0,
-    y: 0,
-    visible: false,
-  });
-
   const [buttonsState, setButtonsState] = useState({
     changePassword: false,
     addUserAllowlist: false,
@@ -95,8 +89,12 @@ export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
   const { alertNotification, showAlert } = useAlertNotification();
 
   const tooltipRef = useRef(null);
-  const { tooltipState, tooltipMouseEnter, tooltipMouseLeave } =
-    useTooltip(tooltipRef);
+  const {
+    tooltipState,
+    tooltipMouseEnter,
+    tooltipMouseMove,
+    tooltipMouseLeave,
+  } = useTooltip(tooltipRef);
 
   const isOverflowX = (element: HTMLElement) =>
     element.offsetWidth < element.scrollWidth;
@@ -138,6 +136,7 @@ export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
         <div className="mt-6">
           <StreamKey
             tooltipMouseEnter={tooltipMouseEnter as MouseEventHandler}
+            tooltipMouseMove={tooltipMouseMove as MouseEventHandler}
             tooltipMouseLeave={tooltipMouseLeave as MouseEventHandler}
             settings={settings}
             userChannel={userChannel}
@@ -383,44 +382,20 @@ export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
                   >
                     <div
                       className="flex h-full"
-                      onMouseEnter={(e: MouseEvent) => {
-                        setTooltip({
-                          ...tooltip,
-                          visible: true,
-                          x: e.pageX - 20,
-                          y: e.pageY + 20,
-                        });
-                      }}
-                      onMouseLeave={() => {
-                        setTooltip({
-                          ...tooltip,
-                          visible: false,
-                        });
-                      }}
-                      onMouseMove={(e: MouseEvent) => {
-                        setTooltip({
-                          ...tooltip,
-                          visible: true,
-                          x: e.pageX - 20,
-                          y: e.pageY + 20,
-                        });
-                      }}
+                      onMouseEnter={(e) =>
+                        tooltipMouseEnter(e, "Copy URL", {
+                          defaultPosition: "bottom",
+                          followCursor: true,
+                        })
+                      }
+                      onMouseMove={(e) => tooltipMouseMove(e)}
+                      onMouseLeave={() => tooltipMouseLeave()}
                     >
                       {`${
                         settings.streamUrl
                       }/${userChannel.user.name.toLowerCase()}?password=${watchOnlyPassword}`}
                     </div>
                   </div>
-                  <span
-                    style={{ left: tooltip.x, top: tooltip.y }}
-                    className={`${
-                      tooltip.visible
-                        ? "opacity-100 visible"
-                        : "opacity-0 invisible"
-                    } transition-opacity select-none p-2 duration-1000 bg-gray-800 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute -translate-x-0 -translate-y-1/2 m-4 mx-auto`}
-                  >
-                    Copy URL
-                  </span>
                 </div>
               </label>
             </div>
@@ -429,4 +404,4 @@ export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
       </div>
     </>
   );
-}
+};

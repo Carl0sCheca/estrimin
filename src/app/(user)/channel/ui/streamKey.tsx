@@ -1,12 +1,13 @@
 "use client";
 
 import { createChannel } from "@/actions";
-import { MouseEvent, MouseEventHandler, useState } from "react";
+import { useState } from "react";
 import { VscDebugRestart } from "react-icons/vsc";
 import { userChannel } from "./channelSettingsForm";
 
 interface Props {
   tooltipMouseEnter: Function;
+  tooltipMouseMove: Function;
   tooltipMouseLeave: Function;
   settings: {
     streamUrl: string | undefined;
@@ -17,23 +18,16 @@ interface Props {
 export const StreamKey = ({
   tooltipMouseEnter,
   tooltipMouseLeave,
+  tooltipMouseMove,
   settings,
   userChannel,
 }: Props) => {
-  const [tooltip, setTooltip] = useState({
-    x: 0,
-    y: 0,
-    visible: false,
-  });
-
   const [token, setToken] = useState<string>(userChannel.token);
 
   return (
     <>
-      {" "}
       <div className={"flex items-center justify-between"}>
         <label
-          htmlFor="obstoken"
           className={
             "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
           }
@@ -75,9 +69,8 @@ export const StreamKey = ({
       </div>
       <div className={"items-center justify-between"}>
         <label
-          htmlFor="obstoken"
           className={
-            "algo mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
+            "mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
           }
         >
           Stream URL:
@@ -95,42 +88,20 @@ export const StreamKey = ({
             >
               <div
                 className="flex h-full"
-                onMouseEnter={(e: MouseEvent) => {
-                  setTooltip({
-                    ...tooltip,
-                    visible: true,
-                    x: e.pageX - 20,
-                    y: e.pageY + 20,
-                  });
-                }}
-                onMouseLeave={() => {
-                  setTooltip({
-                    ...tooltip,
-                    visible: false,
-                  });
-                }}
-                onMouseMove={(e: MouseEvent) => {
-                  setTooltip({
-                    ...tooltip,
-                    visible: true,
-                    x: e.pageX - 20,
-                    y: e.pageY + 20,
-                  });
-                }}
+                onMouseEnter={(e) =>
+                  tooltipMouseEnter(e, "Copy URL", {
+                    defaultPosition: "bottom",
+                    followCursor: true,
+                  })
+                }
+                onMouseMove={(e) => tooltipMouseMove(e)}
+                onMouseLeave={() => tooltipMouseLeave()}
               >
                 {`${
                   settings.streamUrl
                 }/${userChannel.user.name.toLowerCase()}/whip?token=${token}`}
               </div>
             </div>
-            <span
-              style={{ left: tooltip.x, top: tooltip.y }}
-              className={`${
-                tooltip.visible ? "opacity-100 visible" : "opacity-0 invisible"
-              } transition-opacity select-none p-2 duration-1000 bg-gray-800 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute -translate-x-0 -translate-y-1/2 m-4 mx-auto`}
-            >
-              Copy URL
-            </span>
           </div>
         </label>
       </div>
