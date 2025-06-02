@@ -1,7 +1,7 @@
 "use client";
 
+import { Logo } from "@/components";
 import { signIn } from "@/lib/auth-client";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useState } from "react";
@@ -55,14 +55,7 @@ export default function LoginForm() {
     <>
       <div>
         <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
-          <Image
-            className={"mx-auto h-20 w-auto"}
-            width={256}
-            height={256}
-            priority={true}
-            alt="Logo"
-            src="/logo.png"
-          />
+          <Logo />
           <h2
             className={
               "mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"

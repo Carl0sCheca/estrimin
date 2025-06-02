@@ -37,6 +37,7 @@ model User {
   channelAllowListUsersId Int?
   ChannelAllowList        ChannelAllowList[]  @relation("UserChannels")
   RegistrationCodes       RegistrationCodes[]
+  RecordingsClips         RecordingsClips[]
 
   @@unique([email])
   @@map("user")
@@ -100,6 +101,8 @@ model Channel {
   disabled          Boolean            @default(false)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   channelAllowList  ChannelAllowList[] @relation("ChannelUsers")
+  RecordingsSaved   RecordingsSaved[]
+  RecordingsClips   RecordingsClips[]
 
   @@map("channel")
 }
@@ -132,4 +135,37 @@ model RegistrationCodes {
   user User? @relation(fields: [usedById], references: [id], onDelete: NoAction)
 
   @@map("registrationCodes")
+}
+
+model RecordingsSaved {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  channelId Int
+  duration  Float    @default(0)
+  private   Boolean
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)
+
+  @@map("recordingsSaved")
+}
+
+model RecordingsClips {
+  id              String   @id @default(uuid())
+  createdAt       DateTime @default(now())
+  createdByUserId String
+  channelId       Int
+  duration        Float    @default(0)
+  private         Boolean
+
+  createdBy User    @relation(fields: [createdByUserId], references: [id], onDelete: NoAction)
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)
+
+  @@map("recordingsClips")
+}
+
+model UserSettings {
+  name  String @id
+  value Json
+
+  @@map("userSettings")
 }

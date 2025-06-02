@@ -13,6 +13,7 @@ const main = async () => {
           "login",
           "channel",
           "api",
+          "videos",
         ]),
       },
     });

@@ -3,6 +3,12 @@
 import { useState, useEffect, RefObject, useRef } from "react";
 import { createPortal } from "react-dom";
 
+export interface MouseEnterEventOptions {
+  defaultPosition?: "top" | "bottom";
+  followCursor?: boolean;
+  extraGapY?: number;
+}
+
 type Rect = {
   width: number;
   height: number;
@@ -101,25 +107,27 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
         y,
       },
     }));
-  }, [tooltipState.targetRect, tooltipState.text, tooltipState.visible]);
-
-  interface MouseEnterEventOptions {
-    defaultPosition: "top" | "bottom";
-    followCursor: boolean;
-  }
+  }, [
+    tooltipState.targetRect,
+    tooltipState.text,
+    tooltipState.visible,
+    tooltipFollowCursor,
+    tooltipRef,
+  ]);
 
   const tooltipMouseEnter = (
     event: React.MouseEvent<HTMLElement>,
     text: string,
-    options: MouseEnterEventOptions = {
-      defaultPosition: "top",
-      followCursor: false,
-    }
+    {
+      defaultPosition = "top",
+      followCursor = false,
+      extraGapY = 0,
+    }: MouseEnterEventOptions = {}
   ) => {
     if (!event.currentTarget || !tooltipRef.current) return;
 
-    tooltipPositionRef.current = options.defaultPosition;
-    setTooltipFollowCursor(options.followCursor);
+    tooltipPositionRef.current = defaultPosition;
+    setTooltipFollowCursor(followCursor);
 
     const rect = (
       event.currentTarget as HTMLButtonElement
@@ -132,15 +140,22 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
     let x = rect.x;
 
     const scrollY = event.pageY - event.clientY;
+
     let y = rect.y + scrollY;
 
-    if (options.followCursor) {
+    if (defaultPosition === "top") {
+      y -= extraGapY;
+    } else {
+      y += extraGapY;
+    }
+
+    if (followCursor) {
       x = event.pageX - rectTooltip.width * 0.5;
 
-      if (options.defaultPosition === "bottom") {
-        y = event.pageY + followCursorGapY;
+      if (defaultPosition === "bottom") {
+        y = event.pageY + (followCursorGapY + extraGapY);
       } else {
-        y = event.pageY - followCursorGapY * 2;
+        y = event.pageY - followCursorGapY * 2 - extraGapY;
       }
     }
 

@@ -109,7 +109,7 @@ export const VideoOverlay = ({ playerState, viewers }: Props) => {
           )}
         </span>
       </div>
-      <UserVideoButton />
+      <UserVideoButton isVisible={isVisible} />
     </div>
   );
 };

@@ -1,11 +1,10 @@
 "use client";
 
 import { updateUser } from "@/actions";
-import { LogoutButton, ThemeSwitch } from "@/components";
+import { Logo, LogoutButton, ThemeSwitch } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
 import { changePassword } from "@/lib/auth-client";
 import { User } from "@prisma/client";
-import Image from "next/image";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
 
@@ -67,14 +66,7 @@ export default function UserForm({ user }: Props) {
     <>
       <div>
         <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
-          <Image
-            className={"mx-auto h-20 w-auto"}
-            width={256}
-            height={256}
-            priority={true}
-            alt="Logo"
-            src="/logo.png"
-          />
+          <Logo />
           <div className="flex justify-center">
             <LogoutButton user={user} />
           </div>
@@ -83,23 +75,27 @@ export default function UserForm({ user }: Props) {
               "mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"
             }
           >
-            User settings:{" "}
+            Channel:{" "}
             <span className="text-primary-500 hover:text-primary-600">
               <Link title="Go to channel" href={`/${user.name}`}>
                 {user.name}
               </Link>
             </span>
           </h2>
-          <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700 hover:text-primary-600">
-            <Link href="/channel">Channel settings</Link>
+          <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700">
+            <Link href="/channel" className="hover:text-primary-600">
+              Channel dashboard
+            </Link>
           </div>
           {user.role === "ADMIN" && (
-            <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700 hover:text-primary-600">
-              <Link href="/admin">Admin dashboard</Link>
+            <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700">
+              <Link href="/admin" className="hover:text-primary-600">
+                Admin dashboard
+              </Link>
             </div>
           )}
-          <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700 hover:text-primary-600">
-            <ThemeSwitch />
+          <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700">
+            <ThemeSwitch className="hover:text-primary-600 cursor-pointer" />
           </div>
         </div>
         <div className={"mt-6 sm:mx-auto sm:w-full sm:max-w-sm"}>

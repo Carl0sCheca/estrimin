@@ -120,6 +120,20 @@ export const addUserAllowlistAction = async (
       return response;
     }
 
+    if (request.requestedBy.toLowerCase() === request.username.toLowerCase()) {
+      response.message = "You cannot add yourself to the list";
+      return response;
+    }
+
+    const channelList = await prisma.channelAllowList.findFirst({
+      where: { channelId: request.channelId, userId: user.id },
+    });
+
+    if (channelList) {
+      response.message = `The user '${request.username}' is already in the list`;
+      return response;
+    }
+
     const channelUpdated = await prisma.channelAllowList.upsert({
       create: { channelId: request.channelId, userId: user.id },
       update: { channelId: request.channelId, userId: user.id },

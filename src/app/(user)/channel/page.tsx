@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Channel settings",
+  title: "Channel dashboard",
 };
 
 export const revalidate = 0;
@@ -23,9 +23,11 @@ export default async function ChannelPage() {
 
   const settings: {
     streamUrl: string;
+    channelUrl: string;
     settings: Array<Setting>;
   } = {
-    streamUrl: process.env.BASE_URL || "",
+    streamUrl: process.env.STREAM_URL || "",
+    channelUrl: process.env.BASE_URL || "",
     settings: await prisma.setting.findMany(),
   };
 

@@ -3,16 +3,21 @@
 import { createChannel } from "@/actions";
 import { useState } from "react";
 import { VscDebugRestart } from "react-icons/vsc";
-import { userChannel } from "./channelSettingsForm";
+import { UserChannel } from "./channelSettingsForm";
+import { MouseEnterEventOptions } from "@/components";
 
 interface Props {
-  tooltipMouseEnter: Function;
-  tooltipMouseMove: Function;
-  tooltipMouseLeave: Function;
+  tooltipMouseEnter: (
+    event: React.MouseEvent<HTMLElement>,
+    text: string,
+    options?: MouseEnterEventOptions
+  ) => void;
+  tooltipMouseLeave: () => void;
+  tooltipMouseMove: (event: React.MouseEvent<HTMLElement>) => void;
   settings: {
     streamUrl: string | undefined;
   };
-  userChannel: userChannel;
+  userChannel: UserChannel;
 }
 
 export const StreamKey = ({

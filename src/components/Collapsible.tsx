@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 
 interface Props {
   title?: string;
   maxHeight?: number;
   children?: React.ReactNode;
+  setIsOpen?: Dispatch<SetStateAction<boolean>>;
 }
 
-export function Collapsible({ title, maxHeight, children }: Props) {
+export const Collapsible = ({
+  title,
+  maxHeight,
+  children,
+  setIsOpen,
+}: Props) => {
   const [folded, setFolded] = useState(true);
 
   return (
@@ -21,7 +27,13 @@ export function Collapsible({ title, maxHeight, children }: Props) {
       />
       <label
         htmlFor="accordion"
-        onClick={() => setFolded(!folded)}
+        onClick={() => {
+          if (setIsOpen) {
+            setIsOpen(!folded);
+          }
+
+          setFolded(!folded);
+        }}
         className="select-none flex items-center justify-between p-4 bg-primary-600 text-white cursor-pointer hover:bg-primary-500 transition-colors"
       >
         <span className="text-lg font-semibold">{title || ""}</span>
@@ -51,4 +63,4 @@ export function Collapsible({ title, maxHeight, children }: Props) {
       </div>
     </div>
   );
-}
+};

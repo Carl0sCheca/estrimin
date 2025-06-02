@@ -26,6 +26,7 @@ export interface SetPasswordResponse {
 export interface AddUserAllowlistRequest {
   channelId: number;
   username: string;
+  requestedBy: string;
 }
 
 export interface AllowListUser {

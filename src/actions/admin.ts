@@ -46,7 +46,7 @@ export const disableRegistration = async (
       response.ok = true;
     }
   } catch {
-    response.message = "An error has ocurred";
+    response.message = "An error has occurred";
   }
 
   return response;
@@ -94,7 +94,7 @@ export const changeUserRoleAction = async (
       response.newRole = newRole;
     }
   } catch {
-    response.message = "An error has ocurred";
+    response.message = "An error has occurred";
   }
 
   return response;
