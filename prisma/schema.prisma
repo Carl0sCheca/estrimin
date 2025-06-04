@@ -22,22 +22,29 @@ enum ChannelWatchOnly {
   PASSWORD
 }
 
+enum RecordingWatchOnly {
+  PUBLIC
+  ALLOWLIST
+  PRIVATE
+}
+
 model User {
-  id                      String              @id
-  name                    String              @unique @db.Citext
+  id                      String             @id
+  name                    String             @unique @db.Citext
   email                   String
   emailVerified           Boolean
   image                   String?
   createdAt               DateTime
   updatedAt               DateTime
-  role                    Role                @default(USER)
+  role                    Role               @default(USER)
   sessions                Session[]
   accounts                Account[]
   Channel                 Channel?
   channelAllowListUsersId Int?
-  ChannelAllowList        ChannelAllowList[]  @relation("UserChannels")
-  RegistrationCodes       RegistrationCodes[]
-  RecordingsClips         RecordingsClips[]
+  ChannelAllowList        ChannelAllowList[] @relation("UserChannels")
+  RegistrationCodes       RegistrationCode[]
+  RecordingClips          RecordingClip[]
+  UserSettings            UserSetting[]
 
   @@unique([email])
   @@map("user")
@@ -101,8 +108,8 @@ model Channel {
   disabled          Boolean            @default(false)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   channelAllowList  ChannelAllowList[] @relation("ChannelUsers")
-  RecordingsSaved   RecordingsSaved[]
-  RecordingsClips   RecordingsClips[]
+  RecordingsSaved   RecordingSaved[]
+  RecordingsClips   RecordingClip[]
 
   @@map("channel")
 }
@@ -125,7 +132,7 @@ model Setting {
   @@map("setting")
 }
 
-model RegistrationCodes {
+model RegistrationCode {
   id             String    @id @default(uuid())
   used           Boolean   @default(false)
   createdAt      DateTime  @default(now())
@@ -134,38 +141,41 @@ model RegistrationCodes {
 
   user User? @relation(fields: [usedById], references: [id], onDelete: NoAction)
 
-  @@map("registrationCodes")
+  @@map("registrationCode")
 }
 
-model RecordingsSaved {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  channelId Int
-  duration  Float    @default(0)
-  private   Boolean
+model RecordingSaved {
+  id         String             @id @default(uuid())
+  createdAt  DateTime           @default(now())
+  channelId  Int
+  duration   Float              @default(0)
+  visibility RecordingWatchOnly @default(PUBLIC)
 
   channel Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)
 
-  @@map("recordingsSaved")
+  @@map("recordingSaved")
 }
 
-model RecordingsClips {
-  id              String   @id @default(uuid())
-  createdAt       DateTime @default(now())
+model RecordingClip {
+  id              String             @id @default(uuid())
+  createdAt       DateTime           @default(now())
   createdByUserId String
   channelId       Int
-  duration        Float    @default(0)
-  private         Boolean
+  duration        Float              @default(0)
+  private         RecordingWatchOnly @default(PUBLIC)
 
   createdBy User    @relation(fields: [createdByUserId], references: [id], onDelete: NoAction)
   channel   Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)
 
-  @@map("recordingsClips")
+  @@map("recordingClip")
 }
 
-model UserSettings {
-  name  String @id
+model UserSetting {
+  key   String @id
   value Json
 
-  @@map("userSettings")
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("userSetting")
 }

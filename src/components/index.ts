@@ -4,7 +4,7 @@ export * from "./Logo";
 export * from "./LogoutButton";
 export * from "./MoreOptions";
 export * from "./Notification";
-export * from "./SelectorIcon";
+export * from "./Selector";
 export * from "./Spinner";
 export * from "./ThemeSwitch";
 export * from "./Tooltip";

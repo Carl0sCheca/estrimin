@@ -50,16 +50,16 @@ export default async function ChannelPage() {
     },
   });
 
-  if (!userChannel) {
-    redirect("/login");
-  }
-
   return (
     <>
       <div
         className={"flex min-h-full flex-col justify-center px-6 py-12 lg:px-8"}
       >
-        <ChannelSettingsForm settings={settings} userChannel={userChannel} />
+        <ChannelSettingsForm
+          settings={settings}
+          userChannel={userChannel}
+          session={session.session.id}
+        />
       </div>
     </>
   );

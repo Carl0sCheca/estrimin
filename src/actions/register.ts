@@ -54,7 +54,7 @@ export const registerAction = async (
 
   try {
     if (registrationCode) {
-      const validCode = await prisma.registrationCodes.findFirst({
+      const validCode = await prisma.registrationCode.findFirst({
         where: { id: registrationCode },
       });
 
@@ -104,7 +104,7 @@ export const registerAction = async (
     }
 
     if (registrationCode) {
-      await prisma.registrationCodes.update({
+      await prisma.registrationCode.update({
         where: {
           id: registrationCode,
           usedById: session.user.id,

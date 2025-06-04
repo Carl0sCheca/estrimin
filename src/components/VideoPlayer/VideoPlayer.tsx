@@ -12,11 +12,11 @@ interface Props {
   className?: string;
 }
 
-export function VideoPlayer({
+export const VideoPlayer = ({
   channelName,
   url,
   className,
-}: Props): ReactElement {
+}: Props): ReactElement => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<WhepPlayer | null>(null);
@@ -118,4 +118,4 @@ export function VideoPlayer({
       </div>
     </>
   );
-}
+};

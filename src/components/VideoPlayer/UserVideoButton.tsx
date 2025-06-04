@@ -16,7 +16,10 @@ export const UserVideoButton = ({ isVisible }: Props) => {
           isVisible ? "" : "pointer-events-none"
         }`}
       >
-        <FaUser className="w-4/5 h-4/5 cursor-pointer text-white hover:text-primary-500" />
+        <FaUser
+          size={42}
+          className="cursor-pointer text-white hover:text-primary-500"
+        />
       </Link>
     </div>
   );

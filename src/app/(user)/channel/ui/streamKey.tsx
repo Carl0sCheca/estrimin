@@ -17,7 +17,7 @@ interface Props {
   settings: {
     streamUrl: string | undefined;
   };
-  userChannel: UserChannel;
+  userChannel: UserChannel | null;
 }
 
 export const StreamKey = ({
@@ -27,7 +27,7 @@ export const StreamKey = ({
   settings,
   userChannel,
 }: Props) => {
-  const [token, setToken] = useState<string>(userChannel.token);
+  const [token, setToken] = useState<string>(userChannel?.token || "");
 
   return (
     <>
@@ -72,44 +72,46 @@ export const StreamKey = ({
           </button>
         </div>
       </div>
-      <div className={"items-center justify-between"}>
-        <label
-          className={
-            "mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
-          }
-        >
-          Stream URL:
-          <div className="flex w-full">
-            <div
-              className="text-primary-600 cursor-pointer h-12 overflow-x-auto whitespace-nowrap"
-              onClick={() => {
-                if (token) {
-                  const url = `${
-                    settings.streamUrl
-                  }/${userChannel.user.name.toLowerCase()}/whip?token=${token}`;
-                  navigator.clipboard.writeText(url);
-                }
-              }}
-            >
+      {userChannel && (
+        <div className={"items-center justify-between"}>
+          <label
+            className={
+              "mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
+            }
+          >
+            Stream URL:
+            <div className="flex w-full">
               <div
-                className="flex h-full"
-                onMouseEnter={(e) =>
-                  tooltipMouseEnter(e, "Copy URL", {
-                    defaultPosition: "bottom",
-                    followCursor: true,
-                  })
-                }
-                onMouseMove={(e) => tooltipMouseMove(e)}
-                onMouseLeave={() => tooltipMouseLeave()}
+                className="text-primary-600 cursor-pointer h-12 overflow-x-auto whitespace-nowrap"
+                onClick={() => {
+                  if (token) {
+                    const url = `${
+                      settings.streamUrl
+                    }/${userChannel.user.name.toLowerCase()}/whip?token=${token}`;
+                    navigator.clipboard.writeText(url);
+                  }
+                }}
               >
-                {`${
-                  settings.streamUrl
-                }/${userChannel.user.name.toLowerCase()}/whip?token=${token}`}
+                <div
+                  className="flex h-full"
+                  onMouseEnter={(e) =>
+                    tooltipMouseEnter(e, "Copy URL", {
+                      defaultPosition: "bottom",
+                      followCursor: true,
+                    })
+                  }
+                  onMouseMove={(e) => tooltipMouseMove(e)}
+                  onMouseLeave={() => tooltipMouseLeave()}
+                >
+                  {`${
+                    settings.streamUrl
+                  }/${userChannel.user.name.toLowerCase()}/whip?token=${token}`}
+                </div>
               </div>
             </div>
-          </div>
-        </label>
-      </div>
+          </label>
+        </div>
+      )}
     </>
   );
 };

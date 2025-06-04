@@ -39,7 +39,8 @@ async function downloadInThread(
 }
 
 export const getRecordingsListAction = async (
-  userChannel: UserChannel
+  userChannel: UserChannel,
+  session: string
 ): Promise<GetRecordingsListResponse> => {
   const response: GetRecordingsListResponse = {
     ok: false,
@@ -50,7 +51,7 @@ export const getRecordingsListAction = async (
     const request = await fetch(
       `${
         process.env.STREAM_RECORDINGS_URL
-      }/list?path=${userChannel.user.name.toLowerCase()}`,
+      }/list?path=${userChannel.user.name.toLowerCase()}&session=${session}`,
       {
         method: "GET",
       }
@@ -84,7 +85,7 @@ export const getRecordingsListAction = async (
   } catch {}
 
   try {
-    const savedRecordings = await prisma.recordingsSaved.findMany({
+    const savedRecordings = await prisma.recordingSaved.findMany({
       where: { channel: { userId: userChannel.user.id } },
     });
 
@@ -151,7 +152,7 @@ export const deleteRecordingAction = async (
         `${process.env.RECORDINGS_SAVED_PATH}/${userChannel.user.id}/${recording.id}.mp4`
       );
 
-      await prisma.recordingsSaved.delete({ where: { id: recording.id } });
+      await prisma.recordingSaved.delete({ where: { id: recording.id } });
 
       response.ok = true;
     } catch {}
@@ -162,14 +163,15 @@ export const deleteRecordingAction = async (
 
 export const saveRecordingAction = async (
   recording: Recording,
-  userChannel: UserChannel
+  userChannel: UserChannel,
+  session: string
 ): Promise<SaveRecordingResponse> => {
   const response: SaveRecordingResponse = {
     ok: false,
   };
 
   try {
-    const recordingDb = await prisma.recordingsSaved.create({
+    const recordingDb = await prisma.recordingSaved.create({
       data: {
         createdAt: recording.start,
         channelId: userChannel.id,
@@ -184,11 +186,11 @@ export const saveRecordingAction = async (
             recording.duration
           }&path=${userChannel.user.name.toLowerCase()}&start=${
             recording.start
-          }`,
+          }&session=${session}`,
           `${process.env.RECORDINGS_SAVED_PATH}/${userChannel.user.id}/${recordingDb.id}.mp4`
         );
       } catch {
-        await prisma.recordingsSaved.delete({ where: { id: recordingDb.id } });
+        await prisma.recordingSaved.delete({ where: { id: recordingDb.id } });
         throw Error("Error saving video");
       }
 
@@ -198,7 +200,20 @@ export const saveRecordingAction = async (
       );
 
       if (deleteResponse.ok) {
-        response.recording = { ...recording, type: "saved" };
+        response.recording = {
+          ...recording,
+          type: "saved",
+          id: recordingDb.id,
+          url: `videos/${userChannel.user.name}/${encodeURIComponent(
+            btoa(
+              JSON.stringify({
+                i: recordingDb.id,
+                d: recording.duration,
+                t: "s",
+              })
+            )
+          )}`,
+        };
         response.ok = true;
       }
     }

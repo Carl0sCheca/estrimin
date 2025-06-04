@@ -41,10 +41,15 @@ interface Props {
     channelUrl: string;
     settings: Array<Setting>;
   };
-  userChannel: UserChannel;
+  userChannel: UserChannel | null;
+  session: string;
 }
 
-export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
+export const ChannelSettingsForm = ({
+  settings,
+  userChannel,
+  session,
+}: Props) => {
   const { alertNotification, showAlert } = useAlertNotification();
 
   const tooltipRef = useRef(null);
@@ -82,22 +87,27 @@ export const ChannelSettingsForm = ({ settings, userChannel }: Props) => {
             userChannel={userChannel}
           />
         </div>
-        <StreamWatchSettingsForm
-          userChannel={userChannel}
-          showAlert={showAlert}
-          tooltipMouseEnter={tooltipMouseEnter}
-          tooltipMouseMove={tooltipMouseMove}
-          tooltipMouseLeave={tooltipMouseLeave}
-          channelUrl={settings.channelUrl}
-        />
-        <div className="mt-8">
-          <RecordingsList
-            userChannel={userChannel}
-            tooltipMouseEnter={tooltipMouseEnter}
-            tooltipMouseLeave={tooltipMouseLeave}
-            showAlert={showAlert}
-          />
-        </div>
+        {userChannel && (
+          <>
+            <StreamWatchSettingsForm
+              userChannel={userChannel}
+              showAlert={showAlert}
+              tooltipMouseEnter={tooltipMouseEnter}
+              tooltipMouseMove={tooltipMouseMove}
+              tooltipMouseLeave={tooltipMouseLeave}
+              channelUrl={settings.channelUrl}
+            />
+            <div className="mt-8">
+              <RecordingsList
+                userChannel={userChannel}
+                tooltipMouseEnter={tooltipMouseEnter}
+                tooltipMouseLeave={tooltipMouseLeave}
+                showAlert={showAlert}
+                session={session}
+              />
+            </div>
+          </>
+        )}
       </div>
     </>
   );

@@ -34,7 +34,7 @@ export default async function RegisterPage(props: Props) {
   } else {
     code = params.code.at(0);
 
-    const validCode = await prisma.registrationCodes.findFirst({
+    const validCode = await prisma.registrationCode.findFirst({
       where: { id: code },
     });
 

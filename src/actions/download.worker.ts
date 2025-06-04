@@ -2,6 +2,7 @@ import { pipeline } from "stream/promises";
 import { Readable } from "stream";
 import { ReadableStream } from "stream/web";
 import { parentPort, workerData } from "worker_threads";
+import path from "path";
 import fs from "fs";
 
 interface WorkerData {
@@ -17,12 +18,16 @@ const downloadVideo = async () => {
 
     if (!response.body) throw new Error("No response body");
 
-    const fileStream = fs.createWriteStream(filePath);
+    fs.mkdir(path.dirname(filePath), { recursive: true }, async (err) => {
+      if (err) throw err;
 
-    await pipeline(
-      Readable.fromWeb(response.body as ReadableStream<Uint8Array>),
-      fileStream
-    );
+      const fileStream = fs.createWriteStream(filePath);
+
+      await pipeline(
+        Readable.fromWeb(response.body as ReadableStream<Uint8Array>),
+        fileStream
+      );
+    });
 
     parentPort?.postMessage({ success: true, filePath });
   } catch (error) {

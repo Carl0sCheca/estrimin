@@ -118,7 +118,7 @@ export const MoreOptions = ({
       </div>
 
       <div
-        className={`flex absolute bg-gray-800 rounded-md p-1 transition-all duration-100 text-white ${
+        className={`flex absolute bg-gray-800 rounded-md p-1 transition-opacity duration-100 text-white ${
           isPositioned ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         style={{

@@ -107,7 +107,7 @@ export const generateRegistrationCode = async (
     ok: false,
   };
 
-  const registrationCode = await prisma.registrationCodes.create({
+  const registrationCode = await prisma.registrationCode.create({
     data: {
       expirationDate: request.expirationDate,
     },
@@ -130,7 +130,7 @@ export const getRegistrationCodesAction =
       ok: false,
     };
 
-    const registrationCodes = await prisma.registrationCodes.findMany({
+    const registrationCodes = await prisma.registrationCode.findMany({
       orderBy: { createdAt: "desc" },
       select: {
         createdAt: true,
@@ -159,7 +159,7 @@ export const deleteRegistrationCodesAction = async (
   };
 
   try {
-    await prisma.registrationCodes.delete({
+    await prisma.registrationCode.delete({
       where: { id },
     });
   } catch {

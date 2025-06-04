@@ -3,13 +3,18 @@
 import { useState } from "react";
 import { MouseEnterEventOptions } from "./Tooltip";
 
-interface Options {
+interface Option {
   value: string;
   label: string;
   icon: React.ReactNode;
 }
 
 interface Props {
+  multipleSelector?: {
+    id: string;
+    onToggle: (id: string | null) => void;
+    currentlyOpen: string | null;
+  };
   tooltip?: {
     mouseEnter: (
       event: React.MouseEvent<HTMLElement>,
@@ -18,27 +23,47 @@ interface Props {
     ) => void;
     mouseLeave: () => void;
   };
-  options: Options[];
+  options: Option[];
   chooseSelectedOption: string;
+  callback?: (selected: Option | undefined) => void;
 }
 
-export const SelectorIcon = ({
+export const Selector = ({
   chooseSelectedOption,
   tooltip,
   options,
+  callback,
+  multipleSelector,
 }: Props) => {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState(chooseSelectedOption);
 
-  const handleOptionClick = (option: Options) => {
-    setSelectedOption(option.value);
-    setIsSelectorOpen(false);
+  const handleOptionClick = (option: Option) => {
+    try {
+      if (callback) {
+        callback(option);
+      }
+
+      if (multipleSelector) {
+        multipleSelector.onToggle(null);
+      } else {
+        setIsSelectorOpen(false);
+      }
+
+      setSelectedOption(option.value);
+    } catch {}
   };
 
   return (
     <div className="relative">
       <div
-        onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+        onClick={() => {
+          if (multipleSelector) {
+            multipleSelector.onToggle(multipleSelector.id);
+          } else {
+            setIsSelectorOpen(!isSelectorOpen);
+          }
+        }}
         onMouseEnter={(e) =>
           tooltip?.mouseEnter(
             e,
@@ -53,7 +78,9 @@ export const SelectorIcon = ({
         {/* <MdArrowDropDown size={20} /> */}
       </div>
 
-      {isSelectorOpen && (
+      {(multipleSelector
+        ? multipleSelector.currentlyOpen === multipleSelector.id
+        : isSelectorOpen) && (
         <div className="absolute z-10 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
           {options.map((option) => (
             <div

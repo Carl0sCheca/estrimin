@@ -9,7 +9,7 @@ import {
   Collapsible,
   MoreOptions,
   MouseEnterEventOptions,
-  SelectorIcon,
+  Selector,
   Spinner,
 } from "@/components";
 import { Recording } from "@/interfaces";
@@ -35,6 +35,7 @@ interface Props {
   ) => void;
   tooltipMouseLeave: () => void;
   showAlert: (message: string, error?: boolean, duration?: number) => void;
+  session: string;
 }
 
 export const RecordingsList = ({
@@ -42,6 +43,7 @@ export const RecordingsList = ({
   tooltipMouseEnter,
   tooltipMouseLeave,
   showAlert,
+  session,
 }: Props) => {
   const [recordingList, setRecordingList] = useState<Array<Recording>>([]);
   const [recordingListIsLoading, setRecordingListIsLoading] = useState(true);
@@ -52,7 +54,10 @@ export const RecordingsList = ({
   useEffect(() => {
     const getRecordingsList = async () => {
       setRecordingListIsLoading(true);
-      const responseRecordingsList = await getRecordingsListAction(userChannel);
+      const responseRecordingsList = await getRecordingsListAction(
+        userChannel,
+        session
+      );
 
       if (responseRecordingsList.ok) {
         setRecordingList(responseRecordingsList.recordings);
@@ -62,7 +67,19 @@ export const RecordingsList = ({
     };
 
     getRecordingsList();
-  }, [userChannel]);
+  }, [userChannel, session]);
+
+  const [openSelectorId, setOpenSelectorId] = useState<string | null>(null);
+
+  const handleToggleSelector = (id: string | null) => {
+    setOpenSelectorId((prevId) => (prevId === id ? null : id));
+  };
+
+  useEffect(() => {
+    if (recordingListIsOpen) {
+      setOpenSelectorId(null);
+    }
+  }, [recordingListIsOpen]);
 
   return (
     <Collapsible setIsOpen={setRecordingListIsOpen} title="Saved streams">
@@ -75,9 +92,12 @@ export const RecordingsList = ({
       {recordingList.length === 0 && !recordingListIsLoading && (
         <div>No streams found</div>
       )}
-      {recordingList.map((recording, i) => {
+      {recordingList.map((recording) => {
         return (
-          <div key={i} className="flex py-1 px-2">
+          <div
+            key={`${recording.id}${recording.start}`}
+            className="flex py-1 px-2"
+          >
             <Link
               className="w-2/4 flex items-center"
               href={recording.url}
@@ -126,7 +146,8 @@ export const RecordingsList = ({
 
                     const response = await saveRecordingAction(
                       recording,
-                      userChannel
+                      userChannel,
+                      session
                     );
 
                     if (response.ok && response.recording) {
@@ -179,7 +200,7 @@ export const RecordingsList = ({
                 >
                   <MdOutlineSlowMotionVideo size={24} />
                 </div> */}
-                <div
+                {/* <div
                   onClick={async () => {
                     const response = await deleteRecordingAction(
                       recording,
@@ -205,9 +226,55 @@ export const RecordingsList = ({
                   className="flex items-center cursor-pointer hover:text-red-500 hover:transition-colors hover:duration-300"
                 >
                   <MdDeleteForever size={24} />
-                </div>
+                </div> */}
+                <Selector
+                  multipleSelector={{
+                    onToggle: handleToggleSelector,
+                    id: "deleteSelector",
+                    currentlyOpen: openSelectorId,
+                  }}
+                  tooltip={{
+                    mouseEnter: tooltipMouseEnter,
+                    mouseLeave: tooltipMouseLeave,
+                  }}
+                  chooseSelectedOption="delete"
+                  callback={async (selected) => {
+                    if (!selected) {
+                      return;
+                    }
+
+                    const response = await deleteRecordingAction(
+                      recording,
+                      userChannel
+                    );
+
+                    if (response.ok) {
+                      setRecordingList((list) =>
+                        list.filter((item) => item !== recording)
+                      );
+                      tooltipMouseLeave();
+                    } else {
+                      showAlert(
+                        response.message || "An error has occurred",
+                        true
+                      );
+                    }
+                  }}
+                  options={[
+                    {
+                      value: "delete",
+                      label: "Delete video",
+                      icon: <MdDeleteForever size={24} />,
+                    },
+                  ]}
+                />
                 {recording.type !== "not-saved" && (
-                  <SelectorIcon
+                  <Selector
+                    multipleSelector={{
+                      onToggle: handleToggleSelector,
+                      id: "visibilitySector",
+                      currentlyOpen: openSelectorId,
+                    }}
                     tooltip={{
                       mouseEnter: tooltipMouseEnter,
                       mouseLeave: tooltipMouseLeave,
@@ -230,6 +297,9 @@ export const RecordingsList = ({
                         icon: <RiLockFill size={24} />,
                       },
                     ]}
+                    callback={(selectedOption) => {
+                      console.log(selectedOption);
+                    }}
                   />
                 )}
               </MoreOptions>
