@@ -10,7 +10,6 @@ import {
 import { AllowListUser } from "@/interfaces";
 import { ChannelWatchOnly, Role, Setting } from "@prisma/client";
 import Link from "next/link";
-import { useRef } from "react";
 
 import { RecordingsList } from "./RecordingsList";
 import { StreamKey } from "./streamKey";
@@ -52,17 +51,12 @@ export const ChannelSettingsForm = ({
 }: Props) => {
   const { alertNotification, showAlert } = useAlertNotification();
 
-  const tooltipRef = useRef(null);
-  const {
-    tooltipState,
-    tooltipMouseEnter,
-    tooltipMouseMove,
-    tooltipMouseLeave,
-  } = useTooltip(tooltipRef);
+  const { elements, tooltipMouseEnter, tooltipMouseMove, tooltipMouseLeave } =
+    useTooltip();
 
   return (
     <>
-      <Tooltip state={tooltipState} tooltipRef={tooltipRef} />
+      <Tooltip elements={elements} />
       <Notification state={alertNotification} />
       <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
         <Logo />

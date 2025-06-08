@@ -1,119 +1,136 @@
 "use client";
 
-import { useState, useEffect, RefObject, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useState, useEffect, RefObject, useRef, createRef } from "react";
 
 export interface MouseEnterEventOptions {
   defaultPosition?: "top" | "bottom";
   followCursor?: boolean;
   extraGapY?: number;
 }
-
-type Rect = {
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-  originalY: number;
-};
-
 type Position = {
   x: number;
   y: number;
 };
 
-type TooltipState = {
+type Size = {
+  width: number;
+  height: number;
+};
+
+type TooltipElement = {
+  size?: Size;
+  position?: Position;
+};
+
+type Element = {
+  id: string;
+  element: HTMLElement;
   visible: boolean;
-  position: Position;
+  tooltipRef: RefObject<HTMLSpanElement | null>;
   text: string;
-  targetRect: Rect;
+  size?: Size;
+  position?: Position;
+  followCursor: boolean;
+  options: MouseEnterEventOptions;
 };
 
 interface TooltipProps {
-  state: TooltipState;
-  tooltipRef: RefObject<null>;
+  elements: Array<Element>;
 }
 
-export const useTooltip = (tooltipRef: RefObject<null>) => {
-  const [tooltipState, setTooltipState] = useState<TooltipState>({
-    visible: false,
-    position: { x: -999999, y: -999999 },
-    text: "",
-    targetRect: {
-      width: 0,
-      height: 0,
-      x: 0,
-      y: 0,
-      originalY: 0,
-    },
-  });
+export const useTooltip = () => {
+  const [elements, setElements] = useState<Array<Element>>([]);
+  const timeoutsMap = useRef<Map<HTMLElement, NodeJS.Timeout>>(new Map());
 
-  const followCursorGapY = 20;
+  const getPosition = (
+    element: Element,
+    event: React.MouseEvent<HTMLElement>,
+    tooltip?: TooltipElement
+  ): Position => {
+    const elementBounding = element.element.getBoundingClientRect();
+    const options = element.options;
 
-  const tooltipPositionRef = useRef<"top" | "bottom">("top");
+    let x =
+      elementBounding.x -
+      (tooltip?.size?.width || 0) * 0.5 +
+      elementBounding.width * 0.5;
 
-  const [tooltipFollowCursor, setTooltipFollowCursor] =
-    useState<boolean>(false);
+    const scrollY = event.pageY - event.clientY;
 
-  useEffect(() => {
-    if (!tooltipRef.current || !tooltipState.visible) {
-      return;
-    }
+    let y = 0;
 
-    const rect = (
-      tooltipRef.current as HTMLSpanElement
-    ).getBoundingClientRect();
+    if (options.followCursor) {
+      x = event.pageX - (tooltip?.size?.width || 0) * 0.5;
 
-    const gapY = 3;
+      if (options.defaultPosition === "bottom") {
+        y = event.pageY + (options.extraGapY || 0);
+      } else {
+        y =
+          event.pageY - (tooltip?.size?.height || 0) - (options.extraGapY || 0);
+      }
+    } else {
+      y = elementBounding.y + scrollY;
 
-    let y = tooltipState.targetRect.y;
-    let x = tooltipState.targetRect.x;
-
-    if (!tooltipFollowCursor) {
-      x =
-        tooltipState.targetRect.x +
-        tooltipState.targetRect.width * 0.5 -
-        rect.width * 0.5;
-
-      y = tooltipState.targetRect.y - rect.height - gapY;
-
-      if (
-        tooltipState.targetRect.originalY -
-          tooltipState.targetRect.height -
-          gapY <
-          0 ||
-        tooltipPositionRef.current === "bottom"
-      ) {
-        if (
-          (tooltipPositionRef.current === "bottom" &&
-            tooltipState.targetRect.originalY +
-              tooltipState.targetRect.height +
-              rect.height +
-              gapY * 2 <=
-              window.innerHeight) ||
-          tooltipPositionRef.current !== "bottom"
-        ) {
-          const positionDown =
-            -tooltipState.targetRect.height - rect.height - gapY * 2;
-          y -= positionDown;
-        }
+      if (options.defaultPosition === "top") {
+        y -= (options.extraGapY || 0) + (tooltip?.size?.height || 0);
+      } else {
+        y += elementBounding.height + (options.extraGapY || 0);
       }
     }
 
-    setTooltipState((prevState) => ({
-      ...prevState,
-      position: {
-        x,
-        y,
-      },
-    }));
-  }, [
-    tooltipState.targetRect,
-    tooltipState.text,
-    tooltipState.visible,
-    tooltipFollowCursor,
-    tooltipRef,
-  ]);
+    if (options.followCursor) {
+      if (
+        options.defaultPosition === "top" &&
+        elementBounding.y -
+          (tooltip?.size?.height || 0) -
+          (element.options.extraGapY || 0) <
+          0
+      ) {
+        y = event.pageY + (options.extraGapY || 0);
+      } else if (
+        options.defaultPosition === "bottom" &&
+        event.clientY +
+          (tooltip?.size?.height || 0) +
+          (element.options.extraGapY || 0) >=
+          window.innerHeight
+      ) {
+        y =
+          event.pageY - (tooltip?.size?.height || 0) - (options.extraGapY || 0);
+      }
+    } else {
+      if (
+        options.defaultPosition === "top" &&
+        elementBounding.y -
+          (tooltip?.size?.height || 0) -
+          (element.options.extraGapY || 0) <
+          0
+      ) {
+        y =
+          elementBounding.y +
+          scrollY +
+          elementBounding.height +
+          (options.extraGapY || 0);
+      } else if (
+        options.defaultPosition === "bottom" &&
+        elementBounding.y +
+          (tooltip?.size?.height || 0) +
+          elementBounding.height +
+          (element.options.extraGapY || 0) >=
+          window.innerHeight
+      ) {
+        y =
+          elementBounding.y +
+          scrollY -
+          (options.extraGapY || 0) -
+          (tooltip?.size?.height || 0);
+      }
+    }
+
+    return {
+      x,
+      y,
+    };
+  };
 
   const tooltipMouseEnter = (
     event: React.MouseEvent<HTMLElement>,
@@ -121,130 +138,198 @@ export const useTooltip = (tooltipRef: RefObject<null>) => {
     {
       defaultPosition = "top",
       followCursor = false,
-      extraGapY = 0,
+      extraGapY = 3,
     }: MouseEnterEventOptions = {}
   ) => {
-    if (!event.currentTarget || !tooltipRef.current) return;
+    const element = event.currentTarget as HTMLElement;
 
-    tooltipPositionRef.current = defaultPosition;
-    setTooltipFollowCursor(followCursor);
+    setElements((prevState) => {
+      const elementExists = prevState.find((item) => item.element === element);
+      const existingTimeout = timeoutsMap.current.get(element);
 
-    const rect = (
-      event.currentTarget as HTMLButtonElement
-    ).getBoundingClientRect();
-
-    const rectTooltip = (
-      tooltipRef.current as HTMLButtonElement
-    ).getBoundingClientRect();
-
-    let x = rect.x;
-
-    const scrollY = event.pageY - event.clientY;
-
-    let y = rect.y + scrollY;
-
-    if (defaultPosition === "top") {
-      y -= extraGapY;
-    } else {
-      y += extraGapY;
-    }
-
-    if (followCursor) {
-      x = event.pageX - rectTooltip.width * 0.5;
-
-      if (defaultPosition === "bottom") {
-        y = event.pageY + (followCursorGapY + extraGapY);
-      } else {
-        y = event.pageY - followCursorGapY * 2 - extraGapY;
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+        timeoutsMap.current.delete(element);
       }
-    }
 
-    setTooltipState((prevState) => ({
-      ...prevState,
-      targetRect: {
-        x,
-        y,
-        originalY: rect.y,
-        width: rect.width,
-        height: rect.height,
-      },
-      text,
-      visible: true,
-    }));
+      if (!elementExists) {
+        const id = crypto.randomUUID();
+
+        const newElement: Element = {
+          element,
+          id,
+          visible: false,
+          text,
+          tooltipRef: createRef<HTMLSpanElement>(),
+          followCursor,
+          options: {
+            defaultPosition,
+            followCursor,
+            extraGapY,
+          },
+        };
+
+        const visibilityTimeout = setTimeout(() => {
+          setElements((prev) =>
+            prev.map((item) => {
+              if (item.element === element) {
+                const tooltipElement = item.tooltipRef.current;
+                let size = item.size;
+                let position = item.position;
+
+                if (tooltipElement) {
+                  const rect = tooltipElement.getBoundingClientRect();
+                  size = { width: rect.width, height: rect.height };
+                  position = { x: rect.x, y: rect.y };
+                }
+
+                const { x, y } = getPosition(item, event, { size, position });
+
+                return {
+                  ...item,
+                  visible: true,
+                  size,
+                  position: {
+                    x,
+                    y,
+                  },
+                };
+              }
+
+              return item;
+            })
+          );
+        }, 20);
+
+        timeoutsMap.current.set(element, visibilityTimeout);
+
+        return [...prevState, newElement];
+      } else {
+        const visibilityTimeout = setTimeout(() => {
+          setElements((prev) =>
+            prev.map((item) => {
+              if (item.element === element) {
+                const tooltipElement = item.tooltipRef.current;
+                let size = item.size;
+                let position = item.position;
+
+                if (tooltipElement) {
+                  const rect = tooltipElement.getBoundingClientRect();
+                  size = { width: rect.width, height: rect.height };
+                  position = { x: rect.x, y: rect.y };
+                }
+
+                const { x, y } = getPosition(item, event, { size, position });
+
+                return {
+                  ...item,
+                  visible: true,
+                  size,
+                  position: { x, y },
+                };
+              }
+              return item;
+            })
+          );
+        }, 20);
+
+        timeoutsMap.current.set(element, visibilityTimeout);
+
+        return prevState;
+      }
+    });
   };
 
   const tooltipMouseMove = (event: React.MouseEvent<HTMLElement>) => {
-    if (!event.currentTarget || !tooltipRef.current) return;
+    const element = event.currentTarget as HTMLElement;
 
-    setTooltipFollowCursor(true);
+    setElements((prev) =>
+      prev.map((item) => {
+        if (item.element === element) {
+          const tooltipElement = item.tooltipRef.current;
+          let size = item.size;
+          let position = item.position;
 
-    const rect = (
-      tooltipRef.current as HTMLButtonElement
-    ).getBoundingClientRect();
+          if (tooltipElement) {
+            const rect = tooltipElement.getBoundingClientRect();
+            size = { width: rect.width, height: rect.height };
+            position = { x: rect.x, y: rect.y };
+          }
 
-    const x = event.pageX - rect.width * 0.5;
+          const { x, y } = getPosition(item, event, {
+            size,
+            position,
+          });
 
-    let y;
+          return {
+            ...item,
+            position: { x, y },
+          };
+        }
 
-    if (tooltipPositionRef.current === "bottom") {
-      y = event.pageY + followCursorGapY;
-    } else {
-      y = event.pageY - followCursorGapY * 2;
-    }
-
-    setTooltipState((prevState) => ({
-      ...prevState,
-      position: {
-        x,
-        y,
-      },
-    }));
+        return item;
+      })
+    );
   };
 
-  const tooltipMouseLeave = () => {
-    setTooltipState((prevState) => ({
-      ...prevState,
-      position: {
-        x: -999999,
-        y: -999999,
-      },
-      visible: false,
-      text: "",
-    }));
+  const tooltipMouseLeave = (event: React.MouseEvent<HTMLElement>) => {
+    const element = event.currentTarget as HTMLElement;
+
+    setElements((prevState) => {
+      return prevState.map((item) => {
+        if (item.element === element) {
+          const existingTimeout = timeoutsMap.current.get(element);
+          if (existingTimeout) clearTimeout(existingTimeout);
+
+          item.visible = false;
+
+          const newTimeout = setTimeout(() => {
+            setElements((prev) => prev.filter((el) => el.element !== element));
+          }, 1000);
+
+          timeoutsMap.current.set(element, newTimeout);
+        }
+        return item;
+      });
+    });
   };
+
+  useEffect(() => {
+    const currentTimeoutsMap = timeoutsMap.current;
+
+    return () => {
+      currentTimeoutsMap.forEach((timeout) => clearTimeout(timeout));
+      currentTimeoutsMap.clear();
+    };
+  }, []);
 
   return {
-    tooltipState,
+    elements,
     tooltipMouseEnter,
     tooltipMouseLeave,
     tooltipMouseMove,
   };
 };
 
-export const Tooltip = ({ state, tooltipRef }: TooltipProps) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
+export const Tooltip = ({ elements }: TooltipProps) => {
   return (
     <>
-      {mounted &&
-        createPortal(
+      {elements.map((element) => {
+        return (
           <span
-            className="select-none pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute"
+            key={element.id}
+            className="select-none pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500k ease-out"
             style={{
-              left: `${state.position.x}px`,
-              top: `${state.position.y}px`,
-              opacity: `${state.visible ? 1 : 0}`,
+              left: `${element.position?.x || 0}px`,
+              top: `${element.position?.y || 0}px`,
+              opacity: `${element.visible ? 1 : 0}`,
             }}
-            ref={tooltipRef}
+            ref={element.tooltipRef}
           >
-            {state.text}
-          </span>,
-          document.body
-        )}
+            {element.text}
+          </span>
+        );
+      })}
     </>
   );
 };

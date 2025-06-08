@@ -12,7 +12,7 @@ interface Props {
     text: string,
     options?: MouseEnterEventOptions
   ) => void;
-  tooltipMouseLeave: () => void;
+  tooltipMouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   tooltipMouseMove: (event: React.MouseEvent<HTMLElement>) => void;
   settings: {
     streamUrl: string | undefined;
@@ -56,7 +56,7 @@ export const StreamKey = ({
 
           <button
             onMouseEnter={(e) => tooltipMouseEnter(e, "Regenerate token")}
-            onMouseLeave={() => tooltipMouseLeave()}
+            onMouseLeave={tooltipMouseLeave}
             onClick={async () => {
               const tokenResponse = await createChannel();
 
@@ -98,10 +98,11 @@ export const StreamKey = ({
                     tooltipMouseEnter(e, "Copy URL", {
                       defaultPosition: "bottom",
                       followCursor: true,
+                      extraGapY: 20,
                     })
                   }
                   onMouseMove={(e) => tooltipMouseMove(e)}
-                  onMouseLeave={() => tooltipMouseLeave()}
+                  onMouseLeave={tooltipMouseLeave}
                 >
                   {`${
                     settings.streamUrl

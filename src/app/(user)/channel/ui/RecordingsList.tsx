@@ -33,7 +33,7 @@ interface Props {
     text: string,
     options?: MouseEnterEventOptions
   ) => void;
-  tooltipMouseLeave: () => void;
+  tooltipMouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   showAlert: (message: string, error?: boolean, duration?: number) => void;
   session: string;
 }
@@ -107,7 +107,7 @@ export const RecordingsList = ({
                 onMouseEnter={(e) =>
                   tooltipMouseEnter(e, formatDate(recording.start, true))
                 }
-                onMouseLeave={() => tooltipMouseLeave()}
+                onMouseLeave={tooltipMouseLeave}
                 className="flex items-center"
               >
                 <RiFileVideoLine className="mr-1.5" />{" "}
@@ -120,7 +120,7 @@ export const RecordingsList = ({
                     `Duration: ${secondsToHMS(recording.duration)}`
                   )
                 }
-                onMouseLeave={() => tooltipMouseLeave()}
+                onMouseLeave={tooltipMouseLeave}
                 className="flex items-center"
               >
                 <IoIosTimer className="ml-2" />
@@ -137,7 +137,7 @@ export const RecordingsList = ({
                 }}
               >
                 <div
-                  onClick={async () => {
+                  onClick={async (e) => {
                     if (recording.type !== "not-saved") {
                       return;
                     }
@@ -159,7 +159,7 @@ export const RecordingsList = ({
                           return r;
                         })
                       );
-                      tooltipMouseLeave();
+                      tooltipMouseLeave(e);
                       showAlert("Saved stream");
                     }
 
@@ -172,11 +172,11 @@ export const RecordingsList = ({
                         ? "Keep stream forever"
                         : "This stream is saved",
                       {
-                        extraGapY: 3,
+                        extraGapY: 6,
                       }
                     )
                   }
-                  onMouseLeave={() => tooltipMouseLeave()}
+                  onMouseLeave={tooltipMouseLeave}
                   className={`flex items-center hover:transition-colors hover:duration-300 ${
                     recording.type === "not-saved"
                       ? "hover:text-green-400 cursor-pointer"
@@ -238,7 +238,7 @@ export const RecordingsList = ({
                     mouseLeave: tooltipMouseLeave,
                   }}
                   chooseSelectedOption="delete"
-                  callback={async (selected) => {
+                  callback={async (event, selected) => {
                     if (!selected) {
                       return;
                     }
@@ -252,7 +252,8 @@ export const RecordingsList = ({
                       setRecordingList((list) =>
                         list.filter((item) => item !== recording)
                       );
-                      tooltipMouseLeave();
+
+                      tooltipMouseLeave(event);
                     } else {
                       showAlert(
                         response.message || "An error has occurred",

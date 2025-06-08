@@ -55,9 +55,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
 
   const { alertNotification, showAlert } = useAlertNotification();
 
-  const tooltipRef = useRef(null);
-  const { tooltipState, tooltipMouseEnter, tooltipMouseLeave } =
-    useTooltip(tooltipRef);
+  const { elements, tooltipMouseEnter, tooltipMouseLeave } = useTooltip();
 
   const [expiresRegistrationCode, setExpiresRegistrationCode] = useState(false);
   const [expiresDate, setExpiresDate] = useState("");
@@ -105,7 +103,7 @@ export function AdminForm({ settings, baseUrl }: Props) {
 
   return (
     <>
-      <Tooltip state={tooltipState} tooltipRef={tooltipRef} />
+      <Tooltip elements={elements} />
       <Notification state={alertNotification} />
       <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
         <Logo />

@@ -21,11 +21,14 @@ interface Props {
       text: string,
       options?: MouseEnterEventOptions
     ) => void;
-    mouseLeave: () => void;
+    mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   };
   options: Option[];
   chooseSelectedOption: string;
-  callback?: (selected: Option | undefined) => void;
+  callback?: (
+    event: React.MouseEvent<HTMLElement>,
+    selected: Option | undefined
+  ) => void;
 }
 
 export const Selector = ({
@@ -38,10 +41,20 @@ export const Selector = ({
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState(chooseSelectedOption);
 
-  const handleOptionClick = (option: Option) => {
+  const [parentElement, setParentElement] = useState<HTMLElement | null>(null);
+
+  const handleOptionClick = (
+    event: React.MouseEvent<HTMLElement>,
+    option: Option
+  ) => {
     try {
-      if (callback) {
-        callback(option);
+      if (callback && parentElement) {
+        const syntheticEvent: React.MouseEvent<HTMLElement> = {
+          ...event,
+          currentTarget: parentElement,
+        };
+
+        callback(syntheticEvent, option);
       }
 
       if (multipleSelector) {
@@ -64,14 +77,16 @@ export const Selector = ({
             setIsSelectorOpen(!isSelectorOpen);
           }
         }}
-        onMouseEnter={(e) =>
+        onMouseEnter={(e) => {
+          setParentElement(e.currentTarget as HTMLElement);
+
           tooltip?.mouseEnter(
             e,
             options.find((opt) => opt.value === selectedOption)?.label || "",
-            { extraGapY: 3 }
-          )
-        }
-        onMouseLeave={() => tooltip?.mouseLeave()}
+            { extraGapY: 6 }
+          );
+        }}
+        onMouseLeave={tooltip?.mouseLeave}
         className="flex items-center cursor-pointer hover:text-gray-300 hover:transition-colors hover:duration-300"
       >
         {options.find((opt) => opt.value === selectedOption)?.icon}
@@ -85,7 +100,7 @@ export const Selector = ({
           {options.map((option) => (
             <div
               key={option.value}
-              onClick={() => handleOptionClick(option)}
+              onClick={(e) => handleOptionClick(e, option)}
               className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
             >
               <span className="mr-2">{option.icon}</span>

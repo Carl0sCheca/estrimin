@@ -33,7 +33,7 @@ interface Props {
     text: string,
     options?: MouseEnterEventOptions
   ) => void;
-  tooltipMouseLeave: () => void;
+  tooltipMouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   tooltipMouseMove: (event: React.MouseEvent<HTMLElement>) => void;
   userChannel: UserChannel;
   channelUrl: string;
@@ -187,7 +187,7 @@ export const StreamWatchSettingsForm = ({
                 <button
                   disabled={buttonsState.addUserAllowlist}
                   onMouseEnter={(e) => tooltipMouseEnter(e, "Add user")}
-                  onMouseLeave={() => tooltipMouseLeave()}
+                  onMouseLeave={tooltipMouseLeave}
                   className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                 >
                   <div className={"relative flex text-center justify-center"}>
@@ -274,7 +274,7 @@ export const StreamWatchSettingsForm = ({
 
                 <button
                   onMouseEnter={(e) => tooltipMouseEnter(e, "Save")}
-                  onMouseLeave={() => tooltipMouseLeave()}
+                  onMouseLeave={tooltipMouseLeave}
                   onClick={async () => {
                     setButtonsState({
                       ...buttonsState,
@@ -333,10 +333,11 @@ export const StreamWatchSettingsForm = ({
                       tooltipMouseEnter(e, "Copy URL", {
                         defaultPosition: "bottom",
                         followCursor: true,
+                        extraGapY: 20,
                       })
                     }
                     onMouseMove={(e) => tooltipMouseMove(e)}
-                    onMouseLeave={() => tooltipMouseLeave()}
+                    onMouseLeave={tooltipMouseLeave}
                   >
                     {`${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${watchOnlyPassword}`}
                   </div>

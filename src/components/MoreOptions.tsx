@@ -13,7 +13,7 @@ interface Props {
       text: string,
       options?: MouseEnterEventOptions
     ) => void;
-    mouseLeave: () => void;
+    mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
     text: string;
   };
   children?: React.ReactNode;
@@ -34,8 +34,8 @@ export const MoreOptions = ({
   const childrenRef = useRef<HTMLDivElement>(null);
 
   const [childrenPosition, setChildrenPosition] = useState({
-    x: -999999,
-    y: -999999,
+    x: 0,
+    y: 0,
     width: 0,
     height: 0,
   });
@@ -105,7 +105,7 @@ export const MoreOptions = ({
         onMouseEnter={(e) =>
           tooltip?.mouseEnter(e, tooltip.text, { defaultPosition: "bottom" })
         }
-        onMouseLeave={() => tooltip?.mouseLeave()}
+        onMouseLeave={tooltip?.mouseLeave}
         className={className}
         ref={dotsRef}
       >
