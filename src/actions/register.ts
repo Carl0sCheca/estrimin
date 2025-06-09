@@ -107,10 +107,10 @@ export const registerAction = async (
       await prisma.registrationCodes.update({
         where: {
           id: registrationCode,
-          usedById: session.user.id,
         },
         data: {
           used: true,
+          usedById: session.user.id,
         },
       });
     }
