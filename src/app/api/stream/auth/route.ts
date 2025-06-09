@@ -9,17 +9,15 @@ const getStreamParams = (
   path: string
 ): {
   stream: string | undefined;
-  token: string | undefined;
   password: string | undefined;
   session: string | undefined;
 } => {
   const parsedParams = queryString.parse(query);
-  const { token, password, session } = parsedParams;
+  const { password, session } = parsedParams;
   const stream = path;
 
   return {
     stream,
-    token: Array.isArray(token) ? token[0] : token,
     password: Array.isArray(password) ? password[0] : password,
     session: Array.isArray(session) ? session[0] : session,
   };
@@ -88,7 +86,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { token, stream, password, session } = getStreamParams(
+  const { token } = request;
+
+  const { stream, password, session } = getStreamParams(
     request.query,
     request.path
   );

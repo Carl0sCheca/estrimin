@@ -223,6 +223,7 @@ export const useTooltip = () => {
 
                 return {
                   ...item,
+                  text,
                   visible: true,
                   size,
                   position: { x, y },

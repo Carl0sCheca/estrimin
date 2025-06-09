@@ -79,6 +79,7 @@ export const ChannelSettingsForm = ({
             tooltipMouseLeave={tooltipMouseLeave}
             settings={settings}
             userChannel={userChannel}
+            showAlert={showAlert}
           />
         </div>
         {userChannel && (
