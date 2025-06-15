@@ -60,9 +60,7 @@ export default async function RecordingPlayerPage({
   let url = "";
 
   if (t === "n") {
-    url = `${
-      process.env.STREAM_RECORDINGS_URL
-    }/get?duration=${videoDuration}&path=${channelId.toLowerCase()}&start=${videoId}`;
+    url = `${process.env.STREAM_RECORDINGS_URL}/get?duration=${videoDuration}&path=${channel.userId}&start=${videoId}`;
   } else {
     url = `${process.env.BASE_URL}/api/videos/watch/${channel?.userId}/${videoId}`;
   }

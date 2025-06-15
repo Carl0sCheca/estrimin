@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import UserForm from "./ui/userForm";
 import { redirect } from "next/navigation";
 import { User } from "@prisma/client";
 import { auth } from "@/lib/auth";
+import { UserForm } from "./ui/userForm";
 
 export const metadata: Metadata = {
   title: "User",

@@ -8,12 +8,12 @@ import { PlayerState, VideoOverlay } from "@/components";
 
 interface Props {
   url: string;
-  channelName: string;
+  channelUserId: string;
   className?: string;
 }
 
 export const VideoPlayer = ({
-  channelName,
+  channelUserId,
   url,
   className,
 }: Props): ReactElement => {
@@ -68,13 +68,13 @@ export const VideoPlayer = ({
       player.onConnected(async () => {
         setPlayerState(PlayerState.ONLINE);
 
-        const viewers = await GetViewers(channelName);
+        const viewers = await GetViewers(channelUserId);
         if (viewers.ok && viewers.count) {
           setViewersCount(viewers.count);
         }
 
         setNewInterval(async () => {
-          const viewers = await GetViewers(channelName);
+          const viewers = await GetViewers(channelUserId);
           if (viewers.ok && viewers.count) {
             setViewersCount(viewers.count);
           }
@@ -101,7 +101,7 @@ export const VideoPlayer = ({
     return () => {
       closePlayer();
     };
-  }, [url, password, channelName]);
+  }, [url, password, channelUserId]);
 
   return (
     <>

@@ -8,7 +8,12 @@ import {
   useTooltip,
 } from "@/components";
 import { AllowListUser } from "@/interfaces";
-import { ChannelWatchOnly, Role, Setting } from "@prisma/client";
+import {
+  ChannelVisibility,
+  Role,
+  SiteSetting,
+  UserSetting,
+} from "@prisma/client";
 import Link from "next/link";
 
 import { RecordingsList } from "./RecordingsList";
@@ -17,8 +22,8 @@ import { StreamWatchSettingsForm } from "./StreamWatchSettingsForm";
 
 export interface UserChannel {
   id: number;
-  watchOnly: ChannelWatchOnly;
-  watchOnlyPassword: string | null;
+  visibility: ChannelVisibility;
+  visibilityPassword: string | null;
   token: string;
   user: {
     id: string;
@@ -38,16 +43,18 @@ interface Props {
   settings: {
     streamUrl: string;
     channelUrl: string;
-    settings: Array<Setting>;
+    settings: Array<SiteSetting>;
   };
   userChannel: UserChannel | null;
   session: string;
+  userSettings: Array<UserSetting>;
 }
 
 export const ChannelSettingsForm = ({
   settings,
   userChannel,
   session,
+  userSettings,
 }: Props) => {
   const { alertNotification, showAlert } = useAlertNotification();
 
@@ -92,15 +99,15 @@ export const ChannelSettingsForm = ({
               tooltipMouseLeave={tooltipMouseLeave}
               channelUrl={settings.channelUrl}
             />
-            <div className="mt-8">
-              <RecordingsList
-                userChannel={userChannel}
-                tooltipMouseEnter={tooltipMouseEnter}
-                tooltipMouseLeave={tooltipMouseLeave}
-                showAlert={showAlert}
-                session={session}
-              />
-            </div>
+
+            <RecordingsList
+              userChannel={userChannel}
+              tooltipMouseEnter={tooltipMouseEnter}
+              tooltipMouseLeave={tooltipMouseLeave}
+              showAlert={showAlert}
+              session={session}
+              userSettings={userSettings}
+            />
           </>
         )}
       </div>

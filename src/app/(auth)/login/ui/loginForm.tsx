@@ -11,7 +11,7 @@ enum LoginError {
   Invalid = "Email or password are not correct",
 }
 
-export default function LoginForm() {
+export const LoginForm = () => {
   const [formState, setFormState] = useState({
     email: "",
     password: "",
@@ -179,4 +179,4 @@ export default function LoginForm() {
       </div>
     </>
   );
-}
+};

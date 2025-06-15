@@ -12,15 +12,15 @@ export const checkValidUsername = async (
 ): Promise<boolean> => {
   let result = false;
 
-  const forbiddenNames = await prisma.setting.findFirst({
-    where: { name: "FORBIDDEN_NAMES" },
+  const forbiddenNames = await prisma.siteSetting.findFirst({
+    where: { key: "FORBIDDEN_NAMES" },
   });
 
   if (!forbiddenNames) {
     return result;
   }
 
-  const forbiddenNamesList = JSON.parse(forbiddenNames.value);
+  const forbiddenNamesList = forbiddenNames.value as string[];
   const regex = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 
   const usernameSchema = z

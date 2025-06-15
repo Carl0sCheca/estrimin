@@ -19,11 +19,11 @@ import {
   RemoveUserAllowlistResponse,
   SetPasswordRequest,
   SetPasswordResponse,
-  UpdateWatchOnlyStatusRequest,
+  UpdateVisibilityStatusRequest,
 } from "@/interfaces";
 import { ChangeEvent, MouseEvent, useState } from "react";
 import { UserChannel } from "./channelSettingsForm";
-import { ChannelWatchOnly } from "@prisma/client";
+import { ChannelVisibility } from "@prisma/client";
 import { MouseEnterEventOptions } from "@/components";
 
 interface Props {
@@ -47,12 +47,12 @@ export const StreamWatchSettingsForm = ({
   tooltipMouseMove,
   channelUrl,
 }: Props) => {
-  const [watchOnlyOption, setWatchOnlyOption] = useState<ChannelWatchOnly>(
-    userChannel.watchOnly
+  const [visibilityOption, setVisibilityOption] = useState<ChannelVisibility>(
+    userChannel.visibility
   );
 
-  const [watchOnlyPassword, setWatchOnlyPassword] = useState(
-    userChannel.watchOnlyPassword || ""
+  const [visibilityPassword, setVisibilityPassword] = useState(
+    userChannel.visibilityPassword || ""
   );
 
   const [buttonsState, setButtonsState] = useState({
@@ -89,13 +89,13 @@ export const StreamWatchSettingsForm = ({
           Who can watch your streams:
         </label>
         <select
-          defaultValue={watchOnlyOption}
+          defaultValue={visibilityOption}
           onChange={async (e: ChangeEvent<HTMLElement>) => {
             const value = (e.target as HTMLSelectElement)
-              .value as ChannelWatchOnly;
-            setWatchOnlyOption(value);
+              .value as ChannelVisibility;
+            setVisibilityOption(value);
 
-            const request: UpdateWatchOnlyStatusRequest = {
+            const request: UpdateVisibilityStatusRequest = {
               channelId: userChannel.id,
               state: value,
             };
@@ -110,7 +110,7 @@ export const StreamWatchSettingsForm = ({
           <option value="PASSWORD">Password</option>
         </select>
       </div>
-      {watchOnlyOption === ChannelWatchOnly.ALLOWLIST && (
+      {visibilityOption === ChannelVisibility.ALLOWLIST && (
         <div className="mt-6">
           <div className={"flex items-center justify-between"}>
             <label
@@ -246,7 +246,7 @@ export const StreamWatchSettingsForm = ({
           </div>
         </div>
       )}
-      {watchOnlyOption === ChannelWatchOnly.PASSWORD && (
+      {visibilityOption === ChannelVisibility.PASSWORD && (
         <>
           <div className="mt-6">
             <div className={"flex items-center justify-between"}>
@@ -265,8 +265,8 @@ export const StreamWatchSettingsForm = ({
                   id="changeuserrole"
                   name="changeuserrole"
                   type="text"
-                  value={watchOnlyPassword}
-                  onChange={(e) => setWatchOnlyPassword(e.target.value)}
+                  value={visibilityPassword}
+                  onChange={(e) => setVisibilityPassword(e.target.value)}
                   className={
                     "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   }
@@ -283,7 +283,7 @@ export const StreamWatchSettingsForm = ({
 
                     const request: SetPasswordRequest = {
                       channelId: userChannel.id,
-                      password: watchOnlyPassword,
+                      password: visibilityPassword,
                     };
 
                     const setPasswordResponse: SetPasswordResponse =
@@ -320,8 +320,8 @@ export const StreamWatchSettingsForm = ({
                 <div
                   className="text-primary-600 cursor-pointer h-12 overflow-x-auto whitespace-nowrap"
                   onClick={() => {
-                    if (watchOnlyPassword) {
-                      const url = `${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${watchOnlyPassword}`;
+                    if (visibilityPassword) {
+                      const url = `${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${visibilityPassword}`;
 
                       navigator.clipboard.writeText(url);
                     }
@@ -339,7 +339,7 @@ export const StreamWatchSettingsForm = ({
                     onMouseMove={(e) => tooltipMouseMove(e)}
                     onMouseLeave={tooltipMouseLeave}
                   >
-                    {`${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${watchOnlyPassword}`}
+                    {`${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${visibilityPassword}`}
                   </div>
                 </div>
               </div>

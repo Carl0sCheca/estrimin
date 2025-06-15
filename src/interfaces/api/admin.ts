@@ -37,7 +37,7 @@ export interface DeleteRegistrationCodesResponse {
 }
 
 export interface LiveChannelItem {
-  name: string;
+  id: string;
   ready: boolean;
   readyTime: Date;
   viewers: number;

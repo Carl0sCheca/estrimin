@@ -122,9 +122,7 @@ export const StreamKey = ({
                 className="text-primary-600 cursor-pointer h-12 overflow-x-auto whitespace-nowrap"
                 onClick={async () => {
                   if (token) {
-                    const url = `${
-                      settings.streamUrl
-                    }/${userChannel.user.name.toLowerCase()}/whip`;
+                    const url = `${settings.streamUrl}/${userChannel.user.id}/whip`;
                     await navigator.clipboard.writeText(url);
                   }
                 }}
@@ -141,9 +139,7 @@ export const StreamKey = ({
                   onMouseMove={(e) => tooltipMouseMove(e)}
                   onMouseLeave={tooltipMouseLeave}
                 >
-                  {`${
-                    settings.streamUrl
-                  }/${userChannel.user.name.toLowerCase()}/whip`}
+                  {`${settings.streamUrl}/${userChannel.user.id}/whip`}
                 </div>
               </div>
             </div>

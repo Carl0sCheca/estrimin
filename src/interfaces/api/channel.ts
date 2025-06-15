@@ -1,16 +1,16 @@
-import { ChannelWatchOnly } from "@prisma/client";
+import { ChannelVisibility } from "@prisma/client";
 
 export interface CreateChannelResponse {
   ok: boolean;
   data?: string;
 }
 
-export interface UpdateWatchOnlyStatusRequest {
-  state: ChannelWatchOnly;
+export interface UpdateVisibilityStatusRequest {
+  state: ChannelVisibility;
   channelId: number;
 }
 
-export interface UpdateWatchOnlyStatusResponse {
+export interface UpdateVisibilityStatusResponse {
   ok: boolean;
 }
 

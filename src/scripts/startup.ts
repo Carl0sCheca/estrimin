@@ -3,10 +3,10 @@ import { auth } from "../lib/auth";
 
 const main = async () => {
   if ((await prisma.user.count()) === 0) {
-    await prisma.setting.create({
+    await prisma.siteSetting.create({
       data: {
-        name: "FORBIDDEN_NAMES",
-        value: JSON.stringify([
+        key: "FORBIDDEN_NAMES",
+        value: [
           "user",
           "admin",
           "register",
@@ -14,14 +14,14 @@ const main = async () => {
           "channel",
           "api",
           "videos",
-        ]),
+        ],
       },
     });
 
-    await prisma.setting.create({
+    await prisma.siteSetting.create({
       data: {
-        name: "DISABLE_REGISTER",
-        value: JSON.stringify(false),
+        key: "DISABLE_REGISTER",
+        value: false,
       },
     });
 

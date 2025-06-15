@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ChannelSettingsForm } from "./ui/channelSettingsForm";
 import prisma from "@/lib/prisma";
-import { Setting } from "@prisma/client";
+import { SiteSetting } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -24,20 +24,24 @@ export default async function ChannelPage() {
   const settings: {
     streamUrl: string;
     channelUrl: string;
-    settings: Array<Setting>;
+    settings: Array<SiteSetting>;
   } = {
     streamUrl: process.env.STREAM_URL || "",
     channelUrl: process.env.BASE_URL || "",
-    settings: await prisma.setting.findMany(),
+    settings: await prisma.siteSetting.findMany(),
   };
+
+  const userSettings = await prisma.userSetting.findMany({
+    where: { userId: session.user.id },
+  });
 
   const userChannel = await prisma.channel.findFirst({
     where: { userId: session.user.id },
     select: {
       id: true,
       user: true,
-      watchOnly: true,
-      watchOnlyPassword: true,
+      visibility: true,
+      visibilityPassword: true,
       token: true,
       channelAllowList: {
         select: {
@@ -59,6 +63,7 @@ export default async function ChannelPage() {
           settings={settings}
           userChannel={userChannel}
           session={session.session.id}
+          userSettings={userSettings}
         />
       </div>
     </>

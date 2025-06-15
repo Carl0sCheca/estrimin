@@ -8,8 +8,8 @@ import {
   RemoveUserAllowlistResponse,
   SetPasswordRequest,
   SetPasswordResponse,
-  UpdateWatchOnlyStatusRequest,
-  UpdateWatchOnlyStatusResponse,
+  UpdateVisibilityStatusRequest,
+  UpdateVisibilityStatusResponse,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -58,9 +58,9 @@ export const createChannel = async (
 };
 
 export const changeWatchStreamsStateAction = async (
-  request: UpdateWatchOnlyStatusRequest
-): Promise<UpdateWatchOnlyStatusResponse> => {
-  const response: UpdateWatchOnlyStatusResponse = { ok: false };
+  request: UpdateVisibilityStatusRequest
+): Promise<UpdateVisibilityStatusResponse> => {
+  const response: UpdateVisibilityStatusResponse = { ok: false };
 
   if (!request) {
     return response;
@@ -70,7 +70,7 @@ export const changeWatchStreamsStateAction = async (
     if (
       await prisma.channel.update({
         where: { id: request.channelId },
-        data: { watchOnly: request.state },
+        data: { visibility: request.state },
       })
     ) {
       response.ok = true;
@@ -89,7 +89,7 @@ export const setPasswordChannelAction = async (
     await prisma.channel.update({
       where: { id: request.channelId },
       data: {
-        watchOnlyPassword: request.password,
+        visibilityPassword: request.password,
       },
     })
   ) {

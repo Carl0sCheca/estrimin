@@ -7,5 +7,6 @@ export * from "./Notification";
 export * from "./Selector";
 export * from "./Spinner";
 export * from "./ThemeSwitch";
+export * from "./Toggle";
 export * from "./Tooltip";
 export * from "./VideoPlayer";

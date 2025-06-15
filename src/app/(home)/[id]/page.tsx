@@ -44,7 +44,7 @@ export default async function StreamingUser(props: Props) {
     headers: await headers(),
   });
 
-  const url = `${process.env.STREAM_URL}/${id.toLowerCase()}/whep${
+  const url = `${process.env.STREAM_URL}/${channel.userId}/whep${
     session ? `?session=${session?.session.id}` : ""
   }`;
 
@@ -53,7 +53,7 @@ export default async function StreamingUser(props: Props) {
       <VideoPlayer
         className={`flex-auto h-full w-full`}
         url={url}
-        channelName={id.toLowerCase()}
+        channelUserId={channel.userId}
       />
     </div>
   );

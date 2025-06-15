@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import LoginForm from "./ui/loginForm";
+import { LoginForm } from "./ui/loginForm";
 
 export const metadata: Metadata = {
   title: "Log in",

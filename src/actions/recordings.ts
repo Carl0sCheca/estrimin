@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  ChangeDefaultRecordingVisibilityResponse,
   DeleteRecordingResponse,
   GetRecordingsListResponse,
   Recording,
@@ -10,6 +11,7 @@ import prisma from "@/lib/prisma";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
 import { Worker } from "worker_threads";
 import fs from "fs";
+import { RecordingVisibility } from "@prisma/client";
 
 async function downloadInThread(
   url: string,
@@ -49,9 +51,7 @@ export const getRecordingsListAction = async (
 
   try {
     const request = await fetch(
-      `${
-        process.env.STREAM_RECORDINGS_URL
-      }/list?path=${userChannel.user.name.toLowerCase()}&session=${session}`,
+      `${process.env.STREAM_RECORDINGS_URL}/list?path=${userChannel.user.id}&session=${session}`,
       {
         method: "GET",
       }
@@ -115,6 +115,12 @@ export const getRecordingsListAction = async (
     console.error("getRecordingsListAction:", error);
   }
 
+  if (response.ok) {
+    response.recordings.sort((a, b) => {
+      return +new Date(b.start) - +new Date(a.start);
+    });
+  }
+
   return response;
 };
 
@@ -129,11 +135,7 @@ export const deleteRecordingAction = async (
   if (recording?.type === "not-saved") {
     try {
       const request = await fetch(
-        `${
-          process.env.STREAM_API_URL
-        }/v3/recordings/deletesegment?path=${userChannel.user.name.toLowerCase()}&start=${
-          recording.start
-        }`,
+        `${process.env.STREAM_API_URL}/v3/recordings/deletesegment?path=${userChannel.user.id}&start=${recording.start}`,
         {
           method: "DELETE",
         }
@@ -182,11 +184,7 @@ export const saveRecordingAction = async (
     if (recordingDb) {
       try {
         await downloadInThread(
-          `${process.env.STREAM_RECORDINGS_URL}/get?duration=${
-            recording.duration
-          }&path=${userChannel.user.name.toLowerCase()}&start=${
-            recording.start
-          }&session=${session}`,
+          `${process.env.STREAM_RECORDINGS_URL}/get?duration=${recording.duration}&path=${userChannel.user.id}&start=${recording.start}&session=${session}`,
           `${process.env.RECORDINGS_SAVED_PATH}/${userChannel.user.id}/${recordingDb.id}.mp4`
         );
       } catch {
@@ -217,6 +215,48 @@ export const saveRecordingAction = async (
         response.ok = true;
       }
     }
+  } catch {}
+
+  return response;
+};
+
+export const changeDefaultRecordingVisibilityAction = async (
+  value: RecordingVisibility,
+  userId: string
+): Promise<ChangeDefaultRecordingVisibilityResponse> => {
+  const response: ChangeDefaultRecordingVisibilityResponse = {
+    ok: false,
+  };
+
+  try {
+    await prisma.userSetting.upsert({
+      where: { key: "VISIBILITY_UNSAVED_RECORDINGS", userId },
+      update: { value },
+      create: { key: "VISIBILITY_UNSAVED_RECORDINGS", userId, value },
+    });
+
+    response.ok = true;
+  } catch {}
+
+  return response;
+};
+
+export const storePastStreamsAction = async (
+  value: boolean,
+  userId: string
+): Promise<ChangeDefaultRecordingVisibilityResponse> => {
+  const response: ChangeDefaultRecordingVisibilityResponse = {
+    ok: false,
+  };
+
+  try {
+    await prisma.userSetting.upsert({
+      where: { key: "STORE_PAST_STREAMS", userId },
+      update: { value },
+      create: { key: "STORE_PAST_STREAMS", userId, value },
+    });
+
+    response.ok = true;
   } catch {}
 
   return response;

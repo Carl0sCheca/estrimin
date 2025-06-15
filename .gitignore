@@ -38,3 +38,4 @@ next-env.d.ts
 /db-dev
 .env
 mediamtx.yml
+/videos

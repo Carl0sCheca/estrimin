@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import RegisterForm from "./ui/registerForm";
+import { RegisterForm } from "./ui/registerForm";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
@@ -20,13 +20,12 @@ export default async function RegisterPage(props: Props) {
   let code: string | undefined;
 
   if (!params.code) {
-    const disableRegister: boolean = JSON.parse(
-      (
-        await prisma.setting.findFirst({
-          where: { name: "DISABLE_REGISTER" },
+    const disableRegister: boolean =
+      ((
+        await prisma.siteSetting.findFirst({
+          where: { key: "DISABLE_REGISTER" },
         })
-      )?.value ?? "false"
-    );
+      )?.value as boolean) ?? false;
 
     if (disableRegister) {
       redirect("/user");
@@ -38,7 +37,12 @@ export default async function RegisterPage(props: Props) {
       where: { id: code },
     });
 
-    if (!code || !validCode || validCode.used) {
+    if (
+      !code ||
+      !validCode ||
+      validCode.used ||
+      (validCode.expirationDate && validCode.expirationDate < new Date())
+    ) {
       redirect("/user");
     }
   }

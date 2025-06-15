@@ -1,12 +1,19 @@
 "use client";
 
 import { updateUser } from "@/actions";
-import { Logo, LogoutButton, ThemeSwitch } from "@/components";
+import {
+  Logo,
+  LogoutButton,
+  Notification,
+  ThemeSwitch,
+  useAlertNotification,
+} from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
 import { changePassword } from "@/lib/auth-client";
 import { User } from "@prisma/client";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
+import { flushSync } from "react-dom";
 
 enum FormNameError {
   None = "",
@@ -29,7 +36,7 @@ interface Props {
   user: User;
 }
 
-export default function UserForm({ user }: Props) {
+export const UserForm = ({ user }: Props) => {
   const [formState, setFormState] = useState({
     name: user.name,
     email: user.email,
@@ -62,8 +69,11 @@ export default function UserForm({ user }: Props) {
     });
   };
 
+  const { alertNotification, showAlert } = useAlertNotification();
+
   return (
     <>
+      <Notification state={alertNotification} />
       <div>
         <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
           <Logo />
@@ -157,9 +167,13 @@ export default function UserForm({ user }: Props) {
                       email: FormEmailError.InUse,
                     });
                   }
+
+                  showAlert("Failed to save changes", true);
                 } else {
                   user.name = updateUserResponse.data?.name ?? user.name;
                   user.email = updateUserResponse.data?.email ?? user.email;
+
+                  showAlert("Your changes have been saved");
                 }
 
                 setButton(false);
@@ -235,6 +249,10 @@ export default function UserForm({ user }: Props) {
             <form
               className="space-y-6"
               action={async (formData: FormData) => {
+                flushSync(() => {
+                  setButton(true);
+                });
+
                 const currentPassword =
                   formData.get("password")?.toString() ?? "";
                 const newPassword =
@@ -247,20 +265,32 @@ export default function UserForm({ user }: Props) {
                 });
 
                 if (error) {
-                  if (error.message === "Incorrect password") {
+                  if (error.code === "INVALID_PASSWORD") {
                     setErrorState({
                       ...errorState,
                       password: FormPasswordError.WrongPassword,
                     });
-                  } else if (error.message === "Password is too short") {
+                  } else if (error.code === "PASSWORD_TOO_SHORT") {
                     setErrorState({
                       ...errorState,
                       password: FormPasswordError.InsufficientChars,
                     });
                   }
+
+                  showAlert(
+                    "An error occurred while changing your password",
+                    true
+                  );
                 } else {
                   setFormPasswordState({ password: "", newpassword: "" });
+                  setErrorState((prevState) => {
+                    return { ...prevState, password: FormPasswordError.None };
+                  });
+
+                  showAlert("Password changed successfully");
                 }
+
+                setButton(false);
               }}
             >
               <div>
@@ -353,4 +383,4 @@ export default function UserForm({ user }: Props) {
       </div>
     </>
   );
-}
+};

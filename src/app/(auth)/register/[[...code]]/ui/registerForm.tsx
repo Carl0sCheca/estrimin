@@ -17,7 +17,7 @@ interface Props {
   registrationCode?: string;
 }
 
-export default function RegisterForm({ registrationCode }: Props) {
+export const RegisterForm = ({ registrationCode }: Props) => {
   const [formState, setFormState] = useState({
     email: "",
     password: "",
@@ -320,4 +320,4 @@ export default function RegisterForm({ registrationCode }: Props) {
       </div>
     </>
   );
-}
+};

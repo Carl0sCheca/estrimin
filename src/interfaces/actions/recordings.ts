@@ -29,3 +29,13 @@ export interface VideoBase64 {
   d: number;
   t: "n" | "s" | "c"; // not-saved, saved, clip
 }
+
+export interface ChangeDefaultRecordingVisibilityResponse {
+  ok: boolean;
+  message?: string;
+}
+
+export interface storePastStreamsResponse {
+  ok: boolean;
+  message?: string;
+}

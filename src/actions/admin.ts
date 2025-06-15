@@ -35,10 +35,10 @@ export const disableRegistration = async (
   }
 
   try {
-    const updateSettings = await prisma.setting.update({
-      where: { name: "DISABLE_REGISTER" },
+    const updateSettings = await prisma.siteSetting.update({
+      where: { key: "DISABLE_REGISTER" },
       data: {
-        value: JSON.stringify(enabled),
+        value: enabled,
       },
     });
 
@@ -107,6 +107,12 @@ export const generateRegistrationCode = async (
     ok: false,
   };
 
+  if (request.expirationDate) {
+    response.expirationDate = new Date(
+      request.expirationDate.setUTCHours(23, 59, 59, 999)
+    );
+  }
+
   const registrationCode = await prisma.registrationCode.create({
     data: {
       expirationDate: request.expirationDate,
@@ -117,7 +123,6 @@ export const generateRegistrationCode = async (
     return response;
   }
 
-  response.expirationDate = registrationCode.expirationDate;
   response.ok = true;
   response.id = registrationCode.id;
 
@@ -196,12 +201,27 @@ export const getLiveChannelsAction =
               readers: [];
             }) => {
               return {
-                name: i.name,
+                id: i.name,
                 ready: i.ready,
                 readyTime: i.readyTime,
                 viewers: i.readers.length,
               };
             }
+          );
+
+          response.items = await Promise.all(
+            response.items.map(async (item) => {
+              return {
+                ...item,
+                id:
+                  (
+                    await prisma.user.findUnique({
+                      where: { id: item.id },
+                      select: { name: true },
+                    })
+                  )?.name || "Failed to get name",
+              };
+            })
           );
         }
       }

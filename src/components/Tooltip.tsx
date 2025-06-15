@@ -319,7 +319,7 @@ export const Tooltip = ({ elements }: TooltipProps) => {
         return (
           <span
             key={element.id}
-            className="select-none pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500k ease-out"
+            className="select-none z-50 pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500k ease-out"
             style={{
               left: `${element.position?.x || 0}px`,
               top: `${element.position?.y || 0}px`,

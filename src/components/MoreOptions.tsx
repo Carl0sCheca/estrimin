@@ -18,6 +18,9 @@ interface Props {
   };
   children?: React.ReactNode;
   recordingListIsOpen?: boolean;
+  id?: string;
+  isOpen?: boolean;
+  onToggle?: (id: string) => void;
 }
 
 export const MoreOptions = ({
@@ -26,6 +29,9 @@ export const MoreOptions = ({
   tooltip,
   children,
   recordingListIsOpen,
+  id,
+  isOpen,
+  onToggle,
 }: Props) => {
   const [visibleOptions, setVisibleOptions] = useState(false);
   const [isPositioned, setIsPositioned] = useState(false);
@@ -39,6 +45,8 @@ export const MoreOptions = ({
     width: 0,
     height: 0,
   });
+
+  const moreOptionsId = id || crypto.randomUUID();
 
   const calculatePosition = useCallback(() => {
     if (!dotsRef.current || !childrenRef.current) return;
@@ -78,6 +86,10 @@ export const MoreOptions = ({
   }, [recordingListIsOpen]);
 
   useEffect(() => {
+    setVisibleOptions(isOpen ?? false);
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!visibleOptions) return;
 
     const handleResize = () => {
@@ -101,6 +113,10 @@ export const MoreOptions = ({
       <div
         onClick={() => {
           setVisibleOptions(!visibleOptions);
+
+          if (onToggle) {
+            onToggle(moreOptionsId);
+          }
         }}
         onMouseEnter={(e) =>
           tooltip?.mouseEnter(e, tooltip.text, { defaultPosition: "bottom" })
