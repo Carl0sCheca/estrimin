@@ -276,23 +276,24 @@ export const useTooltip = () => {
   const tooltipMouseLeave = (event: React.MouseEvent<HTMLElement>) => {
     const element = event.currentTarget as HTMLElement;
 
-    setElements((prevState) => {
-      return prevState.map((item) => {
+    setElements((prevState) =>
+      prevState.map((item) => {
         if (item.element === element) {
-          const existingTimeout = timeoutsMap.current.get(element);
-          if (existingTimeout) clearTimeout(existingTimeout);
-
-          item.visible = false;
-
-          const newTimeout = setTimeout(() => {
-            setElements((prev) => prev.filter((el) => el.element !== element));
-          }, 1000);
-
-          timeoutsMap.current.set(element, newTimeout);
+          return { ...item, visible: false };
         }
         return item;
-      });
-    });
+      })
+    );
+
+    const existingTimeout = timeoutsMap.current.get(element);
+    if (existingTimeout) clearTimeout(existingTimeout);
+
+    const newTimeout = setTimeout(() => {
+      setElements((prev) => prev.filter((el) => el.element !== element));
+      timeoutsMap.current.delete(element);
+    }, 1000);
+
+    timeoutsMap.current.set(element, newTimeout);
   };
 
   useEffect(() => {
@@ -319,7 +320,7 @@ export const Tooltip = ({ elements }: TooltipProps) => {
         return (
           <span
             key={element.id}
-            className="select-none z-50 pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500k ease-out"
+            className="select-none z-40 pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500k ease-out"
             style={{
               left: `${element.position?.x || 0}px`,
               top: `${element.position?.y || 0}px`,
