@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 
 interface Props {
   title?: string;
@@ -16,6 +16,28 @@ export const Collapsible = ({
   setIsOpen,
 }: Props) => {
   const [folded, setFolded] = useState(true);
+  const [scroll, setScroll] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    if (folded) {
+      setScroll(false);
+    } else {
+      timeoutRef.current = setTimeout(() => {
+        setScroll(true);
+      }, 300);
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [folded]);
 
   return (
     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
@@ -54,9 +76,10 @@ export const Collapsible = ({
         </svg>
       </label>
       <div
-        className={`max-h-0 overflow-y-scroll transition-all duration-300`}
+        className={`max-h-0 transition-all duration-300`}
         style={{
           maxHeight: !folded ? (maxHeight ? `${maxHeight}px` : "450px") : "0px",
+          overflowY: scroll ? "auto" : "hidden",
         }}
       >
         <div className="p-4">{children}</div>
