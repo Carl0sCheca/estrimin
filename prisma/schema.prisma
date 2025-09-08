@@ -44,8 +44,11 @@ model User {
   channelAllowListUsersId Int?
   ChannelAllowList        ChannelAllowList[] @relation("UserChannels")
   RegistrationCodes       RegistrationCode[]
-  RecordingClips          RecordingClip[]
   UserSettings            UserSetting[]
+  RecordingQueue          RecordingQueue[]
+
+  followers UserFollows[] @relation("UserFollowers")
+  following UserFollows[] @relation("UserFollowing")
 
   @@unique([email])
   @@map("user")
@@ -110,7 +113,6 @@ model Channel {
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   channelAllowList   ChannelAllowList[] @relation("ChannelUsers")
   RecordingsSaved    RecordingSaved[]
-  RecordingsClips    RecordingClip[]
 
   @@map("channel")
 }
@@ -144,26 +146,11 @@ model RecordingSaved {
   channelId  Int
   duration   Float               @default(0)
   visibility RecordingVisibility @default(PUBLIC)
-  title      String?
+  title      String?             @db.VarChar(255)
 
   channel Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)
 
   @@map("recordingSaved")
-}
-
-model RecordingClip {
-  id              String              @id @default(uuid())
-  createdAt       DateTime            @default(now())
-  createdByUserId String
-  channelId       Int
-  duration        Float               @default(0)
-  private         RecordingVisibility @default(PUBLIC)
-  title           String?
-
-  createdBy User    @relation(fields: [createdByUserId], references: [id], onDelete: NoAction)
-  channel   Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)
-
-  @@map("recordingClip")
 }
 
 model SiteSetting {
@@ -182,4 +169,49 @@ model UserSetting {
 
   @@index([key, userId])
   @@map("userSetting")
+}
+
+enum RecordingQueueState {
+  PENDING
+  ENCODING
+  ENCODED
+  MERGING
+  MERGED
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model RecordingQueue {
+  id             Int                 @id @default(autoincrement())
+  status         RecordingQueueState @default(PENDING)
+  fileName       String
+  duration       Float
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  attempts       Int                 @default(0)
+  error          String?
+  firstSegmentId Int?
+  firstSegment   RecordingQueue?     @relation("SegmentRelation", fields: [firstSegmentId], references: [id])
+  segments       RecordingQueue[]    @relation("SegmentRelation")
+  visibility     RecordingVisibility @default(PUBLIC)
+
+  @@index([status])
+  @@index([userId])
+  @@map("recordingQueue")
+}
+
+model UserFollows {
+  userId   String
+  followId String
+
+  follower User @relation("UserFollowers", fields: [userId], references: [id], onDelete: Cascade)
+  followed User @relation("UserFollowing", fields: [followId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, followId])
+  @@index([userId])
+  @@index([followId])
 }

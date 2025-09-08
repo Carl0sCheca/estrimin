@@ -55,15 +55,9 @@ export default async function RecordingPlayerPage({
     );
   }
 
-  const { i: videoId, d: videoDuration, t } = videoData;
+  const { i: videoId, t: videoType } = videoData;
 
-  let url = "";
-
-  if (t === "n") {
-    url = `${process.env.STREAM_RECORDINGS_URL}/get?duration=${videoDuration}&path=${channel.userId}&start=${videoId}`;
-  } else {
-    url = `${process.env.BASE_URL}/api/videos/watch/${channel?.userId}/${videoId}`;
-  }
+  let url = `${process.env.BASE_URL}/api/videos/watch/${channel?.userId}/${videoType}/${videoId}`;
 
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -84,7 +78,13 @@ export default async function RecordingPlayerPage({
   }
 
   try {
-    if (!(await fetch(url)).ok) {
+    if (
+      !(
+        await fetch(url, {
+          method: "POST",
+        })
+      ).ok
+    ) {
       return (
         <NotFound message="Sorry, we can't find that video." goBack={true} />
       );

@@ -1,11 +1,12 @@
 import prisma from "@/lib/prisma";
 import { auth } from "../lib/auth";
+import { SITE_SETTING } from "@/interfaces";
 
 const main = async () => {
   if ((await prisma.user.count()) === 0) {
     await prisma.siteSetting.create({
       data: {
-        key: "FORBIDDEN_NAMES",
+        key: SITE_SETTING.FORBIDDEN_NAMES,
         value: [
           "user",
           "admin",
@@ -18,11 +19,21 @@ const main = async () => {
       },
     });
 
-    await prisma.siteSetting.create({
-      data: {
-        key: "DISABLE_REGISTER",
-        value: false,
-      },
+    await prisma.siteSetting.createMany({
+      data: [
+        {
+          key: SITE_SETTING.DISABLE_REGISTER,
+          value: false,
+        },
+        {
+          key: SITE_SETTING.DISABLE_QUEUE_JOBS,
+          value: false,
+        },
+        {
+          key: SITE_SETTING.DISABLE_RECORDINGS,
+          value: false,
+        },
+      ],
     });
 
     try {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { RegisterForm } from "./ui/registerForm";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { SITE_SETTING } from "@/interfaces";
 
 export const metadata: Metadata = {
   title: "Register",
@@ -23,7 +24,7 @@ export default async function RegisterPage(props: Props) {
     const disableRegister: boolean =
       ((
         await prisma.siteSetting.findFirst({
-          where: { key: "DISABLE_REGISTER" },
+          where: { key: SITE_SETTING.DISABLE_REGISTER },
         })
       )?.value as boolean) ?? false;
 

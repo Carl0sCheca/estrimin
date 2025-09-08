@@ -17,6 +17,7 @@ import { CgFormatSlash } from "react-icons/cg";
 import { RiUserFill, RiUserStarFill } from "react-icons/ri";
 import { RegistrationCodes } from "./RegistrationCodes";
 import { LiveChannels } from "./LiveChannels";
+import { QueueJobs } from "./QueueJobs";
 
 interface Props {
   settings: Array<SiteSetting>;
@@ -143,6 +144,14 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
         </div>
         <div className="mt-6">
           <LiveChannels baseUrl={baseUrl} />
+        </div>
+        <div className="mt-6">
+          <QueueJobs
+            tooltip={{
+              mouseEnter: tooltipMouseEnter,
+              mouseLeave: tooltipMouseLeave,
+            }}
+          />
         </div>
       </div>
     </>

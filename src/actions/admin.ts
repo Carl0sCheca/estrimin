@@ -8,9 +8,11 @@ import {
   GenerateRegistrationCodeResponse,
   GetLiveChannelsResponse,
   GetRegistrationCodesResponse,
+  SITE_SETTING,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { checkAdmin } from "@/lib/utils";
 import { headers } from "next/headers";
 
 export const disableRegistration = async (
@@ -24,19 +26,16 @@ export const disableRegistration = async (
     ok: false,
   };
 
-  if (!session?.user) {
-    response.message = "Session not found";
-    return response;
-  }
+  const isAdmin = await checkAdmin(session?.session.id);
 
-  if (session.user.role !== "ADMIN") {
-    response.message = "Forbidden user";
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
     return response;
   }
 
   try {
     const updateSettings = await prisma.siteSetting.update({
-      where: { key: "DISABLE_REGISTER" },
+      where: { key: SITE_SETTING.DISABLE_REGISTER },
       data: {
         value: enabled,
       },
@@ -63,13 +62,10 @@ export const changeUserRoleAction = async (
     ok: false,
   };
 
-  if (!session?.user) {
-    response.message = "Session not found";
-    return response;
-  }
+  const isAdmin = await checkAdmin(session?.session.id);
 
-  if (session.user.role !== "ADMIN") {
-    response.message = "Forbidden user";
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
     return response;
   }
 
@@ -106,6 +102,17 @@ export const generateRegistrationCode = async (
   const response: GenerateRegistrationCodeResponse = {
     ok: false,
   };
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const isAdmin = await checkAdmin(session?.session.id);
+
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
+    return response;
+  }
 
   if (request.expirationDate) {
     response.expirationDate = new Date(
@@ -163,6 +170,17 @@ export const deleteRegistrationCodesAction = async (
     ok: false,
   };
 
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const isAdmin = await checkAdmin(session?.session.id);
+
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
+    return response;
+  }
+
   try {
     await prisma.registrationCode.delete({
       where: { id },
@@ -181,6 +199,17 @@ export const getLiveChannelsAction =
     const response: GetLiveChannelsResponse = {
       items: [],
     };
+
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    const isAdmin = await checkAdmin(session?.session.id);
+
+    if (!isAdmin.ok) {
+      response.message = isAdmin.message;
+      return response;
+    }
 
     try {
       const request = await fetch(

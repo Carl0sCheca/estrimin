@@ -17,6 +17,7 @@ export interface GenerateRegistrationCodeResponse {
   ok: boolean;
   id?: string;
   expirationDate?: Date | null;
+  message?: string;
 }
 
 export interface RegistrationCodeDto {
@@ -34,6 +35,7 @@ export interface GetRegistrationCodesResponse {
 
 export interface DeleteRegistrationCodesResponse {
   ok: boolean;
+  message?: string;
 }
 
 export interface LiveChannelItem {
@@ -45,4 +47,5 @@ export interface LiveChannelItem {
 
 export interface GetLiveChannelsResponse {
   items: Array<LiveChannelItem>;
+  message?: string;
 }

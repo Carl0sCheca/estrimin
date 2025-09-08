@@ -11,7 +11,11 @@ enum LoginError {
   Invalid = "Email or password are not correct",
 }
 
-export const LoginForm = () => {
+interface Props {
+  isDisabled: boolean;
+}
+
+export const LoginForm = ({ isDisabled }: Props) => {
   const [formState, setFormState] = useState({
     email: "",
     password: "",
@@ -160,21 +164,23 @@ export const LoginForm = () => {
               </button>
             </div>
           </form>
-          <p
-            className={
-              "mt-10 text-center text-sm text-gray-500 dark:text-gray-300"
-            }
-          >
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
+          {!isDisabled && (
+            <p
               className={
-                "font-semibold leading-6 text-primary-600 hover:text-primary-500"
+                "mt-10 text-center text-sm text-gray-500 dark:text-gray-300"
               }
             >
-              Create account
-            </Link>
-          </p>
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/register"
+                className={
+                  "font-semibold leading-6 text-primary-600 hover:text-primary-500"
+                }
+              >
+                Create account
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </>

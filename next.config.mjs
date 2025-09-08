@@ -7,6 +7,9 @@ const nextConfig = {
     }
     return config;
   },
+  experimental: {
+    largePageDataBytes: 128 * 1024,
+  },
 };
 
 export default nextConfig;

@@ -2,6 +2,8 @@ export * from "./Collapsible";
 export * from "./GoBackButton";
 export * from "./Logo";
 export * from "./LogoutButton";
+export * from "./Modal";
+export * from "./ModalChangeTitle";
 export * from "./MoreOptions";
 export * from "./Notification";
 export * from "./Selector";

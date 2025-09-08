@@ -23,7 +23,6 @@ Password: `changeme`
 authMethod: http
 authHTTPAddress: http://localhost:3000/api/stream/auth
 api: yes
-playback: yes
 rtsp: no
 rtmp: no
 hls: no
@@ -32,9 +31,8 @@ srt: no
 pathDefaults:
   record: yes
   recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordSegmentDuration: 1m
   recordDeleteAfter: 2d
-  runOnReady: curl http://localhost:3000/api/videos/ready/$MTX_PATH
-  runOnRecordSegmentCreate: curl http://localhost:3000/api/videos/segmentCreate/$MTX_PATH?segment=$MTX_SEGMENT_PATH
   runOnRecordSegmentComplete: curl http://localhost:3000/api/videos/segmentComplete/$MTX_PATH?segment=$MTX_SEGMENT_PATH&duration=$MTX_SEGMENT_DURATION
 ```
 

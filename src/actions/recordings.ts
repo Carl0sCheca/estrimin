@@ -2,43 +2,148 @@
 
 import {
   ChangeDefaultRecordingVisibilityResponse,
+  ChangeRecordingTitleResponse,
+  ChangeRecordingVisibilityResponse,
   DeleteRecordingResponse,
+  GetNonSavedRecordingsListResponse,
   GetRecordingsListResponse,
   Recording,
+  RecordingData,
   SaveRecordingResponse,
+  USER_SETTING,
 } from "@/interfaces";
 import prisma from "@/lib/prisma";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
-import { Worker } from "worker_threads";
 import fs from "fs";
-import { RecordingVisibility } from "@prisma/client";
+import path from "path";
+import { RecordingQueue, RecordingVisibility } from "@prisma/client";
+import { dateToFilename, getDateFromFileName } from "@/lib/utils-server";
 
-async function downloadInThread(
-  url: string,
-  filePath: string
-): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    // https://github.com/vercel/next.js/discussions/56635
+export const getNonSavedRecordingsList = async (
+  sessionId: string,
+  userId: string
+): Promise<GetNonSavedRecordingsListResponse> => {
+  const response: GetNonSavedRecordingsListResponse = {
+    ok: false,
+    recordings: [],
+  };
 
-    const worker = new Worker(
-      /* webpackChunkName: "download.worker" */ new URL(
-        "./download.worker.ts",
-        import.meta.url
-      ),
-      { workerData: { url, filePath } }
-    );
-
-    worker.on("message", (msg: { success: boolean; error?: string }) => {
-      if (msg.success) resolve(true);
-      else reject(new Error(msg.error));
+  try {
+    const userSession = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: {
+        userId: true,
+      },
     });
 
-    worker.on("error", reject);
-    worker.on("exit", (code: number) => {
-      if (code !== 0) reject(new Error(`Worker stopped with code ${code}`));
-    });
+    if (userSession?.userId !== userId) {
+      response.message = "Forbidden";
+      return response;
+    }
+  } catch {
+    response.message = "Forbidden";
+    return response;
+  }
+
+  if (
+    !fs.existsSync(
+      path.join(process.env.RECORDINGS_PATH || "", "recordings", userId)
+    )
+  ) {
+    response.ok = true;
+    return response;
+  }
+
+  const entriesDb = await prisma.recordingQueue.findMany({
+    where: {
+      createdAt: {
+        gt: new Date(Date.now() - 48 * 60 * 60 * 1000),
+      },
+    },
   });
-}
+
+  const groupedBySegment = entriesDb.reduce(
+    (groups: Record<number, RecordingQueue[]>, entry: RecordingQueue) => {
+      const segmentId = entry.firstSegmentId;
+
+      if (!segmentId) {
+        return groups;
+      }
+
+      if (!groups[segmentId]) {
+        groups[segmentId] = [];
+      }
+
+      groups[segmentId].push(entry);
+      return groups;
+    },
+    {}
+  );
+
+  let filteredEntries: Array<RecordingData> = Object.entries(groupedBySegment)
+    .map(([_, entries]): RecordingData | null => {
+      const allCompleted = entries.every(
+        (entry) => entry.status === "COMPLETED"
+      );
+
+      const sortedEntries = entries.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      const totalDuration = entries.reduce((sum, entry) => {
+        return sum + (entry.duration || 0);
+      }, 0);
+
+      if (allCompleted) {
+        const oldestEntry = sortedEntries[0];
+        return {
+          fileName:
+            oldestEntry.fileName.split("/").pop() || oldestEntry.fileName,
+          status: "COMPLETED",
+          start: oldestEntry.createdAt,
+          duration: totalDuration,
+          visibility: oldestEntry.visibility,
+          firstSegmentId: oldestEntry.firstSegmentId ?? undefined,
+        };
+      } else {
+        const validEntry = sortedEntries.find(
+          (entry) => entry.status === "COMPLETED"
+        );
+
+        if (validEntry) {
+          return {
+            fileName:
+              validEntry.fileName.split("/").pop() || validEntry.fileName,
+            status: "PROCESSING",
+            start: validEntry.createdAt,
+            duration: totalDuration,
+            visibility: validEntry.visibility,
+            firstSegmentId: validEntry.firstSegmentId ?? undefined,
+          };
+        }
+      }
+
+      return null;
+    })
+    .filter((entry): entry is RecordingData => entry !== null);
+
+  const recording = await getLastVideoFromLive(filteredEntries, userId);
+  if (recording) {
+    filteredEntries = filteredEntries.map((entry) => {
+      if (entry.fileName.includes(recording)) {
+        return { ...entry, status: "LIVE" };
+      }
+      return entry;
+    });
+  }
+
+  response.recordings = filteredEntries;
+
+  response.ok = true;
+
+  return response;
+};
 
 export const getRecordingsListAction = async (
   userChannel: UserChannel,
@@ -49,40 +154,32 @@ export const getRecordingsListAction = async (
     recordings: [],
   };
 
-  try {
-    const request = await fetch(
-      `${process.env.STREAM_RECORDINGS_URL}/list?path=${userChannel.user.id}&session=${session}`,
-      {
-        method: "GET",
-      }
+  const nonSavedRecordingsList = await getNonSavedRecordingsList(
+    session,
+    userChannel.user.id
+  );
+
+  if (nonSavedRecordingsList.ok) {
+    response.recordings = nonSavedRecordingsList.recordings.map(
+      (recording: RecordingData) => ({
+        duration: recording.duration,
+        start: recording.start,
+        type: recording.status,
+        url: `videos/${userChannel.user.name}/${encodeURIComponent(
+          btoa(
+            JSON.stringify({
+              i: recording.fileName,
+              t: "n",
+            })
+          )
+        )}`,
+        visibility: recording.visibility,
+        firstSegmentId: recording.firstSegmentId,
+      })
     );
 
-    if (request.ok) {
-      const recordingsNotStored = await request.json();
-
-      response.recordings = recordingsNotStored
-        .filter(
-          (recording: Recording) => recording.duration && recording.duration > 4
-        )
-        .map((recording: Recording) => ({
-          ...recording,
-          type: "not-saved",
-          url: `videos/${userChannel.user.name}/${encodeURIComponent(
-            btoa(
-              JSON.stringify({
-                i: recording.start.toString(),
-                d: recording.duration,
-                t: "n",
-              })
-            )
-          )}`,
-        }));
-
-      response.ok = true;
-    } else if (request.status === 404) {
-      response.ok = true;
-    }
-  } catch {}
+    response.ok = true;
+  }
 
   try {
     const savedRecordings = await prisma.recordingSaved.findMany({
@@ -98,14 +195,15 @@ export const getRecordingsListAction = async (
             btoa(
               JSON.stringify({
                 i: r.id,
-                d: r.duration,
                 t: "s",
               })
             )
           )}`,
-          type: "saved",
+          type: "SAVED",
           duration: r.duration,
           id: r.id,
+          visibility: r.visibility,
+          title: r.title ?? undefined,
         } satisfies Recording;
       }),
     ];
@@ -132,35 +230,74 @@ export const deleteRecordingAction = async (
     ok: false,
   };
 
-  if (recording?.type === "not-saved") {
+  if (recording?.type === "COMPLETED") {
     try {
-      const request = await fetch(
-        `${process.env.STREAM_API_URL}/v3/recordings/deletesegment?path=${userChannel.user.id}&start=${recording.start}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const videoRecording = await prisma.recordingQueue.findFirst({
+        where: { createdAt: recording.start },
+      });
 
-      if (request.ok) {
-        response.ok = true;
+      if (!videoRecording) {
+        response.message = "Video not found";
+        return response;
       }
-    } catch {}
-  } else if (
-    recording?.type === "clip" ||
-    (recording.type === "saved" && recording.id)
-  ) {
+      fs.rmSync(videoRecording.fileName);
+
+      await prisma.recordingQueue.deleteMany({
+        where: { firstSegmentId: videoRecording?.firstSegmentId },
+      });
+
+      response.ok = true;
+    } catch {
+      response.message = "Unexpected error";
+    }
+  } else if (recording.type === "SAVED" && recording.id) {
     try {
       fs.rmSync(
-        `${process.env.RECORDINGS_SAVED_PATH}/${userChannel.user.id}/${recording.id}.mp4`
+        `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.mp4`
       );
 
       await prisma.recordingSaved.delete({ where: { id: recording.id } });
 
       response.ok = true;
     } catch {}
+  } else {
+    response.message =
+      "Recording cannot be deleted right now because it's currently being processed. Please try again later.";
   }
 
   return response;
+};
+
+export const getLastVideoFromLive = async (
+  entries: Array<RecordingData>,
+  userId: string
+): Promise<string | null> => {
+  const entriesDate = await Promise.all(
+    entries.map(
+      async (e) => await getDateFromFileName(e.fileName.replace(".mp4", ""))
+    )
+  );
+
+  const request = await fetch(
+    `${process.env.STREAM_API_URL}/v3/paths/get/${userId}` || ""
+  );
+
+  const responseReadyTime = (
+    (await request.json()) as { readyTime: Date | null }
+  ).readyTime;
+
+  if (responseReadyTime) {
+    return await dateToFilename(
+      entriesDate.find((entryDate) => {
+        const entryTime = new Date(entryDate).getTime();
+        const readyTime = new Date(responseReadyTime).getTime();
+        const timeDiff = Math.abs(entryTime - readyTime);
+        return timeDiff <= 10000; // ±10s
+      })
+    );
+  }
+
+  return null;
 };
 
 export const saveRecordingAction = async (
@@ -173,49 +310,76 @@ export const saveRecordingAction = async (
   };
 
   try {
+    const userSession = await prisma.session.findUnique({
+      where: { id: session },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (userSession?.userId !== userChannel.user.id) {
+      response.message = "Forbidden";
+      return response;
+    }
+  } catch {
+    response.message = "Forbidden";
+    return response;
+  }
+
+  if (recording.type === "COMPLETED") {
+    const recordingQueueDb = await prisma.recordingQueue.findFirst({
+      where: { createdAt: recording.start },
+    });
+
+    if (!recordingQueueDb) {
+      return response;
+    }
+
     const recordingDb = await prisma.recordingSaved.create({
       data: {
         createdAt: recording.start,
         channelId: userChannel.id,
         duration: recording.duration,
+        visibility: recording.visibility,
       },
     });
 
     if (recordingDb) {
       try {
-        await downloadInThread(
-          `${process.env.STREAM_RECORDINGS_URL}/get?duration=${recording.duration}&path=${userChannel.user.id}&start=${recording.start}&session=${session}`,
-          `${process.env.RECORDINGS_SAVED_PATH}/${userChannel.user.id}/${recordingDb.id}.mp4`
-        );
-      } catch {
+        const targetDir = `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}`;
+        const targetPath = `${targetDir}/${recordingDb.id}.mp4`;
+
+        fs.mkdirSync(targetDir, { recursive: true });
+
+        fs.renameSync(recordingQueueDb.fileName, targetPath);
+
+        await prisma.recordingQueue.deleteMany({
+          where: { firstSegmentId: recording.firstSegmentId },
+        });
+      } catch (error) {
         await prisma.recordingSaved.delete({ where: { id: recordingDb.id } });
-        throw Error("Error saving video");
+        throw Error("Error saving video: " + error);
       }
 
-      const deleteResponse = await deleteRecordingAction(
-        recording,
-        userChannel
-      );
-
-      if (deleteResponse.ok) {
-        response.recording = {
-          ...recording,
-          type: "saved",
-          id: recordingDb.id,
-          url: `videos/${userChannel.user.name}/${encodeURIComponent(
-            btoa(
-              JSON.stringify({
-                i: recordingDb.id,
-                d: recording.duration,
-                t: "s",
-              })
-            )
-          )}`,
-        };
-        response.ok = true;
-      }
+      response.recording = {
+        ...recording,
+        type: "SAVED",
+        id: recordingDb.id,
+        url: `videos/${userChannel.user.name}/${encodeURIComponent(
+          btoa(
+            JSON.stringify({
+              i: recordingDb.id,
+              d: recording.duration,
+              t: "s",
+            })
+          )
+        )}`,
+      };
+      response.ok = true;
     }
-  } catch {}
+  } else {
+    response.message = "Please wait until the recording is processed";
+  }
 
   return response;
 };
@@ -230,13 +394,83 @@ export const changeDefaultRecordingVisibilityAction = async (
 
   try {
     await prisma.userSetting.upsert({
-      where: { key: "VISIBILITY_UNSAVED_RECORDINGS", userId },
+      where: {
+        key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
+        userId,
+      },
       update: { value },
-      create: { key: "VISIBILITY_UNSAVED_RECORDINGS", userId, value },
+      create: {
+        key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
+        userId,
+        value,
+      },
     });
 
     response.ok = true;
   } catch {}
+
+  return response;
+};
+
+export const changeRecordingVisibility = async (
+  recording: Recording,
+  visibility: RecordingVisibility
+): Promise<ChangeRecordingVisibilityResponse> => {
+  const response: ChangeRecordingVisibilityResponse = {
+    ok: false,
+  };
+
+  try {
+    if (recording.type !== "SAVED") {
+      await prisma.recordingQueue.updateMany({
+        where: { firstSegmentId: recording.firstSegmentId },
+        data: {
+          visibility,
+        },
+      });
+    } else {
+      await prisma.recordingSaved.update({
+        where: {
+          id: recording.id,
+        },
+        data: {
+          visibility,
+        },
+      });
+    }
+    response.ok = true;
+  } catch {
+    response.message = "Unexpected error";
+  }
+
+  return response;
+};
+
+export const changeRecordingTitle = async (
+  recordingId: string | null,
+  title: string
+): Promise<ChangeRecordingTitleResponse> => {
+  const response: ChangeRecordingTitleResponse = {
+    ok: false,
+  };
+
+  if (!recordingId) {
+    response.message = "Recording id is null";
+    return response;
+  }
+
+  try {
+    await prisma.recordingSaved.update({
+      where: { id: recordingId },
+      data: {
+        title,
+      },
+    });
+
+    response.ok = true;
+  } catch {
+    response.message = "Unexpected error";
+  }
 
   return response;
 };
@@ -251,9 +485,9 @@ export const storePastStreamsAction = async (
 
   try {
     await prisma.userSetting.upsert({
-      where: { key: "STORE_PAST_STREAMS", userId },
+      where: { key: USER_SETTING.STORE_PAST_STREAMS, userId },
       update: { value },
-      create: { key: "STORE_PAST_STREAMS", userId, value },
+      create: { key: USER_SETTING.STORE_PAST_STREAMS, userId, value },
     });
 
     response.ok = true;

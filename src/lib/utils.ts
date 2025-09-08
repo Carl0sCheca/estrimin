@@ -1,3 +1,5 @@
+import prisma from "./prisma";
+
 export const getDiffTimeInMinutes = (date1: Date, date2: Date): number => {
   return Math.floor(
     Math.abs(new Date(date1).getTime() - new Date(date2).getTime()) / 1000 / 60
@@ -52,4 +54,32 @@ export const formatDate = (date: Date, time: boolean = false) => {
 
 export const wait = (ms: number): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export const checkAdmin = async (
+  sessionId: string | undefined
+): Promise<{ ok: boolean; message?: string }> => {
+  const isAdmin: { ok: boolean; message?: string } = {
+    ok: true,
+  };
+
+  try {
+    const sessionDb = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { user: true },
+    });
+
+    if (!sessionDb) {
+      isAdmin.ok = false;
+      isAdmin.message = "Session not found";
+    } else if (sessionDb.user.role !== "ADMIN") {
+      isAdmin.ok = false;
+      isAdmin.message = "Forbidden user";
+    }
+  } catch {
+    isAdmin.ok = false;
+    isAdmin.message = "Unexpected error";
+  }
+
+  return isAdmin;
 };

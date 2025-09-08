@@ -38,3 +38,7 @@ export interface RegisterResponse {
   errorType?: ErrorType;
   message?: EmailError | PasswordError | NameError | RegistrationCodeError;
 }
+
+export interface IsRegisterDisabledActionResponse {
+  ok: boolean;
+}

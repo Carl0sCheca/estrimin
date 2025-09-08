@@ -1,6 +1,10 @@
 "use server";
 
-import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
+import {
+  SITE_SETTING,
+  UserUpdateDataRequest,
+  UserUpdateResponse,
+} from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
@@ -13,7 +17,7 @@ export const checkValidUsername = async (
   let result = false;
 
   const forbiddenNames = await prisma.siteSetting.findFirst({
-    where: { key: "FORBIDDEN_NAMES" },
+    where: { key: SITE_SETTING.FORBIDDEN_NAMES },
   });
 
   if (!forbiddenNames) {

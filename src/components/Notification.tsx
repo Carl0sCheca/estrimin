@@ -68,7 +68,7 @@ export const useAlertNotification = () => {
 export const Notification = ({ state }: AlertNotificationProps) => {
   return (
     <div
-      className={`transition-all duration-500 fixed inset-x-0 top-0 flex items-start justify-center z-50 px-6 py-12 lg:px-8 pointer-events-none  ${
+      className={`transition-all duration-500 fixed inset-x-0 top-0 flex items-start justify-center z-40 px-6 py-12 lg:px-8 pointer-events-none  ${
         state.visible ? "visible opacity-100" : "invisible opacity-0 "
       } `}
     >
