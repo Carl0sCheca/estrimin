@@ -1,6 +1,6 @@
 import { AsyncTask, SimpleIntervalJob, ToadScheduler } from "toad-scheduler";
 import prisma from "../../src/lib/prisma";
-import { RecordingQueueState, SiteSetting } from "@prisma/client";
+import { RecordingQueueState } from "@prisma/client";
 import { SITE_SETTING } from "../../src/interfaces";
 import {
   Command,
@@ -13,7 +13,6 @@ import {
   reencodeWithOriginalSettings,
 } from "./videoProcessing";
 import * as fs from "fs";
-import { JsonValue } from "@prisma/client/runtime/library";
 
 const JOB_RECORDING_QUEUE = "JOB_QUEUE_TASK";
 const JOB_RECORDING_QUEUE_TIMEOUT = "JOB_QUEUE_TIMEOUT_TASK";
