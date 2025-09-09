@@ -48,12 +48,27 @@ export default async function StreamingUser(props: Props) {
     session ? `?session=${session?.session.id}` : ""
   }`;
 
+  let isFollowing = false;
+
+  if (session?.user.id) {
+    isFollowing = !!(await prisma.userFollows.findUnique({
+      where: {
+        userId_followId: {
+          userId: session.user.id,
+          followId: channel.userId,
+        },
+      },
+    }));
+  }
+
   return (
     <div className={"flex h-full w-full z-0"}>
       <VideoPlayer
         className={`flex-auto h-full w-full`}
         url={url}
         channelUserId={channel.userId}
+        sessionUserId={session?.user.id}
+        isFollowing={isFollowing}
       />
     </div>
   );

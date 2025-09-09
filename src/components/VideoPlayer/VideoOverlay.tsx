@@ -3,6 +3,7 @@
 import { PlayerState, UserVideoButton } from "@/components";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { IoMdPeople } from "react-icons/io";
+import { FollowButton } from "./FollowButton";
 
 const TIME_IN = 2500;
 const TIME_OUT = 2500;
@@ -11,9 +12,18 @@ const TIME_OUT_END = 10000;
 interface Props {
   playerState: PlayerState;
   viewers: number;
+  channelUserId: string;
+  isFollowing: boolean;
+  sessionUserId: string | undefined;
 }
 
-export const VideoOverlay = ({ playerState, viewers }: Props) => {
+export const VideoOverlay = ({
+  playerState,
+  viewers,
+  channelUserId,
+  sessionUserId,
+  isFollowing,
+}: Props) => {
   const [isVisible, setIsVisible] = useState(true);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -91,7 +101,9 @@ export const VideoOverlay = ({ playerState, viewers }: Props) => {
       onMouseMove={mouseMove}
       onTouchMove={touchEnter}
     >
-      <div className={`ml-6 absolute h-full flex items-center justify-center`}>
+      <div
+        className={`ml-6 absolute h-full flex items-center justify-center gap-x-2`}
+      >
         <span
           className={`select-none rounded-md border-0 p-1 text-gray-900 shadow-xs ring-1 ring-inset ${
             playerState === PlayerState.ONLINE
@@ -107,6 +119,13 @@ export const VideoOverlay = ({ playerState, viewers }: Props) => {
           ) : (
             "Offline"
           )}
+        </span>
+        <span>
+          <FollowButton
+            channelUserId={channelUserId}
+            sessionUserId={sessionUserId}
+            isFollowing={isFollowing}
+          />
         </span>
       </div>
       <UserVideoButton isVisible={isVisible} />

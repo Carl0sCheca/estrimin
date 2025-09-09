@@ -8,7 +8,7 @@
 
 */
 -- CreateEnum
-CREATE TYPE "public"."ChannelVisibility" AS ENUM ('ALL', 'REGISTERED_USERS', 'ALLOWLIST', 'PASSWORD');
+CREATE TYPE "public"."ChannelVisibility" AS ENUM ('ALL', 'REGISTERED_USERS', 'ALLOWLIST', 'PASSWORD', 'UNLISTED');
 
 -- CreateEnum
 CREATE TYPE "public"."RecordingVisibility" AS ENUM ('PUBLIC', 'ALLOWLIST', 'UNLISTED', 'PRIVATE');
@@ -93,7 +93,7 @@ CREATE TABLE "public"."recordingQueue" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."UserFollows" (
+CREATE TABLE "public"."userFollows" (
     "userId" TEXT NOT NULL,
     "followId" TEXT NOT NULL
 );
@@ -108,13 +108,13 @@ CREATE INDEX "recordingQueue_status_idx" ON "public"."recordingQueue"("status");
 CREATE INDEX "recordingQueue_userId_idx" ON "public"."recordingQueue"("userId");
 
 -- CreateIndex
-CREATE INDEX "UserFollows_userId_idx" ON "public"."UserFollows"("userId");
+CREATE INDEX "userFollows_userId_idx" ON "public"."userFollows"("userId");
 
 -- CreateIndex
-CREATE INDEX "UserFollows_followId_idx" ON "public"."UserFollows"("followId");
+CREATE INDEX "userFollows_followId_idx" ON "public"."userFollows"("followId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserFollows_userId_followId_key" ON "public"."UserFollows"("userId", "followId");
+CREATE UNIQUE INDEX "userFollows_userId_followId_key" ON "public"."userFollows"("userId", "followId");
 
 -- AddForeignKey
 ALTER TABLE "public"."registrationCode" ADD CONSTRAINT "registrationCode_usedById_fkey" FOREIGN KEY ("usedById") REFERENCES "public"."user"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
@@ -132,7 +132,7 @@ ALTER TABLE "public"."recordingQueue" ADD CONSTRAINT "recordingQueue_userId_fkey
 ALTER TABLE "public"."recordingQueue" ADD CONSTRAINT "recordingQueue_firstSegmentId_fkey" FOREIGN KEY ("firstSegmentId") REFERENCES "public"."recordingQueue"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."UserFollows" ADD CONSTRAINT "UserFollows_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."userFollows" ADD CONSTRAINT "userFollows_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."UserFollows" ADD CONSTRAINT "UserFollows_followId_fkey" FOREIGN KEY ("followId") REFERENCES "public"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "public"."userFollows" ADD CONSTRAINT "userFollows_followId_fkey" FOREIGN KEY ("followId") REFERENCES "public"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

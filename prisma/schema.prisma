@@ -20,6 +20,7 @@ enum ChannelVisibility {
   REGISTERED_USERS
   ALLOWLIST
   PASSWORD
+  UNLISTED
 }
 
 enum RecordingVisibility {
@@ -214,4 +215,5 @@ model UserFollows {
   @@unique([userId, followId])
   @@index([userId])
   @@index([followId])
+  @@map("userFollows")
 }

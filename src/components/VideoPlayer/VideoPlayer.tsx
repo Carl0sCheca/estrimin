@@ -9,11 +9,15 @@ import { PlayerState, VideoOverlay } from "@/components";
 interface Props {
   url: string;
   channelUserId: string;
+  sessionUserId: string | undefined;
+  isFollowing: boolean;
   className?: string;
 }
 
 export const VideoPlayer = ({
   channelUserId,
+  sessionUserId,
+  isFollowing,
   url,
   className,
 }: Props): ReactElement => {
@@ -105,7 +109,13 @@ export const VideoPlayer = ({
 
   return (
     <>
-      <VideoOverlay playerState={playerState} viewers={viewersCount} />
+      <VideoOverlay
+        playerState={playerState}
+        viewers={viewersCount}
+        channelUserId={channelUserId}
+        sessionUserId={sessionUserId}
+        isFollowing={isFollowing}
+      />
       <div className={`${className} relative group`}>
         <video
           className="flex h-full w-full bg-black"

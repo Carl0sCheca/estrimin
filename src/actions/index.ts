@@ -4,4 +4,5 @@ export * from "./recordings";
 export * from "./register";
 export * from "./scheduler";
 export * from "./user";
+export * from "./userFollows";
 export * from "./viewers";
