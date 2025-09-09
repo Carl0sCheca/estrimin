@@ -9,8 +9,19 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-export const isStdError = (err: any): err is { stderr: string } => {
-  return !!err.stderr;
+interface ExecError extends Error {
+  stderr?: string;
+  stdout?: string;
+  code?: number;
+}
+
+export const isStdError = (err: unknown): err is { stderr: ExecError } => {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "stderr" in err &&
+    typeof (err as Record<string, unknown>).stderr === "string"
+  );
 };
 
 export interface VideoInfo {

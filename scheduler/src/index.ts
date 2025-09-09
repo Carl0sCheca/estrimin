@@ -17,7 +17,7 @@ import * as fs from "fs";
 const JOB_RECORDING_QUEUE = "JOB_QUEUE_TASK";
 const JOB_RECORDING_QUEUE_TIMEOUT = "JOB_QUEUE_TIMEOUT_TASK";
 
-let jobsRunning: Map<string, boolean> = new Map();
+const jobsRunning: Map<string, boolean> = new Map();
 
 const schedulerSingleton = () => {
   return new ToadScheduler();
