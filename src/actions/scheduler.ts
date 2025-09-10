@@ -13,6 +13,17 @@ import prisma from "@/lib/prisma";
 import * as zmq from "zeromq";
 
 export const GetAllTasksSchedulerAction = async (): Promise<Array<Job>> => {
+  if (
+    ((
+      await prisma.siteSetting.findUnique({
+        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
+      })
+    )?.value as boolean) ??
+    false
+  ) {
+    return [];
+  }
+
   const sock = new zmq.Request();
 
   sock.connect(DEFAULT_SOCKET);
@@ -31,6 +42,17 @@ export const GetAllTasksSchedulerAction = async (): Promise<Array<Job>> => {
 };
 
 export const StartAllScheduledJobAction = async (): Promise<void> => {
+  if (
+    ((
+      await prisma.siteSetting.findUnique({
+        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
+      })
+    )?.value as boolean) ??
+    false
+  ) {
+    return;
+  }
+
   const sock = new zmq.Request();
   sock.connect(DEFAULT_SOCKET);
 
@@ -43,6 +65,17 @@ export const StartAllScheduledJobAction = async (): Promise<void> => {
 };
 
 export const StopAllScheduledJobAction = async (): Promise<void> => {
+  if (
+    ((
+      await prisma.siteSetting.findUnique({
+        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
+      })
+    )?.value as boolean) ??
+    false
+  ) {
+    return;
+  }
+
   const sock = new zmq.Request();
   sock.connect(DEFAULT_SOCKET);
 
@@ -55,6 +88,17 @@ export const StopAllScheduledJobAction = async (): Promise<void> => {
 };
 
 export const StartScheduledJobAction = async (id: string): Promise<void> => {
+  if (
+    ((
+      await prisma.siteSetting.findUnique({
+        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
+      })
+    )?.value as boolean) ??
+    false
+  ) {
+    return;
+  }
+
   const sock = new zmq.Request();
   sock.connect(DEFAULT_SOCKET);
 
@@ -68,6 +112,17 @@ export const StartScheduledJobAction = async (id: string): Promise<void> => {
 };
 
 export const StopScheduledJobAction = async (id: string): Promise<void> => {
+  if (
+    ((
+      await prisma.siteSetting.findUnique({
+        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
+      })
+    )?.value as boolean) ??
+    false
+  ) {
+    return;
+  }
+
   const sock = new zmq.Request();
   sock.connect(DEFAULT_SOCKET);
 
