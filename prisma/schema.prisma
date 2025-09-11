@@ -146,7 +146,7 @@ model RecordingSaved {
   createdAt  DateTime            @default(now())
   channelId  Int
   duration   Float               @default(0)
-  visibility RecordingVisibility @default(PUBLIC)
+  visibility RecordingVisibility @default(PRIVATE)
   title      String?             @db.VarChar(255)
 
   channel Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)

@@ -3,7 +3,7 @@
 import {
   changeRecordingTitle,
   changeRecordingVisibility,
-  changeDefaultRecordingVisibilityAction as changeUnsavedRecordingsVisibility,
+  changeDefaultRecordingVisibilityAction,
   deleteRecordingAction,
   getRecordingsListAction,
   saveRecordingAction,
@@ -65,7 +65,7 @@ export const RecordingsList = ({
   const [visibilityUnsavedRecordings, setVisibilityUnsavedRecordings] =
     useState<RecordingVisibility>(
       (userSettings.find((e) => e.key === "VISIBILITY_UNSAVED_RECORDINGS")
-        ?.value as RecordingVisibility) || RecordingVisibility.PUBLIC
+        ?.value as RecordingVisibility) || RecordingVisibility.PRIVATE
     );
 
   const [storePastStreams, setStorePastStreams] = useState<boolean>(
@@ -144,7 +144,7 @@ export const RecordingsList = ({
               const value = (e.target as HTMLSelectElement)
                 .value as RecordingVisibility;
 
-              const response = await changeUnsavedRecordingsVisibility(
+              const response = await changeDefaultRecordingVisibilityAction(
                 value,
                 userChannel.user.id
               );
