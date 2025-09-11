@@ -51,7 +51,7 @@ CREATE TABLE "public"."recordingSaved" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "channelId" INTEGER NOT NULL,
     "duration" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "visibility" "public"."RecordingVisibility" NOT NULL DEFAULT 'PUBLIC',
+    "visibility" "public"."RecordingVisibility" NOT NULL DEFAULT 'PRIVATE',
     "title" VARCHAR(255),
 
     CONSTRAINT "recordingSaved_pkey" PRIMARY KEY ("id")
