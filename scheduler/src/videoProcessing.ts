@@ -146,10 +146,51 @@ const handleConsecutiveVideos = async (
     fs.rmSync(currentVideo.filePath);
     fs.rmSync(listFileName);
     fs.renameSync(outputFile, previousVideo.filePath);
+
+    try {
+      fs.rmSync(currentVideo.filePath.replace(".mp4", ".webp"));
+    } catch {}
+
+    await generateThumbnail(previousVideo.filePath);
   } catch (error) {
     console.error("Error merging videos:", error);
     throw error;
   }
+};
+
+export const generateThumbnail = async (outputFile: string) => {
+  const getDurationCommand = [
+    "ffprobe",
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    outputFile,
+  ].join(" ");
+
+  const { stdout: durationStdout } = await execAsync(getDurationCommand);
+  const duration = parseFloat(durationStdout.trim());
+  const middleTime = duration / 2;
+
+  const generateThumbnailCommand = [
+    "ffmpeg",
+    "-y",
+    "-ss",
+    middleTime.toString(),
+    "-i",
+    outputFile,
+    "-vf",
+    "scale=320:320:force_original_aspect_ratio=decrease",
+    "-vframes",
+    "1",
+    "-qscale",
+    "50",
+    outputFile.replace(".mp4", ".webp"),
+  ].join(" ");
+
+  await execAsync(generateThumbnailCommand);
 };
 
 export const getVideoMetadata = async (filePath: string) => {

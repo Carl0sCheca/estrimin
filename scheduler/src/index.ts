@@ -9,6 +9,7 @@ import {
 } from "../../src/interfaces/actions/scheduler";
 import * as zmq from "zeromq";
 import {
+  generateThumbnail,
   handleNewVideo,
   reencodeWithOriginalSettings,
 } from "./videoProcessing";
@@ -144,6 +145,8 @@ const queueTask = async () => {
 
         fs.rmSync(`${recording.fileName}`);
         fs.renameSync(reencodeFileName, `${recording.fileName}`);
+
+        await generateThumbnail(recording.fileName);
 
         await prisma.recordingQueue.update({
           where: { id: recording.id },

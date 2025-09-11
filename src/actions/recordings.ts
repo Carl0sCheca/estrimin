@@ -240,7 +240,11 @@ export const deleteRecordingAction = async (
         response.message = "Video not found";
         return response;
       }
-      fs.rmSync(videoRecording.fileName);
+
+      try {
+        fs.rmSync(videoRecording.fileName);
+        fs.rmSync(videoRecording.fileName.replace(".mp4", ".webp"));
+      } catch {}
 
       await prisma.recordingQueue.deleteMany({
         where: { firstSegmentId: videoRecording?.firstSegmentId },
