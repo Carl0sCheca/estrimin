@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
-import { auth } from "../lib/auth";
 import { SITE_SETTING } from "@/interfaces";
+import { registerAction } from "@/actions";
+import { Role } from "@prisma/client";
 
 const main = async () => {
   if ((await prisma.user.count()) === 0) {
@@ -37,15 +38,22 @@ const main = async () => {
     });
 
     try {
-      await auth.api.signUpEmail({
-        body: {
-          name: "administrator",
-          email: "chan@ge.me",
-          password: "changeme",
-          role: "ADMIN",
+      await registerAction(
+        "chan@ge.me",
+        "changeme",
+        "administrator",
+        undefined
+      );
+
+      await prisma.user.updateMany({
+        where: {
+          role: Role.USER,
+        },
+        data: {
+          role: Role.ADMIN,
         },
       });
-    } catch {} // This will cause an error because it cannot save to a cookie. However, I don't want to use a cookie here.
+    } catch {}
   }
 };
 
