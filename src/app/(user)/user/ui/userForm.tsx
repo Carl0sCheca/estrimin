@@ -1,6 +1,6 @@
 "use client";
 
-import { updateUser } from "@/actions";
+import { changePasswordAction, updateUser } from "@/actions";
 import {
   Logo,
   LogoutButton,
@@ -9,7 +9,6 @@ import {
   useAlertNotification,
 } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
-import { changePassword } from "@/lib/auth-client";
 import { User } from "@prisma/client";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
@@ -30,6 +29,7 @@ enum FormPasswordError {
   None = "",
   WrongPassword = "Wrong current password",
   InsufficientChars = "Password must be at least 8 chars",
+  Unexpected = "Unexpected error",
 }
 
 interface Props {
@@ -248,32 +248,40 @@ export const UserForm = ({ user }: Props) => {
           <div className={"mt-6"}>
             <form
               className="space-y-6"
-              action={async (formData: FormData) => {
+              onSubmit={async (event: React.FormEvent<HTMLFormElement>) => {
+                event?.preventDefault();
+
                 flushSync(() => {
                   setButton(true);
                 });
+
+                const formData = new FormData(event.currentTarget);
 
                 const currentPassword =
                   formData.get("password")?.toString() ?? "";
                 const newPassword =
                   formData.get("newpassword")?.toString() ?? "";
 
-                const { error } = await changePassword({
+                const { ok, error } = await changePasswordAction({
                   newPassword,
                   currentPassword: currentPassword,
-                  revokeOtherSessions: true,
                 });
 
-                if (error) {
-                  if (error.code === "INVALID_PASSWORD") {
+                if (!ok) {
+                  if (error === "INVALID_PASSWORD") {
                     setErrorState({
                       ...errorState,
                       password: FormPasswordError.WrongPassword,
                     });
-                  } else if (error.code === "PASSWORD_TOO_SHORT") {
+                  } else if (error === "PASSWORD_TOO_SHORT") {
                     setErrorState({
                       ...errorState,
                       password: FormPasswordError.InsufficientChars,
+                    });
+                  } else {
+                    setErrorState({
+                      ...errorState,
+                      password: FormPasswordError.Unexpected,
                     });
                   }
 

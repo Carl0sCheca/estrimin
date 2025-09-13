@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  ChangePasswordResponse,
   SITE_SETTING,
   UserUpdateDataRequest,
   UserUpdateResponse,
@@ -104,6 +105,44 @@ export const updateUser = async (
   if (updatedUser) {
     response.ok = true;
     response.data = updatedUser;
+  }
+
+  return response;
+};
+
+export const changePasswordAction = async ({
+  newPassword,
+  currentPassword,
+}: {
+  newPassword: string;
+  currentPassword: string;
+}): Promise<ChangePasswordResponse> => {
+  const response: ChangePasswordResponse = {
+    ok: false,
+  };
+
+  const changePassword = await auth.api.changePassword({
+    headers: await headers(),
+    asResponse: true,
+    returnHeaders: true,
+    method: "POST",
+    body: {
+      currentPassword,
+      newPassword,
+      revokeOtherSessions: false,
+    },
+  });
+
+  const changePasswordResponse = await changePassword.json();
+
+  if (changePassword.status === 200) {
+    response.ok = true;
+
+    await auth.api.revokeOtherSessions({
+      headers: await headers(),
+    });
+  } else {
+    response.error = changePasswordResponse.code;
   }
 
   return response;

@@ -10,3 +10,8 @@ export interface UserUpdateDataRequest {
   name?: string;
   email?: string;
 }
+
+export interface ChangePasswordResponse {
+  ok: boolean;
+  error?: string;
+}
