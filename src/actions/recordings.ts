@@ -356,6 +356,10 @@ export const saveRecordingAction = async (
         fs.mkdirSync(targetDir, { recursive: true });
 
         fs.renameSync(recordingQueueDb.fileName, targetPath);
+        fs.renameSync(
+          recordingQueueDb.fileName.replace(".mp4", ".webp"),
+          targetPath.replace(".mp4", ".webp")
+        );
 
         await prisma.recordingQueue.deleteMany({
           where: { firstSegmentId: recording.firstSegmentId },
