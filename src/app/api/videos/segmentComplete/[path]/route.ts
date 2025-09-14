@@ -86,9 +86,9 @@ export async function GET(req: NextRequest, { params }: Params) {
       },
     });
 
-    const defaultVisibility = userSetting?.value as
-      | RecordingVisibility
-      | undefined;
+    const defaultVisibility =
+      (userSetting?.value as RecordingVisibility) ??
+      RecordingVisibility.PRIVATE;
 
     const createdRecording = await prisma.recordingQueue.create({
       data: {
