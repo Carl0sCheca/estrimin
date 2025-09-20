@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { FaUser } from "react-icons/fa";
+import { IoLogInOutline } from "react-icons/io5";
 
 interface Props {
   isVisible: boolean;
+  isLogged: boolean;
 }
 
-export const UserVideoButton = ({ isVisible }: Props) => {
+export const UserVideoButton = ({ isVisible, isLogged }: Props) => {
   return (
     <div className={`right-0 w-16 h-16 absolute`}>
       <Link
@@ -16,10 +18,19 @@ export const UserVideoButton = ({ isVisible }: Props) => {
           isVisible ? "" : "pointer-events-none"
         }`}
       >
-        <FaUser
-          size={42}
-          className="cursor-pointer text-white hover:text-primary-500"
-        />
+        {!isLogged && (
+          <IoLogInOutline
+            size={42}
+            className="cursor-pointer text-white hover:text-primary-500"
+          />
+        )}
+
+        {isLogged && (
+          <FaUser
+            size={42}
+            className="cursor-pointer text-white hover:text-primary-500"
+          />
+        )}
       </Link>
     </div>
   );

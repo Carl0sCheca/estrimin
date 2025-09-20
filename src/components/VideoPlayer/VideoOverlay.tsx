@@ -145,7 +145,10 @@ export const VideoOverlay = ({
           </Link>
         </span>
       </div>
-      <UserVideoButton isVisible={isVisible} />
+      <UserVideoButton
+        isVisible={isVisible}
+        isLogged={sessionUserId !== undefined}
+      />
     </div>
   );
 };
