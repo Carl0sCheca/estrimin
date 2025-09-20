@@ -21,7 +21,7 @@ import { v4 as uuidv4 } from "uuid";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
 import { getLastVideoFromLive } from ".";
 import { RecordingQueue, RecordingVisibility } from "@prisma/client";
-import { Recording } from "@/interfaces/api/channel";
+import { RecordingDto } from "@/interfaces/api/channel";
 import { formatDate, secondsToHMS } from "@/lib/utils";
 
 export const createChannel = async (
@@ -306,7 +306,7 @@ export const getChannelRecordingsAction = async (
     );
 
     response.recordings = publicRecordings.map((recording) => {
-      const recordingMap: Recording = {
+      const recordingMap: RecordingDto = {
         date: recording.start,
         duration: secondsToHMS(recording.duration),
         status: recording.status,
@@ -342,7 +342,7 @@ export const getChannelRecordingsAction = async (
     response.recordings = [
       ...response.recordings,
       ...savedRecordings.map((recording) => {
-        const recordingMap: Recording = {
+        const recordingMap: RecordingDto = {
           date: recording.createdAt,
           duration: secondsToHMS(recording.duration),
           status: "SAVED",

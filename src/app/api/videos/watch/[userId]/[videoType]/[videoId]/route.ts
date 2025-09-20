@@ -5,31 +5,29 @@ import prisma from "@/lib/prisma";
 import { RecordingVisibility } from "@prisma/client";
 import { getSafePath, validateParameters } from "@/lib/utils-api";
 
-type VideoType = "n" | "s";
-
 interface Params {
   params: Promise<{
     userId: string;
     videoId: string;
-    type: VideoType;
+    videoType: string;
   }>;
 }
 
 const isRecordingVisible = async (
   userId: string,
   videoId: string,
-  type: string,
+  videoType: string,
   session: string
 ): Promise<number> => {
-  if (!validateParameters(userId, videoId, type)) {
+  if (!validateParameters(userId, videoId, videoType)) {
     return 404;
   }
 
   try {
     let visibility;
 
-    if (type === "n") {
-      const safePath = getSafePath(userId, `${videoId}.mp4`, type);
+    if (videoType === "n") {
+      const safePath = getSafePath(userId, `${videoId}.mp4`, videoType);
       if (!safePath) return 404;
 
       visibility = (
@@ -82,7 +80,7 @@ const isRecordingVisible = async (
     return 500;
   }
 
-  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, type);
+  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, videoType);
   if (!safeVideoPath) {
     return 404;
   }
@@ -99,17 +97,17 @@ const isRecordingVisible = async (
 };
 
 export async function POST(req: NextRequest, { params }: Params) {
-  const { userId, videoId, type } = await params;
+  const { userId, videoId, videoType } = await params;
   const session = req.nextUrl.searchParams.get("session") || "";
 
-  if (!validateParameters(userId, videoId, type)) {
+  if (!validateParameters(userId, videoId, videoType)) {
     return NextResponse.json({ ok: false }, { status: 404 });
   }
 
   const canViewRecording = await isRecordingVisible(
     userId,
     videoId,
-    type,
+    videoType,
     session
   );
 
@@ -121,17 +119,17 @@ export async function POST(req: NextRequest, { params }: Params) {
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
-  const { userId, videoId, type } = await params;
+  const { userId, videoId, videoType } = await params;
   const session = req.nextUrl.searchParams.get("session") || "";
 
-  if (!validateParameters(userId, videoId, type)) {
+  if (!validateParameters(userId, videoId, videoType)) {
     return new NextResponse(null, { status: 404 });
   }
 
   const canViewRecording = await isRecordingVisible(
     userId,
     videoId,
-    type,
+    videoType,
     session
   );
 
@@ -139,7 +137,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     return new NextResponse(null, { status: canViewRecording });
   }
 
-  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, type);
+  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, videoType);
   if (!safeVideoPath) {
     return new NextResponse(null, { status: 404 });
   }

@@ -6,18 +6,18 @@ import { getSafePath, validateParameters } from "@/lib/utils-api";
 interface Params {
   params: Promise<{
     userId: string;
-    type: string;
+    videoType: string;
     videoId: string;
   }>;
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
-    const { userId, type, videoId } = await params;
+    const { userId, videoType, videoId } = await params;
 
-    if (!validateParameters(userId, videoId, type)) {
+    if (!validateParameters(userId, videoId, videoType)) {
       console.warn(
-        `Invalid parameters: userId=${userId}, type=${type}, videoId=${videoId}`
+        `Invalid parameters: userId=${userId}, type=${videoType}, videoId=${videoId}`
       );
 
       const defaultImagePath = join(
@@ -40,11 +40,11 @@ export async function GET(req: NextRequest, { params }: Params) {
       return new NextResponse("Invalid parameters", { status: 400 });
     }
 
-    const safePath = getSafePath(userId, `${videoId}.webp`, type);
+    const safePath = getSafePath(userId, `${videoId}.webp`, videoType);
 
     if (!safePath) {
       console.warn(
-        `Unsafe or invalid path: userId=${userId}, type=${type}, videoId=${videoId}`
+        `Unsafe or invalid path: userId=${userId}, type=${videoType}, videoId=${videoId}`
       );
 
       const defaultImagePath = join(

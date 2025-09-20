@@ -54,10 +54,10 @@ export interface RemoveUserAllowlistResponse {
 
 export interface GetChannelRecordingsResponse {
   ok: boolean;
-  recordings: Array<Recording>;
+  recordings: Array<RecordingDto>;
 }
 
-export interface Recording {
+export interface RecordingDto {
   url: string;
   thumbnail: string;
   title: string;
