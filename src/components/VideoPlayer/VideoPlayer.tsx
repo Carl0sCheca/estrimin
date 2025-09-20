@@ -9,6 +9,7 @@ import { PlayerState, VideoOverlay } from "@/components";
 interface Props {
   url: string;
   channelUserId: string;
+  channelUserName: string;
   sessionUserId: string | undefined;
   isFollowing: boolean;
   className?: string;
@@ -16,6 +17,7 @@ interface Props {
 
 export const VideoPlayer = ({
   channelUserId,
+  channelUserName,
   sessionUserId,
   isFollowing,
   url,
@@ -113,6 +115,7 @@ export const VideoPlayer = ({
         playerState={playerState}
         viewers={viewersCount}
         channelUserId={channelUserId}
+        channelUserName={channelUserName}
         sessionUserId={sessionUserId}
         isFollowing={isFollowing}
       />

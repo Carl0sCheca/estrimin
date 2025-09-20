@@ -4,6 +4,8 @@ import { PlayerState, UserVideoButton } from "@/components";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { IoMdPeople } from "react-icons/io";
 import { FollowButton } from "./FollowButton";
+import Link from "next/link";
+import { BiSolidVideos } from "react-icons/bi";
 
 const TIME_IN = 2500;
 const TIME_OUT = 2500;
@@ -13,6 +15,7 @@ interface Props {
   playerState: PlayerState;
   viewers: number;
   channelUserId: string;
+  channelUserName: string;
   isFollowing: boolean;
   sessionUserId: string | undefined;
 }
@@ -21,6 +24,7 @@ export const VideoOverlay = ({
   playerState,
   viewers,
   channelUserId,
+  channelUserName,
   sessionUserId,
   isFollowing,
 }: Props) => {
@@ -126,6 +130,19 @@ export const VideoOverlay = ({
             sessionUserId={sessionUserId}
             isFollowing={isFollowing}
           />
+        </span>
+        <span>
+          <Link
+            href={`${channelUserName}/videos`}
+            className={
+              "flex items-center justify-center rounded-md bg-primary-600 px-3 h-8 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 hover:cursor-pointer"
+            }
+          >
+            <>
+              <BiSolidVideos className="mr-2" size={18} />
+              Videos
+            </>
+          </Link>
         </span>
       </div>
       <UserVideoButton isVisible={isVisible} />

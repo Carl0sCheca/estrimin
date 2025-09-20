@@ -168,7 +168,7 @@ export const getRecordingsListAction = async (
         url: `videos/${userChannel.user.name}/${encodeURIComponent(
           btoa(
             JSON.stringify({
-              i: recording.fileName,
+              i: recording.fileName.replace(".mp4", ""),
               t: "n",
             })
           )

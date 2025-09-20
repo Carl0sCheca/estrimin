@@ -33,6 +33,11 @@ export default async function StreamingUser(props: Props) {
   try {
     channel = await prisma.channel.findFirst({
       where: { user: { name: id } },
+      select: {
+        user: { select: { name: true } },
+        disabled: true,
+        userId: true,
+      },
     });
   } catch {}
 
@@ -67,6 +72,7 @@ export default async function StreamingUser(props: Props) {
         className={`flex-auto h-full w-full`}
         url={url}
         channelUserId={channel.userId}
+        channelUserName={channel.user.name}
         sessionUserId={session?.user.id}
         isFollowing={isFollowing}
       />

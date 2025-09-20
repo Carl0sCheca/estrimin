@@ -1,4 +1,4 @@
-import { ChannelVisibility } from "@prisma/client";
+import { ChannelVisibility, RecordingVisibility } from "@prisma/client";
 
 export interface CreateChannelResponse {
   ok: boolean;
@@ -50,4 +50,19 @@ export interface RemoveUserAllowlistRequest {
 
 export interface RemoveUserAllowlistResponse {
   ok: boolean;
+}
+
+export interface GetChannelRecordingsResponse {
+  ok: boolean;
+  recordings: Array<Recording>;
+}
+
+export interface Recording {
+  url: string;
+  thumbnail: string;
+  title: string;
+  duration: string;
+  status: "COMPLETED" | "PROCESSING" | "LIVE" | "SAVED"; // unsaved: completed, processing and live
+  date: Date;
+  visibility: RecordingVisibility;
 }

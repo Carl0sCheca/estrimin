@@ -3,6 +3,7 @@ import path from "path";
 import { createReadStream, existsSync, statSync } from "fs";
 import prisma from "@/lib/prisma";
 import { RecordingVisibility } from "@prisma/client";
+import { getSafePath, validateParameters } from "@/lib/utils-api";
 
 type VideoType = "n" | "s";
 
@@ -20,19 +21,21 @@ const isRecordingVisible = async (
   type: string,
   session: string
 ): Promise<number> => {
+  if (!validateParameters(userId, videoId, type)) {
+    return 404;
+  }
+
   try {
     let visibility;
 
     if (type === "n") {
+      const safePath = getSafePath(userId, `${videoId}.mp4`, type);
+      if (!safePath) return 404;
+
       visibility = (
         await prisma.recordingQueue.findFirst({
           where: {
-            fileName: path.join(
-              process.env.RECORDINGS_PATH || "",
-              "recordings",
-              userId,
-              videoId
-            ),
+            fileName: safePath,
           },
         })
       )?.visibility;
@@ -79,15 +82,13 @@ const isRecordingVisible = async (
     return 500;
   }
 
-  const videoPath = path.join(
-    process.env.RECORDINGS_PATH || "",
-    type === "n" ? "recordings" : "recordings_saved",
-    userId,
-    type === "n" ? videoId : `${videoId}.mp4`
-  );
+  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, type);
+  if (!safeVideoPath) {
+    return 404;
+  }
 
   try {
-    if (!existsSync(videoPath)) {
+    if (!existsSync(safeVideoPath)) {
       return 404;
     }
   } catch {
@@ -101,6 +102,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { userId, videoId, type } = await params;
   const session = req.nextUrl.searchParams.get("session") || "";
 
+  if (!validateParameters(userId, videoId, type)) {
+    return NextResponse.json({ ok: false }, { status: 404 });
+  }
+
   const canViewRecording = await isRecordingVisible(
     userId,
     videoId,
@@ -111,13 +116,17 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (canViewRecording === 200) {
     return NextResponse.json({ ok: true });
   } else {
-    return NextResponse.json({ ok: false }, { status: 404 });
+    return NextResponse.json({ ok: false }, { status: canViewRecording });
   }
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
   const { userId, videoId, type } = await params;
   const session = req.nextUrl.searchParams.get("session") || "";
+
+  if (!validateParameters(userId, videoId, type)) {
+    return new NextResponse(null, { status: 404 });
+  }
 
   const canViewRecording = await isRecordingVisible(
     userId,
@@ -130,15 +139,13 @@ export async function GET(req: NextRequest, { params }: Params) {
     return new NextResponse(null, { status: canViewRecording });
   }
 
-  const videoPath = path.join(
-    process.env.RECORDINGS_PATH || "",
-    type === "n" ? "recordings" : "recordings_saved",
-    userId,
-    type === "n" ? videoId : `${videoId}.mp4`
-  );
+  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, type);
+  if (!safeVideoPath) {
+    return new NextResponse(null, { status: 404 });
+  }
 
   try {
-    const stat = statSync(videoPath);
+    const stat = statSync(safeVideoPath);
     const fileSize = stat.size;
     const range = req.headers.get("range");
 
@@ -146,19 +153,29 @@ export async function GET(req: NextRequest, { params }: Params) {
       "Content-Type": "video/mp4",
       "Accept-Ranges": "bytes",
       "Cache-Control": "no-cache",
-      "Content-Disposition": `inline; filename="${path.basename(videoPath)}"`,
+      "Content-Disposition": `inline; filename="${path.basename(
+        safeVideoPath
+      )}"`,
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
     });
 
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize || end >= fileSize || start < 0 || end < start) {
+        headers.set("Content-Range", `bytes */${fileSize}`);
+        return new NextResponse(null, { status: 416, headers });
+      }
+
       const chunksize = end - start + 1;
 
       headers.set("Content-Range", `bytes ${start}-${end}/${fileSize}`);
       headers.set("Content-Length", chunksize.toString());
 
-      const videoStream = createReadStream(videoPath, { start, end });
+      const videoStream = createReadStream(safeVideoPath, { start, end });
       const response = new Response(videoStream as unknown as ReadableStream, {
         status: 206,
         headers,
@@ -167,7 +184,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       return response;
     } else {
       headers.set("Content-Length", fileSize.toString());
-      const videoStream = createReadStream(videoPath);
+      const videoStream = createReadStream(safeVideoPath);
       const response = new Response(videoStream as unknown as ReadableStream, {
         status: 200,
         headers,
@@ -175,7 +192,8 @@ export async function GET(req: NextRequest, { params }: Params) {
 
       return response;
     }
-  } catch {}
-
-  return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Error streaming video:", error);
+    return new NextResponse(null, { status: 500 });
+  }
 }

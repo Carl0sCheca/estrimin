@@ -31,7 +31,6 @@ export const secondsToHMS = (seconds: number) => {
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
 
-  // Formatear cada parte con 2 dígitos
   const pad = (num: number) => num.toString().padStart(2, "0");
 
   return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
@@ -47,7 +46,7 @@ export const formatDate = (date: Date, time: boolean = false) => {
   const minutes = String(dateLocal.getMinutes()).padStart(2, "0");
   const seconds = String(dateLocal.getSeconds()).padStart(2, "0");
 
-  return `${year}/${month}/${day} ${
+  return `${year}/${month}/${day}${
     time ? ` - ${hours}:${minutes}:${seconds}` : ""
   }`;
 };
