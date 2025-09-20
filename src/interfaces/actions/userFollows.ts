@@ -3,3 +3,8 @@ export interface SetUserFollowResponse {
   following?: boolean;
   message?: string;
 }
+
+export interface UserUnFollowResponse {
+  ok: boolean;
+  message?: string;
+}

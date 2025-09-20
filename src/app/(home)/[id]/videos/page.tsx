@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import NotFound from "@/app/not-found";
 import { VideoList } from "./ui/videoList";
 import Link from "next/link";
+import { Logo } from "@/components";
 
 export const revalidate = 0;
 
@@ -60,13 +61,16 @@ export default async function StreamingUser(props: Props) {
       className={"flex min-h-full flex-col justify-center px-6 py-12 lg:px-8"}
     >
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <Link href={`/${channel.user.name}`}>
-          <span className="text-primary-500 hover:text-primary-600 font-bold">
-            {channel.user.name}
-          </span>
-        </Link>
-        &apos;s videos
-        <VideoList channel={channel} />
+        <Logo />
+        <div className="mt-6">
+          <Link href={`/${channel.user.name}`}>
+            <span className="text-primary-500 hover:text-primary-600 font-bold">
+              {channel.user.name}
+            </span>
+          </Link>
+          &apos;s videos
+          <VideoList channel={channel} />
+        </div>
       </div>
     </div>
   );

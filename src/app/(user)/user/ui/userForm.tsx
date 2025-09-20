@@ -92,6 +92,14 @@ export const UserForm = ({ user }: Props) => {
               </Link>
             </span>
           </h2>
+          <Link
+            href="/following"
+            className={
+              "cursor-default flex mt-4 mx-auto w-1/4 mb-2 justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+            }
+          >
+            Following
+          </Link>
           <div className="mt-0 text-center text-sm font-bold leading-9 tracking-tight text-primary-700">
             <Link href="/channel" className="hover:text-primary-600">
               Channel dashboard

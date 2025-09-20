@@ -31,7 +31,7 @@
     "uuid": "^13.0.0",
     "whep-player": "git://github.com/Carl0sCheca/whep-player-lib.git#fd34c0ab23a4a06b474f329cbc30ea81d96cd4e9",
     "zeromq": "^6.5.0",
-    "zod": "^4.1.9"
+    "zod": "^4.1.10"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.50.1",

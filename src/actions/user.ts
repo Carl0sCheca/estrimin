@@ -3,8 +3,10 @@
 import {
   ChangePasswordResponse,
   SITE_SETTING,
+  LiveUserFollowingResponse,
   UserUpdateDataRequest,
   UserUpdateResponse,
+  UserFollowingListResponse,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -147,3 +149,109 @@ export const changePasswordAction = async ({
 
   return response;
 };
+
+export const liveFollowingListAction =
+  async (): Promise<LiveUserFollowingResponse> => {
+    const response: LiveUserFollowingResponse = {
+      ok: false,
+      following: [],
+    };
+
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    try {
+      const followingList = (
+        await prisma.userFollows.findMany({
+          where: {
+            userId: session.user.id,
+          },
+          select: {
+            followed: { select: { name: true } },
+          },
+        })
+      ).map((following) => following.followed.name);
+
+      const request = await fetch(
+        `${process.env.STREAM_API_URL}/v3/paths/list`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (request.ok) {
+        const responseApi = await request.json();
+        if (responseApi) {
+          response.following = responseApi.items.map(
+            (i: {
+              name: string;
+              ready: boolean;
+              readyTime: Date;
+              readers: [];
+            }) => {
+              return {
+                id: i.name,
+                ready: i.ready,
+                readyTime: i.readyTime,
+                viewers: i.readers.length,
+              };
+            }
+          );
+
+          response.following = await Promise.all(
+            response.following.map(async (item) => {
+              return {
+                ...item,
+                id:
+                  (
+                    await prisma.user.findUnique({
+                      where: { id: item.id },
+                      select: { name: true },
+                    })
+                  )?.name || "Failed to get name",
+              };
+            })
+          );
+
+          response.following = response.following.filter((following) =>
+            followingList.includes(following.id)
+          );
+
+          response.ok = true;
+        }
+      }
+    } catch {}
+
+    return response;
+  };
+
+export const followingListAction =
+  async (): Promise<UserFollowingListResponse> => {
+    const response: UserFollowingListResponse = {
+      ok: false,
+      following: [],
+    };
+
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    try {
+      const followingList = await prisma.userFollows.findMany({
+        where: {
+          userId: session.user.id,
+        },
+        select: {
+          followed: { select: { name: true } },
+        },
+      });
+
+      response.ok = true;
+      response.following = followingList.map(
+        (following) => following.followed.name
+      );
+    } catch {}
+
+    return response;
+  };
