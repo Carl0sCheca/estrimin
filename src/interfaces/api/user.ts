@@ -18,10 +18,10 @@ export interface ChangePasswordResponse {
 
 export interface LiveUserFollowingResponse {
   ok: boolean;
-  following: Array<LiveChannelItem>;
+  following: Array<UserFollowingLiveChannelItem>;
 }
 
-export interface LiveChannelItem {
+export interface UserFollowingLiveChannelItem {
   id: string;
   ready: boolean;
   readyTime: Date;
