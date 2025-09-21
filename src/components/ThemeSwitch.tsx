@@ -9,7 +9,11 @@ enum ThemeSettings {
   Light = "light",
 }
 
-export const ThemeSwitch = () => {
+interface Props {
+  className: string;
+}
+
+export const ThemeSwitch = ({ className }: Props) => {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
 
@@ -20,6 +24,7 @@ export const ThemeSwitch = () => {
     <>
       {mounted && (
         <button
+          className={className}
           onClick={() => {
             const currentSelected = Object.keys(ThemeSettings)
               .map((e) => e.toString().toLowerCase())

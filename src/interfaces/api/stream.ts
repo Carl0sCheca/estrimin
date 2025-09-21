@@ -11,6 +11,7 @@ type StreamProtocol = "rtsp" | "rtmp" | "hls" | "webrtc" | "srt";
 export interface StreamInfo {
   user: string;
   password: string;
+  token: string;
   ip: string;
   action: StreamAction;
   path: string;

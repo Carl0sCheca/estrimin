@@ -8,15 +8,21 @@ import { PlayerState, VideoOverlay } from "@/components";
 
 interface Props {
   url: string;
-  channelName: string;
+  channelUserId: string;
+  channelUserName: string;
+  sessionUserId: string | undefined;
+  isFollowing: boolean;
   className?: string;
 }
 
-export function VideoPlayer({
-  channelName,
+export const VideoPlayer = ({
+  channelUserId,
+  channelUserName,
+  sessionUserId,
+  isFollowing,
   url,
   className,
-}: Props): ReactElement {
+}: Props): ReactElement => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<WhepPlayer | null>(null);
@@ -68,13 +74,13 @@ export function VideoPlayer({
       player.onConnected(async () => {
         setPlayerState(PlayerState.ONLINE);
 
-        const viewers = await GetViewers(channelName);
+        const viewers = await GetViewers(channelUserId);
         if (viewers.ok && viewers.count) {
           setViewersCount(viewers.count);
         }
 
         setNewInterval(async () => {
-          const viewers = await GetViewers(channelName);
+          const viewers = await GetViewers(channelUserId);
           if (viewers.ok && viewers.count) {
             setViewersCount(viewers.count);
           }
@@ -101,11 +107,18 @@ export function VideoPlayer({
     return () => {
       closePlayer();
     };
-  }, [url, password, channelName]);
+  }, [url, password, channelUserId]);
 
   return (
     <>
-      <VideoOverlay playerState={playerState} viewers={viewersCount} />
+      <VideoOverlay
+        playerState={playerState}
+        viewers={viewersCount}
+        channelUserId={channelUserId}
+        channelUserName={channelUserName}
+        sessionUserId={sessionUserId}
+        isFollowing={isFollowing}
+      />
       <div className={`${className} relative group`}>
         <video
           className="flex h-full w-full bg-black"
@@ -118,4 +131,4 @@ export function VideoPlayer({
       </div>
     </>
   );
-}
+};

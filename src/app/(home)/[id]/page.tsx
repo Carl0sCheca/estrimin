@@ -5,13 +5,13 @@ import NotFound from "@/app/not-found";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
+export const revalidate = 0;
+
 interface Props {
   params: Promise<{
     id: string;
   }>;
 }
-
-export const revalidate = 0;
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { id } = await props.params;
@@ -27,37 +27,54 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 }
 
 export default async function StreamingUser(props: Props) {
-  const params = await props.params;
+  const { id } = await props.params;
 
   let channel = null;
   try {
     channel = await prisma.channel.findFirst({
-      where: { user: { name: params.id } },
+      where: { user: { name: id } },
+      select: {
+        user: { select: { name: true } },
+        disabled: true,
+        userId: true,
+      },
     });
   } catch {}
 
-  if (!channel) {
-    return <NotFound />;
-  }
-
-  if (channel.disabled) {
-    return <NotFound />;
+  if (!channel || channel?.disabled) {
+    return <NotFound message="Sorry, we can't find that user." />;
   }
 
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
-  const url = `${process.env.STREAM_URL}/${params.id.toLowerCase()}/whep${
+  const url = `${process.env.STREAM_URL}/${channel.userId}/whep${
     session ? `?session=${session?.session.id}` : ""
   }`;
+
+  let isFollowing = false;
+
+  if (session?.user.id) {
+    isFollowing = !!(await prisma.userFollows.findUnique({
+      where: {
+        userId_followId: {
+          userId: session.user.id,
+          followId: channel.userId,
+        },
+      },
+    }));
+  }
 
   return (
     <div className={"flex h-full w-full z-0"}>
       <VideoPlayer
         className={`flex-auto h-full w-full`}
         url={url}
-        channelName={params.id.toLowerCase()}
+        channelUserId={channel.userId}
+        channelUserName={channel.user.name}
+        sessionUserId={session?.user.id}
+        isFollowing={isFollowing}
       />
     </div>
   );
