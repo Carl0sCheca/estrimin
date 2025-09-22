@@ -39,7 +39,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     );
   }
 
-  const videoPath = nodePath.join(process.env.RECORDINGS_PATH || "", segment);
+  const videoPath = nodePath.join(segment);
 
   const fileSize = fs.statSync(videoPath);
 
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     const createdRecording = await prisma.recordingQueue.create({
       data: {
-        fileName: nodePath.join(process.env.RECORDINGS_PATH || "", segment),
+        fileName: nodePath.join(segment),
         userId: path,
         duration,
         createdAt: fileDate,
