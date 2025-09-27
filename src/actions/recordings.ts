@@ -259,6 +259,9 @@ export const deleteRecordingAction = async (
       fs.rmSync(
         `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.mp4`
       );
+      fs.rmSync(
+        `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.webp`
+      );
 
       await prisma.recordingSaved.delete({ where: { id: recording.id } });
 
