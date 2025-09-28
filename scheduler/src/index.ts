@@ -244,7 +244,7 @@ const queueTaskTimeout = async () => {
 
   await updateLastExecutionFromSettings(JOB_RECORDING_QUEUE_TIMEOUT);
 
-  const clearedExpiredRecordings = await prisma.recordingQueue.deleteMany({
+  const clearedExpiredRecordings = await prisma.recordingQueue.findMany({
     where: {
       createdAt: {
         lt: new Date(Date.now() - 72 * 60 * 60 * 1000),
@@ -252,9 +252,24 @@ const queueTaskTimeout = async () => {
     },
   });
 
-  if (clearedExpiredRecordings.count > 0) {
+  if (clearedExpiredRecordings.length > 0) {
+    clearedExpiredRecordings.forEach((recording) => {
+      try {
+        fs.rmSync(recording.fileName.replace(".mp4", ".webp"));
+      } catch {}
+    });
+
+    const clearedExpiredRecordingsDeleted =
+      await prisma.recordingQueue.deleteMany({
+        where: {
+          createdAt: {
+            lt: new Date(Date.now() - 72 * 60 * 60 * 1000),
+          },
+        },
+      });
+
     console.info(
-      `Removed ${clearedExpiredRecordings.count} expired recordings`
+      `Removed ${clearedExpiredRecordingsDeleted.count} expired recordings`
     );
   }
 
