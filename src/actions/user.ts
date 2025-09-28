@@ -165,7 +165,7 @@ export const liveFollowingListAction =
       const followingList = (
         await prisma.userFollows.findMany({
           where: {
-            userId: session.user.id,
+            userId: session?.user.id,
           },
           select: {
             followed: { select: { name: true } },
@@ -240,7 +240,7 @@ export const followingListAction =
     try {
       const followingList = await prisma.userFollows.findMany({
         where: {
-          userId: session.user.id,
+          userId: session?.user.id,
         },
         select: {
           followed: { select: { name: true } },
