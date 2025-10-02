@@ -6,8 +6,6 @@ import prisma from "@/lib/prisma";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 
-export const revalidate = 0;
-
 interface Props {
   params: Promise<{
     channelId: string;

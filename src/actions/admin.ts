@@ -13,6 +13,7 @@ import {
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { checkAdmin } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 export const disableRegistration = async (
@@ -43,6 +44,9 @@ export const disableRegistration = async (
 
     if (updateSettings) {
       response.ok = true;
+
+      revalidatePath("/admin");
+      revalidatePath("/login");
     }
   } catch {
     response.message = "An error has occurred";

@@ -5,8 +5,6 @@ import NotFound from "@/app/not-found";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
-export const revalidate = 0;
-
 interface Props {
   params: Promise<{
     id: string;

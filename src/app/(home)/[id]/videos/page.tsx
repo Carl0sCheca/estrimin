@@ -5,8 +5,6 @@ import { VideoList } from "./ui/videoList";
 import Link from "next/link";
 import { Logo } from "@/components";
 
-export const revalidate = 0;
-
 interface Props {
   params: Promise<{
     id: string;

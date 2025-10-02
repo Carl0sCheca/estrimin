@@ -10,8 +10,6 @@ export const metadata: Metadata = {
   title: "Channel dashboard",
 };
 
-export const revalidate = 0;
-
 export default async function ChannelPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
