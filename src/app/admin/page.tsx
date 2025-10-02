@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   title: "Administration",
 };
 
-export const revalidate = 0;
-
 export default async function AdminPage() {
   const settings: Array<SiteSetting> = await prisma.siteSetting.findMany();
   const baseUrl = process.env.BASE_URL || "";

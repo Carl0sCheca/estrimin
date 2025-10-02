@@ -8,8 +8,6 @@ export const metadata: Metadata = {
   title: "Register",
 };
 
-export const revalidate = 0;
-
 interface Props {
   params: Promise<{
     code: Array<string>;
