@@ -4,42 +4,55 @@ import { SITE_SETTING } from "@/interfaces";
 import {
   Command,
   DEFAULT_SOCKET,
+  GetAllTasksSchedulerResponse,
   GetProcessingStatisticsResponse,
   GetQueueSiteSettingsResponse,
-  Job,
   SOCK_COMMAND,
 } from "@/interfaces/actions/scheduler";
 import prisma from "@/lib/prisma";
 import * as zmq from "zeromq";
 
-export const GetAllTasksSchedulerAction = async (): Promise<Array<Job>> => {
-  if (
-    ((
-      await prisma.siteSetting.findUnique({
-        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
-      })
-    )?.value as boolean) ??
-    false
-  ) {
-    return [];
-  }
+export const GetAllTasksSchedulerAction =
+  async (): Promise<GetAllTasksSchedulerResponse> => {
+    const response: GetAllTasksSchedulerResponse = {
+      ok: false,
+      tasks: [],
+    };
 
-  const sock = new zmq.Request();
+    if (
+      ((
+        await prisma.siteSetting.findUnique({
+          where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
+        })
+      )?.value as boolean) ??
+      false
+    ) {
+      return response;
+    }
 
-  sock.connect(DEFAULT_SOCKET);
+    const sock = new zmq.Request();
+    sock.receiveTimeout = 10000;
 
-  const command: Command = {
-    c: SOCK_COMMAND.LIST,
+    try {
+      sock.connect(DEFAULT_SOCKET);
+
+      const command: Command = {
+        c: SOCK_COMMAND.LIST,
+      };
+
+      await sock.send(JSON.stringify(command));
+      const [result] = await sock.receive();
+
+      response.tasks = JSON.parse(new TextDecoder().decode(result));
+      response.ok = true;
+
+      return response;
+    } catch {
+      return response;
+    } finally {
+      sock.close();
+    }
   };
-
-  await sock.send(JSON.stringify(command));
-  const [result] = await sock.receive();
-  sock.close();
-
-  const resultText: Array<Job> = JSON.parse(new TextDecoder().decode(result));
-
-  return resultText;
-};
 
 export const StartAllScheduledJobAction = async (): Promise<void> => {
   if (

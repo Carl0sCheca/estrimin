@@ -34,3 +34,8 @@ export interface GetQueueSiteSettingsResponse {
 export interface SetQueueSiteSettingsResponse {
   ok: boolean;
 }
+
+export interface GetAllTasksSchedulerResponse {
+  ok: boolean;
+  tasks: Array<Job>;
+}
