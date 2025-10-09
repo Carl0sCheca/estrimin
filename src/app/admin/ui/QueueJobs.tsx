@@ -28,6 +28,7 @@ interface Props {
 
 export const QueueJobs = ({ tooltip }: Props) => {
   const [jobs, setJobs] = useState<Array<Job>>([]);
+  const [errorJob, setErrorJob] = useState(false);
   const [pendingRecordings, setPendingRecordings] = useState(0);
   const [completedRecordings, setCompletedRecordings] = useState(0);
   const [failedRecordings, setFailedRecordings] = useState(0);
@@ -45,7 +46,12 @@ export const QueueJobs = ({ tooltip }: Props) => {
         ]
       );
 
-      setJobs(requestJobs);
+      if (requestJobs.ok) {
+        setErrorJob(false);
+        setJobs(requestJobs.tasks);
+      } else {
+        setErrorJob(true);
+      }
 
       if (recordingQueue.ok) {
         setPendingRecordings(recordingQueue.pending ?? 0);
@@ -209,69 +215,76 @@ export const QueueJobs = ({ tooltip }: Props) => {
           </div>
 
           <div className="space-y-2">
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="flex items-center gap-4 p-3 bg-white border rounded-lg hover:shadow-md transition-shadow"
-              >
-                <div
-                  className="w-4/8 truncate text-sm font-medium text-gray-900"
-                  title={job.id}
-                >
-                  {job.id}
-                </div>
-
-                <div className="w-1/8 flex justify-center">
-                  <button
-                    onClick={() =>
-                      handleToggleJob(job.id, job.status === "running")
-                    }
-                    disabled={
-                      loading || (disabledQueueJobs && job.status === "stopped")
-                    }
-                    className={`p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      job.status === "running"
-                        ? "bg-yellow-100 hover:bg-yellow-200 text-yellow-600"
-                        : "bg-gray-100 hover:bg-gray-200 text-primary-600"
-                    }`}
-                  >
-                    {job.status === "running" ? (
-                      <FaPause className="w-3 h-3" />
-                    ) : (
-                      <FaPlay className="w-3 h-3" />
-                    )}
-                  </button>
-                </div>
-
-                <div className="w-1/8">
-                  {job.isRunning ? (
-                    <div
-                      className="flex items-center justify-center"
-                      onMouseEnter={(e) => tooltip.mouseEnter(e, "Running")}
-                      onMouseLeave={tooltip.mouseLeave}
-                    >
-                      <FaCircle className="w-3 h-3 text-green-500 animate-pulse" />
-                    </div>
-                  ) : (
-                    <div
-                      className="flex items-center justify-center"
-                      onMouseEnter={(e) => tooltip.mouseEnter(e, "Stopped")}
-                      onMouseLeave={tooltip.mouseLeave}
-                    >
-                      <FaCircle className="w-3 h-3 text-red-500" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="w-2/6 text-xs text-gray-500">
-                  {job.lastExecution ? (
-                    new Date(job.lastExecution).toLocaleString()
-                  ) : (
-                    <span className="text-gray-400">Never executed</span>
-                  )}
-                </div>
+            {errorJob && (
+              <div className="text-red-500 text-center font-bold">
+                Queue service unavailable
               </div>
-            ))}
+            )}
+            {!errorJob &&
+              jobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="flex items-center gap-4 p-3 bg-white border rounded-lg hover:shadow-md transition-shadow"
+                >
+                  <div
+                    className="w-4/8 truncate text-sm font-medium text-gray-900"
+                    title={job.id}
+                  >
+                    {job.id}
+                  </div>
+
+                  <div className="w-1/8 flex justify-center">
+                    <button
+                      onClick={() =>
+                        handleToggleJob(job.id, job.status === "running")
+                      }
+                      disabled={
+                        loading ||
+                        (disabledQueueJobs && job.status === "stopped")
+                      }
+                      className={`p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        job.status === "running"
+                          ? "bg-yellow-100 hover:bg-yellow-200 text-yellow-600"
+                          : "bg-gray-100 hover:bg-gray-200 text-primary-600"
+                      }`}
+                    >
+                      {job.status === "running" ? (
+                        <FaPause className="w-3 h-3" />
+                      ) : (
+                        <FaPlay className="w-3 h-3" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="w-1/8">
+                    {job.isRunning ? (
+                      <div
+                        className="flex items-center justify-center"
+                        onMouseEnter={(e) => tooltip.mouseEnter(e, "Running")}
+                        onMouseLeave={tooltip.mouseLeave}
+                      >
+                        <FaCircle className="w-3 h-3 text-green-500 animate-pulse" />
+                      </div>
+                    ) : (
+                      <div
+                        className="flex items-center justify-center"
+                        onMouseEnter={(e) => tooltip.mouseEnter(e, "Stopped")}
+                        onMouseLeave={tooltip.mouseLeave}
+                      >
+                        <FaCircle className="w-3 h-3 text-red-500" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-2/6 text-xs text-gray-500">
+                    {job.lastExecution ? (
+                      new Date(job.lastExecution).toLocaleString()
+                    ) : (
+                      <span className="text-gray-400">Never executed</span>
+                    )}
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       </Collapsible>

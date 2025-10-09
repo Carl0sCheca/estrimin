@@ -7,6 +7,7 @@ export interface MouseEnterEventOptions {
   followCursor?: boolean;
   extraGapY?: number;
 }
+
 type Position = {
   x: number;
   y: number;
