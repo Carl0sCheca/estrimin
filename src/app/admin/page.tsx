@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 import { AdminForm } from "./ui/adminForm";
 import prisma from "@/lib/prisma";
-import { Setting } from "@prisma/client";
+import { SiteSetting } from "@prisma/client";
 
 export const metadata: Metadata = {
   title: "Administration",
 };
 
-export const revalidate = 0;
-
 export default async function AdminPage() {
-  const settings: Array<Setting> = await prisma.setting.findMany();
+  const settings: Array<SiteSetting> = await prisma.siteSetting.findMany();
   const baseUrl = process.env.BASE_URL || "";
 
   return (

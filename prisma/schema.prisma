@@ -15,28 +15,41 @@ enum Role {
   ADMIN
 }
 
-enum ChannelWatchOnly {
+enum ChannelVisibility {
   ALL
   REGISTERED_USERS
   ALLOWLIST
   PASSWORD
+  UNLISTED
+}
+
+enum RecordingVisibility {
+  PUBLIC
+  ALLOWLIST
+  UNLISTED
+  PRIVATE
 }
 
 model User {
-  id                      String              @id
-  name                    String              @unique @db.Citext
+  id                      String             @id
+  name                    String             @unique @db.Citext
   email                   String
   emailVerified           Boolean
   image                   String?
   createdAt               DateTime
   updatedAt               DateTime
-  role                    Role                @default(USER)
+  role                    Role               @default(USER)
   sessions                Session[]
   accounts                Account[]
   Channel                 Channel?
   channelAllowListUsersId Int?
-  ChannelAllowList        ChannelAllowList[]  @relation("UserChannels")
-  RegistrationCodes       RegistrationCodes[]
+  ChannelAllowList        ChannelAllowList[] @relation("UserChannels")
+  RegistrationCodes       RegistrationCode[]
+  UserSettings            UserSetting[]
+  RecordingQueue          RecordingQueue[]
+
+  followers UserFollows[] @relation("UserFollowers")
+  following UserFollows[] @relation("UserFollowing")
 
   @@unique([email])
   @@map("user")
@@ -92,14 +105,15 @@ model Verification {
 }
 
 model Channel {
-  id                Int                @id @default(autoincrement())
-  token             String
-  userId            String             @unique
-  watchOnly         ChannelWatchOnly   @default(ALL)
-  watchOnlyPassword String?
-  disabled          Boolean            @default(false)
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channelAllowList  ChannelAllowList[] @relation("ChannelUsers")
+  id                 Int                @id @default(autoincrement())
+  token              String
+  userId             String             @unique
+  visibility         ChannelVisibility  @default(ALL)
+  visibilityPassword String?
+  disabled           Boolean            @default(false)
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelAllowList   ChannelAllowList[] @relation("ChannelUsers")
+  RecordingsSaved    RecordingSaved[]
 
   @@map("channel")
 }
@@ -115,14 +129,7 @@ model ChannelAllowList {
   @@map("channelAllowList")
 }
 
-model Setting {
-  name  String @id
-  value String
-
-  @@map("setting")
-}
-
-model RegistrationCodes {
+model RegistrationCode {
   id             String    @id @default(uuid())
   used           Boolean   @default(false)
   createdAt      DateTime  @default(now())
@@ -131,5 +138,82 @@ model RegistrationCodes {
 
   user User? @relation(fields: [usedById], references: [id], onDelete: NoAction)
 
-  @@map("registrationCodes")
+  @@map("registrationCode")
+}
+
+model RecordingSaved {
+  id         String              @id @default(uuid())
+  createdAt  DateTime            @default(now())
+  channelId  Int
+  duration   Float               @default(0)
+  visibility RecordingVisibility @default(PRIVATE)
+  title      String?             @db.VarChar(255)
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: NoAction)
+
+  @@map("recordingSaved")
+}
+
+model SiteSetting {
+  key   String @id
+  value Json
+
+  @@map("siteSetting")
+}
+
+model UserSetting {
+  key   String @id
+  value Json
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([key, userId])
+  @@map("userSetting")
+}
+
+enum RecordingQueueState {
+  PENDING
+  ENCODING
+  ENCODED
+  MERGING
+  MERGED
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+model RecordingQueue {
+  id             Int                 @id @default(autoincrement())
+  status         RecordingQueueState @default(PENDING)
+  fileName       String
+  duration       Float
+  userId         String
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  attempts       Int                 @default(0)
+  error          String?
+  firstSegmentId Int?
+  firstSegment   RecordingQueue?     @relation("SegmentRelation", fields: [firstSegmentId], references: [id])
+  segments       RecordingQueue[]    @relation("SegmentRelation")
+  visibility     RecordingVisibility @default(PUBLIC)
+
+  @@index([status])
+  @@index([userId])
+  @@map("recordingQueue")
+}
+
+model UserFollows {
+  userId   String
+  followId String
+
+  follower User @relation("UserFollowers", fields: [userId], references: [id], onDelete: Cascade)
+  followed User @relation("UserFollowing", fields: [followId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, followId])
+  @@index([userId])
+  @@index([followId])
+  @@map("userFollows")
 }

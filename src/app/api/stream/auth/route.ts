@@ -2,28 +2,77 @@ import { StreamInfo } from "@/interfaces";
 import prisma from "@/lib/prisma";
 import queryString from "node:querystring";
 import { NextRequest, NextResponse } from "next/server";
-import { ChannelWatchOnly, Role } from "@prisma/client";
+import {
+  ChannelAllowList,
+  ChannelVisibility,
+  RecordingVisibility,
+  Role,
+  User,
+} from "@prisma/client";
 
-function getStreamParams(
+const getStreamParams = (
   query: string,
   path: string
 ): {
   stream: string | undefined;
-  token: string | undefined;
   password: string | undefined;
   session: string | undefined;
-} {
+} => {
   const parsedParams = queryString.parse(query);
-  const { token, password, session } = parsedParams;
+  const { password, session } = parsedParams;
   const stream = path;
 
   return {
     stream,
-    token: Array.isArray(token) ? token[0] : token,
     password: Array.isArray(password) ? password[0] : password,
     session: Array.isArray(session) ? session[0] : session,
   };
-}
+};
+
+const checkUserWatchStream = async (
+  userChannel: {
+    visibility: ChannelVisibility;
+    visibilityPassword: string | null;
+    channelAllowList: ChannelAllowList[];
+    userId: string;
+    disabled: boolean;
+    user: User;
+  } | null,
+  password: string | undefined,
+  userLogged: {
+    user: User;
+  } | null
+): Promise<{ code: number; message?: string }> => {
+  if (userChannel?.visibility === ChannelVisibility.ALL) {
+    return { code: 0 };
+  } else if (userChannel?.visibility === ChannelVisibility.PASSWORD) {
+    if (!password) {
+      return { code: -1, message: "Not authorized" };
+    } else {
+      if (password === userChannel.visibilityPassword) {
+        return { code: 0 };
+      } else {
+        return { code: -1, message: "Not authorized" };
+      }
+    }
+  } else if (userChannel?.visibility === ChannelVisibility.REGISTERED_USERS) {
+    if (!userLogged?.user) {
+      return { code: -1, message: "Not authorized" };
+    } else {
+      return { code: 0 };
+    }
+  } else if (userChannel?.visibility === RecordingVisibility.ALLOWLIST) {
+    if (
+      userChannel.channelAllowList.find((p) => p.userId === userLogged?.user.id)
+    ) {
+      return { code: 0 };
+    } else {
+      return { code: -1, message: "Not authorized" };
+    }
+  } else {
+    return { code: -1, message: "Not authorized" };
+  }
+};
 
 export async function POST(req: NextRequest) {
   let request: null | StreamInfo = null;
@@ -43,10 +92,66 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { token, stream, password, session } = getStreamParams(
+  const { token } = request;
+
+  const { stream, password, session } = getStreamParams(
     request.query,
     request.path
   );
+
+  if (request.action === "playback") {
+    const userChannel = await prisma.channel.findFirst({
+      select: {
+        visibility: true,
+        visibilityPassword: true,
+        channelAllowList: true,
+        userId: true,
+        disabled: true,
+        user: true,
+      },
+      where: { user: { id: stream } },
+    });
+
+    if (!userChannel) {
+      return NextResponse.json(
+        { code: -1, message: "No user found" },
+        { status: 401 }
+      );
+    }
+
+    if (userChannel.disabled) {
+      return NextResponse.json(
+        { code: -1, message: "Channel is disabled" },
+        { status: 401 }
+      );
+    }
+
+    const userLogged = await prisma.session.findFirst({
+      where: {
+        id: session || "",
+      },
+      select: { user: true },
+    });
+
+    if (
+      userLogged?.user.name.toLowerCase() ===
+      userChannel.user.name.toLowerCase()
+    ) {
+      return NextResponse.json({ code: 0 });
+    }
+
+    const isAllowed = await checkUserWatchStream(
+      userChannel,
+      password,
+      userLogged
+    );
+
+    if (isAllowed.code === 0) {
+      return NextResponse.json(isAllowed);
+    } else if (isAllowed.code === -1) {
+      return NextResponse.json(isAllowed, { status: 401 });
+    }
+  }
 
   if (request.action === "read") {
     const userLogged = await prisma.session.findFirst({
@@ -69,13 +174,14 @@ export async function POST(req: NextRequest) {
 
     const userChannel = await prisma.channel.findFirst({
       select: {
-        watchOnly: true,
-        watchOnlyPassword: true,
+        visibility: true,
+        visibilityPassword: true,
         channelAllowList: true,
         userId: true,
         disabled: true,
+        user: true,
       },
-      where: { user: { name: stream } },
+      where: { user: { id: stream } },
     });
 
     if (userChannel?.disabled) {
@@ -89,51 +195,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ code: 0 });
     }
 
-    if (userChannel?.watchOnly === ChannelWatchOnly.ALL) {
-      return NextResponse.json({ code: 0 });
-    } else if (userChannel?.watchOnly === ChannelWatchOnly.PASSWORD) {
-      if (!password) {
-        return NextResponse.json(
-          { code: -1, message: "Not authorized" },
-          { status: 401 }
-        );
-      } else {
-        if (password === userChannel.watchOnlyPassword) {
-          return NextResponse.json({ code: 0 });
-        } else {
-          return NextResponse.json(
-            { code: -1, message: "Not authorized" },
-            { status: 401 }
-          );
-        }
-      }
-    } else if (userChannel?.watchOnly === ChannelWatchOnly.REGISTERED_USERS) {
-      if (!userLogged?.user) {
-        return NextResponse.json(
-          { code: -1, message: "Not authorized" },
-          { status: 401 }
-        );
-      } else {
-        return NextResponse.json({ code: 0 });
-      }
-    } else if (userChannel?.watchOnly === ChannelWatchOnly.ALLOWLIST) {
-      if (
-        userChannel.channelAllowList.find(
-          (p) => p.userId === userLogged?.user.id
-        )
-      ) {
-        return NextResponse.json({ code: 0 });
-      } else {
-        return NextResponse.json(
-          { code: -1, message: "Not authorized" },
-          { status: 401 }
-        );
-      }
-    } else {
-      return NextResponse.json(
-        { code: -1, message: "Not authorized" },
-        { status: 401 }
-      );
+    const isAllowed = await checkUserWatchStream(
+      userChannel,
+      password,
+      userLogged
+    );
+
+    if (isAllowed.code === 0) {
+      return NextResponse.json(isAllowed);
+    } else if (isAllowed.code === -1) {
+      return NextResponse.json(isAllowed, { status: 401 });
     }
   }
 
@@ -146,7 +217,7 @@ export async function POST(req: NextRequest) {
 
   const userChannel = await prisma.channel.findFirst({
     select: { user: { select: { name: true } }, token: true, disabled: true },
-    where: { user: { name: stream }, token },
+    where: { user: { id: stream }, token },
   });
 
   if (!userChannel) {

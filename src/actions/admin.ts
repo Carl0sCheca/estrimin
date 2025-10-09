@@ -8,9 +8,12 @@ import {
   GenerateRegistrationCodeResponse,
   GetLiveChannelsResponse,
   GetRegistrationCodesResponse,
+  SITE_SETTING,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { checkAdmin } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 export const disableRegistration = async (
@@ -24,29 +27,29 @@ export const disableRegistration = async (
     ok: false,
   };
 
-  if (!session?.user) {
-    response.message = "Session not found";
-    return response;
-  }
+  const isAdmin = await checkAdmin(session?.session.id);
 
-  if (session.user.role !== "ADMIN") {
-    response.message = "Forbidden user";
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
     return response;
   }
 
   try {
-    const updateSettings = await prisma.setting.update({
-      where: { name: "DISABLE_REGISTER" },
+    const updateSettings = await prisma.siteSetting.update({
+      where: { key: SITE_SETTING.DISABLE_REGISTER },
       data: {
-        value: JSON.stringify(enabled),
+        value: enabled,
       },
     });
 
     if (updateSettings) {
       response.ok = true;
+
+      revalidatePath("/admin");
+      revalidatePath("/login");
     }
   } catch {
-    response.message = "An error has ocurred";
+    response.message = "An error has occurred";
   }
 
   return response;
@@ -63,13 +66,10 @@ export const changeUserRoleAction = async (
     ok: false,
   };
 
-  if (!session?.user) {
-    response.message = "Session not found";
-    return response;
-  }
+  const isAdmin = await checkAdmin(session?.session.id);
 
-  if (session.user.role !== "ADMIN") {
-    response.message = "Forbidden user";
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
     return response;
   }
 
@@ -94,7 +94,7 @@ export const changeUserRoleAction = async (
       response.newRole = newRole;
     }
   } catch {
-    response.message = "An error has ocurred";
+    response.message = "An error has occurred";
   }
 
   return response;
@@ -107,7 +107,24 @@ export const generateRegistrationCode = async (
     ok: false,
   };
 
-  const registrationCode = await prisma.registrationCodes.create({
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const isAdmin = await checkAdmin(session?.session.id);
+
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
+    return response;
+  }
+
+  if (request.expirationDate) {
+    response.expirationDate = new Date(
+      request.expirationDate.setUTCHours(23, 59, 59, 999)
+    );
+  }
+
+  const registrationCode = await prisma.registrationCode.create({
     data: {
       expirationDate: request.expirationDate,
     },
@@ -117,7 +134,6 @@ export const generateRegistrationCode = async (
     return response;
   }
 
-  response.expirationDate = registrationCode.expirationDate;
   response.ok = true;
   response.id = registrationCode.id;
 
@@ -130,7 +146,7 @@ export const getRegistrationCodesAction =
       ok: false,
     };
 
-    const registrationCodes = await prisma.registrationCodes.findMany({
+    const registrationCodes = await prisma.registrationCode.findMany({
       orderBy: { createdAt: "desc" },
       select: {
         createdAt: true,
@@ -158,8 +174,19 @@ export const deleteRegistrationCodesAction = async (
     ok: false,
   };
 
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const isAdmin = await checkAdmin(session?.session.id);
+
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
+    return response;
+  }
+
   try {
-    await prisma.registrationCodes.delete({
+    await prisma.registrationCode.delete({
       where: { id },
     });
   } catch {
@@ -176,6 +203,17 @@ export const getLiveChannelsAction =
     const response: GetLiveChannelsResponse = {
       items: [],
     };
+
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    const isAdmin = await checkAdmin(session?.session.id);
+
+    if (!isAdmin.ok) {
+      response.message = isAdmin.message;
+      return response;
+    }
 
     try {
       const request = await fetch(
@@ -196,12 +234,27 @@ export const getLiveChannelsAction =
               readers: [];
             }) => {
               return {
-                name: i.name,
+                id: i.name,
                 ready: i.ready,
                 readyTime: i.readyTime,
                 viewers: i.readers.length,
               };
             }
+          );
+
+          response.items = await Promise.all(
+            response.items.map(async (item) => {
+              return {
+                ...item,
+                id:
+                  (
+                    await prisma.user.findUnique({
+                      where: { id: item.id },
+                      select: { name: true },
+                    })
+                  )?.name || "Failed to get name",
+              };
+            })
           );
         }
       }

@@ -1,0 +1,16 @@
+{
+  "exclude": ["node_modules", "./*.ts", "__test__", "../dist", "../.next"],
+  "include": ["**/*", "../src/lib/**/*"],
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "rootDir": "../",
+    "moduleResolution": "node",
+    "baseUrl": "..",
+    "outDir": "../dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  }
+}

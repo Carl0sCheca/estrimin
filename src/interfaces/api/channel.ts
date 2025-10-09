@@ -1,16 +1,16 @@
-import { ChannelWatchOnly } from "@prisma/client";
+import { ChannelVisibility, RecordingVisibility } from "@prisma/client";
 
 export interface CreateChannelResponse {
   ok: boolean;
   data?: string;
 }
 
-export interface UpdateWatchOnlyStatusRequest {
-  state: ChannelWatchOnly;
+export interface UpdateVisibilityStatusRequest {
+  state: ChannelVisibility;
   channelId: number;
 }
 
-export interface UpdateWatchOnlyStatusResponse {
+export interface UpdateVisibilityStatusResponse {
   ok: boolean;
 }
 
@@ -26,6 +26,7 @@ export interface SetPasswordResponse {
 export interface AddUserAllowlistRequest {
   channelId: number;
   username: string;
+  requestedBy: string;
 }
 
 export interface AllowListUser {
@@ -49,4 +50,19 @@ export interface RemoveUserAllowlistRequest {
 
 export interface RemoveUserAllowlistResponse {
   ok: boolean;
+}
+
+export interface GetChannelRecordingsResponse {
+  ok: boolean;
+  recordings: Array<RecordingDto>;
+}
+
+export interface RecordingDto {
+  url: string;
+  thumbnail: string;
+  title: string;
+  duration: string;
+  status: "COMPLETED" | "PROCESSING" | "LIVE" | "SAVED"; // unsaved: completed, processing and live
+  date: Date;
+  visibility: RecordingVisibility;
 }

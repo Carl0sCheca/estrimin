@@ -1,4 +1,4 @@
-FROM node:22-alpine3.19
+FROM node:24-alpine3.22
 
 WORKDIR /app
 
@@ -8,6 +8,7 @@ RUN apk add openssl
 RUN apk add openssl-dev
 RUN apk add openssl-libs-static
 RUN apk add curl
+RUN apk add ffmpeg
 
 RUN npm install
 

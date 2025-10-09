@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 import { ChannelSettingsForm } from "./ui/channelSettingsForm";
 import prisma from "@/lib/prisma";
-import { Setting } from "@prisma/client";
+import { SiteSetting } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Channel settings",
+  title: "Channel dashboard",
 };
-
-export const revalidate = 0;
 
 export default async function ChannelPage() {
   const session = await auth.api.getSession({
@@ -21,17 +19,28 @@ export default async function ChannelPage() {
     redirect("/login");
   }
 
-  const settings: { streamUrl: string; settings: Array<Setting> } = {
-    streamUrl: process.env.BASE_URL || "",
-    settings: await prisma.setting.findMany(),
+  const settings: {
+    streamUrl: string;
+    channelUrl: string;
+    settings: Array<SiteSetting>;
+  } = {
+    streamUrl: process.env.STREAM_URL || "",
+    channelUrl: process.env.BASE_URL || "",
+    settings: await prisma.siteSetting.findMany(),
   };
+
+  const userSettings = await prisma.userSetting.findMany({
+    where: { userId: session.user.id },
+  });
+
   const userChannel = await prisma.channel.findFirst({
     where: { userId: session.user.id },
     select: {
       id: true,
       user: true,
-      watchOnly: true,
-      watchOnlyPassword: true,
+      visibility: true,
+      visibilityPassword: true,
+      token: true,
       channelAllowList: {
         select: {
           id: true,
@@ -43,16 +52,17 @@ export default async function ChannelPage() {
     },
   });
 
-  if (!userChannel) {
-    redirect("/login");
-  }
-
   return (
     <>
       <div
         className={"flex min-h-full flex-col justify-center px-6 py-12 lg:px-8"}
       >
-        <ChannelSettingsForm settings={settings} userChannel={userChannel} />
+        <ChannelSettingsForm
+          settings={settings}
+          userChannel={userChannel}
+          session={session.session.id}
+          userSettings={userSettings}
+        />
       </div>
     </>
   );

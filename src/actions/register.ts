@@ -3,9 +3,11 @@
 import {
   EmailError,
   ErrorType,
+  IsRegisterDisabledActionResponse,
   NameError,
   RegisterResponse,
   RegistrationCodeError,
+  SITE_SETTING,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -54,7 +56,7 @@ export const registerAction = async (
 
   try {
     if (registrationCode) {
-      const validCode = await prisma.registrationCodes.findFirst({
+      const validCode = await prisma.registrationCode.findFirst({
         where: { id: registrationCode },
       });
 
@@ -104,7 +106,7 @@ export const registerAction = async (
     }
 
     if (registrationCode) {
-      await prisma.registrationCodes.update({
+      await prisma.registrationCode.update({
         where: {
           id: registrationCode,
         },
@@ -121,3 +123,19 @@ export const registerAction = async (
 
   return response;
 };
+
+export const isRegisterDisabledAction =
+  async (): Promise<IsRegisterDisabledActionResponse> => {
+    const response: IsRegisterDisabledActionResponse = {
+      ok: true,
+    };
+
+    response.ok =
+      ((
+        await prisma.siteSetting.findUnique({
+          where: { key: SITE_SETTING.DISABLE_REGISTER },
+        })
+      )?.value as boolean) ?? true;
+
+    return response;
+  };

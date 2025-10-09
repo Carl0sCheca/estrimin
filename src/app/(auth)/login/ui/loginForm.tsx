@@ -1,7 +1,7 @@
 "use client";
 
+import { Logo } from "@/components";
 import { signIn } from "@/lib/auth-client";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useState } from "react";
@@ -11,7 +11,11 @@ enum LoginError {
   Invalid = "Email or password are not correct",
 }
 
-export default function LoginForm() {
+interface Props {
+  isDisabled: boolean;
+}
+
+export const LoginForm = ({ isDisabled }: Props) => {
   const [formState, setFormState] = useState({
     email: "",
     password: "",
@@ -55,14 +59,7 @@ export default function LoginForm() {
     <>
       <div>
         <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
-          <Image
-            className={"mx-auto h-20 w-auto"}
-            width={256}
-            height={256}
-            priority={true}
-            alt="Logo"
-            src="/logo.png"
-          />
+          <Logo />
           <h2
             className={
               "mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"
@@ -167,23 +164,25 @@ export default function LoginForm() {
               </button>
             </div>
           </form>
-          <p
-            className={
-              "mt-10 text-center text-sm text-gray-500 dark:text-gray-300"
-            }
-          >
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
+          {!isDisabled && (
+            <p
               className={
-                "font-semibold leading-6 text-primary-600 hover:text-primary-500"
+                "mt-10 text-center text-sm text-gray-500 dark:text-gray-300"
               }
             >
-              Create account
-            </Link>
-          </p>
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/register"
+                className={
+                  "font-semibold leading-6 text-primary-600 hover:text-primary-500"
+                }
+              >
+                Create account
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </>
   );
-}
+};

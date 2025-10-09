@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FaInfoCircle } from "react-icons/fa";
 
-type AlertNotificationType = {
+type AlertNotificationState = {
   message: string;
   visible: boolean;
   error: boolean;
@@ -11,17 +11,17 @@ type AlertNotificationType = {
 };
 
 interface AlertNotificationProps {
-  state: AlertNotificationType;
+  state: AlertNotificationState;
 }
 
 export const useAlertNotification = () => {
   const [alertNotification, setAlertNotification] =
-    useState<AlertNotificationType>({
+    useState<AlertNotificationState>({
       message: "",
       visible: false,
       timeout: null,
       error: false,
-    } as AlertNotificationType);
+    } as AlertNotificationState);
 
   const showAlert = (message: string, error = false, duration = 2500) => {
     setAlertNotification({
@@ -65,10 +65,10 @@ export const useAlertNotification = () => {
   return { alertNotification, showAlert, hideAlert };
 };
 
-export function Notification({ state }: AlertNotificationProps) {
+export const Notification = ({ state }: AlertNotificationProps) => {
   return (
     <div
-      className={`transition-all duration-500 fixed inset-x-0 top-0 flex items-start justify-center z-50 px-6 py-12 lg:px-8 pointer-events-none  ${
+      className={`transition-all duration-500 fixed inset-x-0 top-0 flex items-start justify-center z-40 px-6 py-12 lg:px-8 pointer-events-none  ${
         state.visible ? "visible opacity-100" : "invisible opacity-0 "
       } `}
     >
@@ -83,4 +83,4 @@ export function Notification({ state }: AlertNotificationProps) {
       </div>
     </div>
   );
-}
+};
