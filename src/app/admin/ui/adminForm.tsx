@@ -1,6 +1,10 @@
 "use client";
 
-import { changeUserRoleAction, disableRegistration } from "@/actions";
+import {
+  changeUserRoleAction,
+  disableRecordingsAction,
+  disableRegistrationAction,
+} from "@/actions";
 import {
   Logo,
   Notification,
@@ -29,7 +33,13 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
     (settings.find((p) => p.key === "DISABLE_REGISTER")?.value as boolean) ??
     false;
 
+  const initRecordingsState =
+    (settings.find((p) => p.key === "DISABLE_RECORDINGS")?.value as boolean) ??
+    false;
+
   const [disableRegister, setDisableRegister] = useState(initRegisterState);
+  const [disableRecordings, setDisableRecordings] =
+    useState(initRecordingsState);
 
   const [buttonsState, setButtonsState] = useState({
     changeRole: false,
@@ -64,11 +74,23 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
             onChange={async () => {
               setDisableRegister(!disableRegister);
 
-              await disableRegistration(!disableRegister);
+              await disableRegistrationAction(!disableRegister);
             }}
             checked={disableRegister}
           >
             Disable registration
+          </Toggle>
+        </div>
+        <div className={"mt-6 sm:mx-auto sm:w-full sm:max-w-sm"}>
+          <Toggle
+            onChange={async () => {
+              setDisableRecordings(!disableRecordings);
+
+              await disableRecordingsAction(!disableRecordings);
+            }}
+            checked={disableRecordings}
+          >
+            Disable recordings
           </Toggle>
         </div>
         <div className="mt-6">

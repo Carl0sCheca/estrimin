@@ -173,6 +173,8 @@ model UserSetting {
 }
 
 enum RecordingQueueState {
+  UPLOADING
+  UPLOADED
   PENDING
   ENCODING
   ENCODED

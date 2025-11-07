@@ -226,7 +226,7 @@ export const RecordingsList = ({
                     onMouseLeave={tooltipMouseLeave}
                     className="flex items-center min-w-0 max-w-full"
                   >
-                    <RiFileVideoLine className="mr-1.5 min-w-4 flex-shrink-0" />
+                    <RiFileVideoLine className="mr-1.5 min-w-4 shrink-0" />
                     <span title={recording.title} className="truncate min-w-0">
                       {recording.title || formatDate(recording.start)}
                     </span>

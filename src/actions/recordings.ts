@@ -18,6 +18,8 @@ import fs from "fs";
 import path from "path";
 import { RecordingQueue, RecordingVisibility } from "@prisma/client";
 import { dateToFilename, getDateFromFileName } from "@/lib/utils-server";
+import s3Client from "@/lib/s3-client";
+import { deleteFile, moveFile } from "../../scheduler/src/S3Service";
 
 export const getNonSavedRecordingsList = async (
   sessionId: string,
@@ -230,6 +232,8 @@ export const deleteRecordingAction = async (
     ok: false,
   };
 
+  const isUsingS3Bucket = s3Client !== null;
+
   if (recording?.type === "COMPLETED") {
     try {
       const videoRecording = await prisma.recordingQueue.findFirst({
@@ -242,13 +246,38 @@ export const deleteRecordingAction = async (
       }
 
       try {
-        fs.rmSync(videoRecording.fileName);
-        fs.rmSync(videoRecording.fileName.replace(".mp4", ".webp"));
-      } catch {}
+        if (isUsingS3Bucket) {
+          await deleteFile(
+            `recordings/${
+              videoRecording.userId
+            }/${videoRecording.fileName.replace("s3://", "")}`,
+            `recordings/${videoRecording.userId}/${videoRecording.fileName
+              .replace("s3://", "")
+              .replace(".mp4", ".webp")}`
+          );
+        } else {
+          fs.rmSync(
+            path.join(
+              process.env.RECORDINGS_PATH || "",
+              "recordings",
+              videoRecording.userId,
+              videoRecording.fileName
+            )
+          );
+          fs.rmSync(
+            path.join(
+              process.env.RECORDINGS_PATH || "",
+              "recordings",
+              videoRecording.userId,
+              videoRecording.fileName.replace(".mp4", ".webp")
+            )
+          );
+        }
 
-      await prisma.recordingQueue.deleteMany({
-        where: { firstSegmentId: videoRecording?.firstSegmentId },
-      });
+        await prisma.recordingQueue.deleteMany({
+          where: { firstSegmentId: videoRecording?.firstSegmentId },
+        });
+      } catch {}
 
       response.ok = true;
     } catch {
@@ -256,12 +285,19 @@ export const deleteRecordingAction = async (
     }
   } else if (recording.type === "SAVED" && recording.id) {
     try {
-      fs.rmSync(
-        `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.mp4`
-      );
-      fs.rmSync(
-        `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.webp`
-      );
+      if (isUsingS3Bucket) {
+        await deleteFile(
+          `recordings_saved/${userChannel.user.id}/${recording.id}.mp4`,
+          `recordings_saved/${userChannel.user.id}/${recording.id}.webp`
+        );
+      } else {
+        fs.rmSync(
+          `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.mp4`
+        );
+        fs.rmSync(
+          `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.webp`
+        );
+      }
 
       await prisma.recordingSaved.delete({ where: { id: recording.id } });
 
@@ -269,7 +305,7 @@ export const deleteRecordingAction = async (
     } catch {}
   } else {
     response.message =
-      "Recording cannot be deleted right now because it's currently being processed. Please try again later.";
+      "Recording cannot be deleted right now because it's currently being processed. Please try again later";
   }
 
   return response;
@@ -353,23 +389,40 @@ export const saveRecordingAction = async (
 
     if (recordingDb) {
       try {
-        const targetDir = `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}`;
-        const targetPath = `${targetDir}/${recordingDb.id}.mp4`;
+        const isUsingS3Bucket = s3Client !== null;
 
-        fs.mkdirSync(targetDir, { recursive: true });
+        if (isUsingS3Bucket) {
+          await moveFile(
+            `recordings/${
+              userChannel.user.id
+            }/${recordingQueueDb.fileName.replace("s3://", "")}`,
+            `recordings_saved/${userChannel.user.id}/${recordingDb.id}.mp4`
+          );
+          await moveFile(
+            `recordings/${userChannel.user.id}/${recordingQueueDb.fileName
+              .replace("s3://", "")
+              .replace(".mp4", ".webp")}`,
+            `recordings_saved/${userChannel.user.id}/${recordingDb.id}.webp`
+          );
+        } else {
+          const targetDir = `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}`;
+          const targetPath = `${targetDir}/${recordingDb.id}.mp4`;
 
-        fs.renameSync(recordingQueueDb.fileName, targetPath);
-        fs.renameSync(
-          recordingQueueDb.fileName.replace(".mp4", ".webp"),
-          targetPath.replace(".mp4", ".webp")
-        );
+          fs.mkdirSync(targetDir, { recursive: true });
+
+          fs.renameSync(recordingQueueDb.fileName, targetPath);
+          fs.renameSync(
+            recordingQueueDb.fileName.replace(".mp4", ".webp"),
+            targetPath.replace(".mp4", ".webp")
+          );
+        }
 
         await prisma.recordingQueue.deleteMany({
           where: { firstSegmentId: recording.firstSegmentId },
         });
       } catch (error) {
         await prisma.recordingSaved.delete({ where: { id: recordingDb.id } });
-        throw Error("Error saving video: " + error);
+        throw new Error("Error saving video: " + error);
       }
 
       response.recording = {

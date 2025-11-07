@@ -22,7 +22,7 @@ export default async function UserPage() {
     <div
       className={"flex min-h-full flex-col justify-center px-6 py-12 lg:px-8"}
     >
-      <UserForm user={session.user as User} />
+      <UserForm userInit={session.user as User} />
     </div>
   );
 }

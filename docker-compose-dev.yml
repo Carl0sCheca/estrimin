@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       TZ: Europe/Madrid
     volumes:
-      - ./db-dev:/var/lib/postgresql/data
+      - db-dev-estrimin:/var/lib/postgresql/data
     networks:
       - default
   mediamtx:
@@ -32,3 +32,6 @@ services:
       - "8889:8889"
       - "8888:8888"
       - "8189:8189/udp"
+
+volumes:
+  db-dev-estrimin:

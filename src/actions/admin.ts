@@ -16,7 +16,7 @@ import { checkAdmin } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-export const disableRegistration = async (
+export const disableRegistrationAction = async (
   enabled: boolean
 ): Promise<DisableRegisterResponse> => {
   const session = await auth.api.getSession({
@@ -47,6 +47,44 @@ export const disableRegistration = async (
 
       revalidatePath("/admin");
       revalidatePath("/login");
+    }
+  } catch {
+    response.message = "An error has occurred";
+  }
+
+  return response;
+};
+
+export const disableRecordingsAction = async (
+  enabled: boolean
+): Promise<DisableRegisterResponse> => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const response: DisableRegisterResponse = {
+    ok: false,
+  };
+
+  const isAdmin = await checkAdmin(session?.session.id);
+
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
+    return response;
+  }
+
+  try {
+    const updateSettings = await prisma.siteSetting.update({
+      where: { key: SITE_SETTING.DISABLE_RECORDINGS },
+      data: {
+        value: enabled,
+      },
+    });
+
+    if (updateSettings) {
+      response.ok = true;
+
+      revalidatePath("/admin");
     }
   } catch {
     response.message = "An error has occurred";

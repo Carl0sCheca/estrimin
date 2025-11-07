@@ -33,10 +33,12 @@ enum FormPasswordError {
 }
 
 interface Props {
-  user: User;
+  userInit: User;
 }
 
-export const UserForm = ({ user }: Props) => {
+export const UserForm = ({ userInit }: Props) => {
+  const [user, setUser] = useState(userInit);
+
   const [formState, setFormState] = useState({
     name: user.name,
     email: user.email,
@@ -178,8 +180,13 @@ export const UserForm = ({ user }: Props) => {
 
                   showAlert("Failed to save changes", true);
                 } else {
-                  user.name = updateUserResponse.data?.name ?? user.name;
-                  user.email = updateUserResponse.data?.email ?? user.email;
+                  const updatedUser = {
+                    ...user,
+                    name: updateUserResponse.data?.name ?? user.name,
+                    email: updateUserResponse.data?.email ?? user.email,
+                  };
+
+                  setUser(updatedUser);
 
                   showAlert("Your changes have been saved");
                 }

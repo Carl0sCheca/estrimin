@@ -110,7 +110,7 @@ export const QueueJobs = ({ tooltip }: Props) => {
 
   return (
     <>
-      <Collapsible title="Queue jobs">
+      <Collapsible title="Queue jobs" maxHeight={500}>
         <div className="space-y-4">
           <div className="flex justify-center">
             <Toggle

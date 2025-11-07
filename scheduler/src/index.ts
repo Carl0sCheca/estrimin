@@ -10,13 +10,18 @@ import {
 import * as zmq from "zeromq";
 import {
   generateThumbnail,
+  getSortedVideoFiles,
   handleNewVideo,
   reencodeWithOriginalSettings,
 } from "./videoProcessing";
 import * as fs from "fs";
+import { basename, join } from "path";
+
+import { downloadFile, listRecordingFilesS3, uploadFile } from "./S3Service";
 
 const JOB_RECORDING_QUEUE = "JOB_QUEUE_TASK";
 const JOB_RECORDING_QUEUE_TIMEOUT = "JOB_QUEUE_TIMEOUT_TASK";
+const JOB_UPLOADING_QUEUE = "JOB_UPLOADING_QUEUE";
 
 const jobsRunning: Map<string, boolean> = new Map();
 
@@ -106,7 +111,7 @@ const queueTask = async () => {
                 AND: [
                   { status: RecordingQueueState.FAILED },
                   { error: { not: null } },
-                  { error: { in: ["ENCODING", "MERGING"] } },
+                  { error: { in: ["UPLOADING", "ENCODING", "MERGING"] } },
                   { attempts: { lt: 3 } },
                 ],
               },
@@ -142,17 +147,65 @@ const queueTask = async () => {
           },
         });
 
-        const reencodeFileName = `${recording.fileName}.reencoded`;
+        const isUsingS3Bucket = recording.fileName.startsWith("s3://");
 
-        await reencodeWithOriginalSettings(
-          recording.fileName,
-          reencodeFileName
+        const filePath = join(
+          process.env.RECORDINGS_PATH || "",
+          "recordings",
+          recording.userId,
+          recording.fileName.replace("s3://", "")
         );
 
-        fs.rmSync(`${recording.fileName}`);
-        fs.renameSync(reencodeFileName, `${recording.fileName}`);
+        if (isUsingS3Bucket) {
+          await downloadFile(
+            `recordings/${recording.userId}/${recording.fileName.replace(
+              "s3://",
+              ""
+            )}`,
+            filePath
+          );
+        }
 
-        await generateThumbnail(recording.fileName);
+        const reencodeFileName = `${filePath}.reencoded`;
+
+        await reencodeWithOriginalSettings(filePath, reencodeFileName);
+
+        fs.rmSync(`${filePath}`);
+        fs.renameSync(reencodeFileName, `${filePath}`);
+
+        await generateThumbnail(filePath);
+
+        if (isUsingS3Bucket) {
+          const fileUpload = await uploadFile(
+            `recordings/${recording.userId}/${recording.fileName.replace(
+              "s3://",
+              ""
+            )}`,
+            filePath,
+            "video/mp4"
+          );
+
+          const fileUploadThumbnail = await uploadFile(
+            `recordings/${recording.userId}/${recording.fileName
+              .replace("s3://", "")
+              .replace(".mp4", ".webp")}`,
+            filePath.replace(".mp4", ".webp"),
+            "image/webp"
+          );
+
+          try {
+            fs.rmSync(filePath);
+            fs.rmSync(filePath.replace(".mp4", ".webp"));
+          } catch (err) {
+            console.error("Error while trying to delete local files", err);
+          }
+
+          if (!fileUpload || !fileUploadThumbnail) {
+            console.error("Error uploading recording after encoding video");
+
+            throw new Error("Error while uploading video to S3 bucket");
+          }
+        }
 
         await prisma.recordingQueue.update({
           where: { id: recording.id },
@@ -233,6 +286,98 @@ const queueTask = async () => {
           },
         });
       } catch {}
+    }
+  }
+
+  const recordings = await prisma.recordingQueue.findMany({
+    where: {
+      AND: [
+        {
+          createdAt: { gte: new Date(Date.now() - 60 * 60 * 48 * 1000) },
+        },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const groupedAndSorted = recordings.reduce((acc, recording) => {
+    const segmentId = recording.firstSegmentId;
+
+    if (segmentId) {
+      if (!acc[segmentId]) {
+        acc[segmentId] = [];
+      }
+      acc[segmentId].push(recording);
+    }
+    return acc;
+  }, {} as Record<string, typeof recordings>);
+
+  const completedElementsNoMerged = Object.values(groupedAndSorted).map(
+    (group) => {
+      const sortedGroup = group.sort((b, a) => a.id - b.id);
+      const lastElement = sortedGroup[sortedGroup.length - 1];
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+
+      return {
+        group: sortedGroup,
+        // isLastElementOlderThan2Min: lastElement.createdAt < twoMinutesAgo,
+        // allCompleted: sortedGroup.every((item) => item.status === "COMPLETED"),
+        isReadyForProcessing:
+          lastElement.createdAt < twoMinutesAgo &&
+          sortedGroup.every(
+            (item) => item.status === RecordingQueueState.COMPLETED
+          ) &&
+          sortedGroup.length > 1,
+      };
+    }
+  );
+
+  const recordingsShouldBeMerged = completedElementsNoMerged
+    .filter((e) => e.isReadyForProcessing)
+    .map((recording) => recording.group);
+
+  if (recordingsShouldBeMerged.length > 0) {
+    const isUsingS3Bucket =
+      recordingsShouldBeMerged[0][0].fileName.startsWith("s3://");
+
+    let fileList = (
+      await listRecordingFilesS3(recordingsShouldBeMerged[0][0].userId)
+    )
+      .map((e) =>
+        e.Key?.replace("recordings/", isUsingS3Bucket ? "s3:///" : "")
+      )
+      .filter((e) => e?.endsWith(".mp4"));
+
+    if (isUsingS3Bucket) {
+      fileList = (
+        await listRecordingFilesS3(recordingsShouldBeMerged[0][0].userId)
+      )
+        .map((e) =>
+          e.Key?.replace("recordings/", isUsingS3Bucket ? "s3:///" : "")
+        )
+        .filter((e) => e?.endsWith(".mp4"));
+    } else {
+      fileList = (
+        await getSortedVideoFiles(
+          join(
+            process.env.RECORDINGS_PATH || "",
+            "recordings",
+            recordingsShouldBeMerged[0][0].userId
+          )
+        )
+      ).reverse();
+    }
+
+    fileList = fileList.filter((elem) =>
+      recordingsShouldBeMerged[0].map((e) => e.fileName).includes(elem || "")
+    );
+
+    if (fileList.length > 1) {
+      await handleNewVideo(
+        recordingsShouldBeMerged[0][0].userId,
+        fileList[0] || "",
+        2000
+      );
     }
   }
 
@@ -344,6 +489,159 @@ const queueTaskTimeout = async () => {
   jobsRunning.set(JOB_RECORDING_QUEUE_TIMEOUT, false);
 };
 
+const queueTaskUploading = async () => {
+  jobsRunning.set(JOB_UPLOADING_QUEUE, true);
+
+  await updateLastExecutionFromSettings(JOB_UPLOADING_QUEUE);
+
+  // recording.status === RecordingQueueState.FAILED &&
+  //   recording.error === RecordingQueueState.UPLOADING &&
+  //   recording.attempts < 3;
+
+  while (true) {
+    const recordings = await prisma.recordingQueue.findMany({
+      where: {
+        OR: [
+          {
+            AND: [
+              {
+                status: {
+                  in: [RecordingQueueState.UPLOADING],
+                },
+              },
+              {
+                createdAt: { gte: new Date(Date.now() - 60 * 60 * 48 * 1000) },
+              },
+            ],
+          },
+          {
+            AND: [
+              {
+                status: {
+                  in: [RecordingQueueState.FAILED],
+                },
+              },
+              {
+                error: RecordingQueueState.UPLOADING,
+              },
+              {
+                attempts: { lt: 3 },
+              },
+              {
+                createdAt: { gte: new Date(Date.now() - 60 * 60 * 48 * 1000) },
+              },
+            ],
+          },
+        ],
+      },
+      take: 1,
+      orderBy: { createdAt: "asc" },
+    });
+
+    const startDate = new Date();
+
+    if (recordings.length === 0) {
+      break;
+    }
+
+    const [recording] = recordings;
+
+    const fileName = join(
+      process.env.RECORDINGS_PATH || "",
+      "recordings",
+      recording.userId,
+      basename(recording.fileName)
+    );
+
+    try {
+      const fileUpload = await uploadFile(
+        `recordings/${recording.userId}/${basename(recording.fileName)}`,
+        fileName,
+        "video/mp4"
+      );
+
+      if (fileUpload) {
+        try {
+          await prisma.recordingQueue.update({
+            where: { id: recording.id },
+            data: {
+              status: RecordingQueueState.UPLOADED,
+              fileName: `s3://${basename(recording.fileName)}`,
+              attempts: 0,
+              error: null,
+              startedAt: startDate,
+              finishedAt: new Date(),
+            },
+          });
+        } catch {}
+      } else {
+        throw new Error("Error uploading file to S3");
+      }
+    } catch (err) {
+      console.error("Error uploading file to S3:", err);
+      try {
+        await prisma.recordingQueue.update({
+          where: { id: recording.id },
+          data: {
+            status: RecordingQueueState.FAILED,
+            error: "UPLOADING",
+            attempts: recording.attempts + 1,
+            startedAt: startDate,
+            finishedAt: new Date(),
+          },
+        });
+      } catch {}
+    }
+  }
+
+  while (true) {
+    const recordings = await prisma.recordingQueue.findMany({
+      where: {
+        AND: [
+          {
+            status: {
+              in: [RecordingQueueState.UPLOADED],
+            },
+          },
+          {
+            createdAt: { gte: new Date(Date.now() - 60 * 60 * 48 * 1000) },
+          },
+        ],
+      },
+      take: 1,
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (recordings.length === 0) {
+      break;
+    }
+
+    const [recording] = recordings;
+
+    try {
+      fs.rmSync(
+        `${join(
+          process.env.RECORDINGS_PATH || "",
+          "recordings",
+          recording.userId,
+          basename(recording.fileName)
+        )}`
+      );
+    } catch {}
+
+    try {
+      await prisma.recordingQueue.update({
+        where: { id: recording.id },
+        data: {
+          status: RecordingQueueState.PENDING,
+        },
+      });
+    } catch {}
+  }
+
+  jobsRunning.set(JOB_UPLOADING_QUEUE, false);
+};
+
 const queueJob = new SimpleIntervalJob(
   { minutes: 1, runImmediately: true },
   new AsyncTask("task_" + JOB_RECORDING_QUEUE, async () => await queueTask()),
@@ -365,6 +663,18 @@ const queueJobTimeout = new SimpleIntervalJob(
   }
 );
 
+const queueUploadingJob = new SimpleIntervalJob(
+  { minutes: 1, runImmediately: true },
+  new AsyncTask(
+    "task_" + JOB_UPLOADING_QUEUE,
+    async () => await queueTaskUploading()
+  ),
+  {
+    id: JOB_UPLOADING_QUEUE,
+    preventOverrun: true,
+  }
+);
+
 const initScheduler = async () => {
   if (globalForInit.isSchedulerInitialized) return;
   globalForInit.isSchedulerInitialized = true;
@@ -378,6 +688,7 @@ const initScheduler = async () => {
 
   scheduler.addSimpleIntervalJob(queueJob);
   scheduler.addSimpleIntervalJob(queueJobTimeout);
+  scheduler.addSimpleIntervalJob(queueUploadingJob);
 };
 
 initScheduler();

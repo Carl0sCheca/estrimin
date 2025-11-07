@@ -6,7 +6,12 @@ import {
 } from "../../src/lib/utils-server";
 import { exec } from "child_process";
 import { promisify } from "util";
-
+import {
+  deleteFile,
+  downloadFile,
+  listRecordingFilesS3,
+  uploadFile,
+} from "./S3Service";
 const execAsync = promisify(exec);
 
 interface ExecError extends Error {
@@ -37,7 +42,9 @@ export interface VideoMetadata {
   bitrate: number;
 }
 
-const getSortedVideoFiles = async (directory: string): Promise<string[]> => {
+export const getSortedVideoFiles = async (
+  directory: string
+): Promise<string[]> => {
   return new Promise((resolve, reject) => {
     fs.readdir(directory, (err, files) => {
       if (err) return reject(err);
@@ -55,33 +62,68 @@ export const handleNewVideo = async (
   thresholdMs: number
 ): Promise<void> => {
   try {
+    const isUsingS3Bucket = segmentPath.startsWith("s3://");
+
     const recordingsDir = path.join(
       process.env.RECORDINGS_PATH || "",
       "recordings",
       userId
     );
 
-    const fullVideoPath = segmentPath;
+    const fullVideoPath = path.join(
+      recordingsDir,
+      segmentPath.replace("s3://", "")
+    );
 
     const fileName = fullVideoPath.split("/").pop() || "";
 
-    if (!fs.existsSync(recordingsDir)) {
-      throw new Error(`No recording directory: ${recordingsDir}`);
+    if (isUsingS3Bucket) {
+      fs.mkdirSync(recordingsDir, { recursive: true });
+    } else {
+      if (!fs.existsSync(path.join(recordingsDir))) {
+        throw new Error(`No recording directory: ${recordingsDir}`);
+      }
     }
 
-    const allVideoFiles = await getSortedVideoFiles(recordingsDir);
+    let allVideoFiles;
+    let currentIndex: number;
 
-    const currentIndex = allVideoFiles.indexOf(fileName);
+    if (!isUsingS3Bucket) {
+      allVideoFiles = await getSortedVideoFiles(recordingsDir);
+      currentIndex = allVideoFiles.indexOf(fileName);
+    } else {
+      allVideoFiles = (await listRecordingFilesS3(userId))
+        .map((e) => e.Key)
+        .filter((e) => e?.endsWith(".mp4"));
+
+      currentIndex = allVideoFiles
+        .map((files) => files?.split("/").pop())
+        .indexOf(fileName);
+    }
+
     if (currentIndex === -1) {
       throw new Error(`The file ${fileName} is not in the directory`);
     }
-
     if (currentIndex === 0) {
       return;
     }
 
-    const previousFileName = allVideoFiles[currentIndex - 1];
+    const previousFileName =
+      allVideoFiles[currentIndex - 1]?.split("/").pop() || "";
     const previousVideoPath = path.join(recordingsDir, previousFileName);
+
+    if (isUsingS3Bucket) {
+      try {
+        await downloadFile(`recordings/${userId}/${fileName}`, fullVideoPath);
+
+        await downloadFile(
+          `recordings/${userId}/${previousFileName}`,
+          previousVideoPath
+        );
+      } catch (err) {
+        console.error("Error downloading recordings:", err);
+      }
+    }
 
     const currentVideo: VideoInfo = {
       fileName,
@@ -104,6 +146,45 @@ export const handleNewVideo = async (
 
     if (Math.abs(timeDifference) <= thresholdMs) {
       await handleConsecutiveVideos(previousVideo, currentVideo);
+
+      if (isUsingS3Bucket) {
+        try {
+          await uploadFile(
+            `recordings/${userId}/${previousVideo.fileName}`,
+            previousVideo.filePath,
+            "video/mp4"
+          );
+
+          await uploadFile(
+            `recordings/${userId}/${previousVideo.fileName.replace(
+              ".mp4",
+              ".webp"
+            )}`,
+            previousVideo.filePath.replace(".mp4", ".webp"),
+            "image/webp"
+          );
+
+          fs.rmSync(previousVideo.filePath);
+          fs.rmSync(previousVideo.filePath.replace(".mp4", ".webp"));
+
+          await deleteFile(
+            `recordings/${userId}/${currentVideo.fileName}`,
+            `recordings/${userId}/${currentVideo.fileName.replace(
+              ".mp4",
+              ".webp"
+            )}`
+          );
+        } catch (err) {
+          console.error("Error", err);
+        }
+      }
+    } else {
+      if (isUsingS3Bucket) {
+        try {
+          fs.rmSync(currentVideo.filePath);
+          fs.rmSync(previousVideo.filePath);
+        } catch {}
+      }
     }
   } catch (error) {
     console.error(`Error processing video: ${error}`);
