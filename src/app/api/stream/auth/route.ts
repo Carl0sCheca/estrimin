@@ -12,7 +12,7 @@ import {
 
 const getStreamParams = (
   query: string,
-  path: string
+  path: string,
 ): {
   stream: string | undefined;
   password: string | undefined;
@@ -41,7 +41,7 @@ const checkUserWatchStream = async (
   password: string | undefined,
   userLogged: {
     user: User;
-  } | null
+  } | null,
 ): Promise<{ code: number; message?: string }> => {
   if (userChannel?.visibility === ChannelVisibility.ALL) {
     return { code: 0 };
@@ -81,14 +81,14 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json(
       { code: -1, message: "Empty request" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
   if (!request) {
     return NextResponse.json(
       { code: -1, message: "Empty request" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
   const { stream, password, session } = getStreamParams(
     request.query,
-    request.path
+    request.path,
   );
 
   if (request.action === "playback") {
@@ -114,15 +114,15 @@ export async function POST(req: NextRequest) {
 
     if (!userChannel) {
       return NextResponse.json(
-        { code: -1, message: "No user found" },
-        { status: 401 }
+        { code: -1, message: `No user found. Path: ${request.path}` },
+        { status: 401 },
       );
     }
 
     if (userChannel.disabled) {
       return NextResponse.json(
         { code: -1, message: "Channel is disabled" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
     const isAllowed = await checkUserWatchStream(
       userChannel,
       password,
-      userLogged
+      userLogged,
     );
 
     if (isAllowed.code === 0) {
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
     if (!stream) {
       return NextResponse.json(
         { code: -1, message: "Wrong URL format" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     if (userChannel?.disabled) {
       return NextResponse.json(
         { code: -1, message: "Channel is disabled" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
     const isAllowed = await checkUserWatchStream(
       userChannel,
       password,
-      userLogged
+      userLogged,
     );
 
     if (isAllowed.code === 0) {
@@ -211,7 +211,7 @@ export async function POST(req: NextRequest) {
   if (!stream || !token) {
     return NextResponse.json(
       { code: -1, message: "Wrong URL format" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -222,15 +222,15 @@ export async function POST(req: NextRequest) {
 
   if (!userChannel) {
     return NextResponse.json(
-      { code: -1, message: "No user found" },
-      { status: 401 }
+      { code: -1, message: `No user found. Path: ${request.path}` },
+      { status: 401 },
     );
   }
 
   if (userChannel.disabled) {
     return NextResponse.json(
       { code: -1, message: "Channel is disabled" },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
           Click: `${process.env.BASE_URL}/${userChannel.user.name}`,
           Authorization: `Basic ${auth}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
