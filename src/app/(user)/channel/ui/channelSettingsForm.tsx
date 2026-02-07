@@ -13,7 +13,7 @@ import {
   Role,
   SiteSetting,
   UserSetting,
-} from "@prisma/client";
+} from "@/generated/browser";
 import Link from "next/link";
 
 import { RecordingsList } from "./RecordingsList";
