@@ -1,6 +1,6 @@
 import { AsyncTask, SimpleIntervalJob, ToadScheduler } from "toad-scheduler";
 import prisma from "../../src/lib/prisma";
-import { RecordingQueueState } from "@prisma/client";
+import { RecordingQueueState } from "../../src/generated/client";
 import { SITE_SETTING } from "../../src/interfaces";
 import {
   Command,
@@ -78,7 +78,7 @@ const updateLastExecutionFromSettings = async (task: string) => {
       {
         maxWait: 30000,
         timeout: 20000,
-      }
+      },
     );
   } catch (error) {
     console.error(`Error updating execution for ${task}:`, error);
@@ -153,16 +153,16 @@ const queueTask = async () => {
           process.env.RECORDINGS_PATH || "",
           "recordings",
           recording.userId,
-          recording.fileName.replace("s3://", "")
+          recording.fileName.replace("s3://", ""),
         );
 
         if (isUsingS3Bucket) {
           await downloadFile(
             `recordings/${recording.userId}/${recording.fileName.replace(
               "s3://",
-              ""
+              "",
             )}`,
-            filePath
+            filePath,
           );
         }
 
@@ -179,10 +179,10 @@ const queueTask = async () => {
           const fileUpload = await uploadFile(
             `recordings/${recording.userId}/${recording.fileName.replace(
               "s3://",
-              ""
+              "",
             )}`,
             filePath,
-            "video/mp4"
+            "video/mp4",
           );
 
           const fileUploadThumbnail = await uploadFile(
@@ -190,7 +190,7 @@ const queueTask = async () => {
               .replace("s3://", "")
               .replace(".mp4", ".webp")}`,
             filePath.replace(".mp4", ".webp"),
-            "image/webp"
+            "image/webp",
           );
 
           try {
@@ -300,17 +300,20 @@ const queueTask = async () => {
     orderBy: { createdAt: "asc" },
   });
 
-  const groupedAndSorted = recordings.reduce((acc, recording) => {
-    const segmentId = recording.firstSegmentId;
+  const groupedAndSorted = recordings.reduce(
+    (acc, recording) => {
+      const segmentId = recording.firstSegmentId;
 
-    if (segmentId) {
-      if (!acc[segmentId]) {
-        acc[segmentId] = [];
+      if (segmentId) {
+        if (!acc[segmentId]) {
+          acc[segmentId] = [];
+        }
+        acc[segmentId].push(recording);
       }
-      acc[segmentId].push(recording);
-    }
-    return acc;
-  }, {} as Record<string, typeof recordings>);
+      return acc;
+    },
+    {} as Record<string, typeof recordings>,
+  );
 
   const completedElementsNoMerged = Object.values(groupedAndSorted).map(
     (group) => {
@@ -325,11 +328,11 @@ const queueTask = async () => {
         isReadyForProcessing:
           lastElement.createdAt < twoMinutesAgo &&
           sortedGroup.every(
-            (item) => item.status === RecordingQueueState.COMPLETED
+            (item) => item.status === RecordingQueueState.COMPLETED,
           ) &&
           sortedGroup.length > 1,
       };
-    }
+    },
   );
 
   const recordingsShouldBeMerged = completedElementsNoMerged
@@ -344,7 +347,7 @@ const queueTask = async () => {
       await listRecordingFilesS3(recordingsShouldBeMerged[0][0].userId)
     )
       .map((e) =>
-        e.Key?.replace("recordings/", isUsingS3Bucket ? "s3:///" : "")
+        e.Key?.replace("recordings/", isUsingS3Bucket ? "s3:///" : ""),
       )
       .filter((e) => e?.endsWith(".mp4"));
 
@@ -353,7 +356,7 @@ const queueTask = async () => {
         await listRecordingFilesS3(recordingsShouldBeMerged[0][0].userId)
       )
         .map((e) =>
-          e.Key?.replace("recordings/", isUsingS3Bucket ? "s3:///" : "")
+          e.Key?.replace("recordings/", isUsingS3Bucket ? "s3:///" : ""),
         )
         .filter((e) => e?.endsWith(".mp4"));
     } else {
@@ -362,21 +365,21 @@ const queueTask = async () => {
           join(
             process.env.RECORDINGS_PATH || "",
             "recordings",
-            recordingsShouldBeMerged[0][0].userId
-          )
+            recordingsShouldBeMerged[0][0].userId,
+          ),
         )
       ).reverse();
     }
 
     fileList = fileList.filter((elem) =>
-      recordingsShouldBeMerged[0].map((e) => e.fileName).includes(elem || "")
+      recordingsShouldBeMerged[0].map((e) => e.fileName).includes(elem || ""),
     );
 
     if (fileList.length > 1) {
       await handleNewVideo(
         recordingsShouldBeMerged[0][0].userId,
         fileList[0] || "",
-        2000
+        2000,
       );
     }
   }
@@ -414,7 +417,7 @@ const queueTaskTimeout = async () => {
       });
 
     console.info(
-      `Removed ${clearedExpiredRecordingsDeleted.count} expired recordings`
+      `Removed ${clearedExpiredRecordingsDeleted.count} expired recordings`,
     );
   }
 
@@ -550,14 +553,14 @@ const queueTaskUploading = async () => {
       process.env.RECORDINGS_PATH || "",
       "recordings",
       recording.userId,
-      basename(recording.fileName)
+      basename(recording.fileName),
     );
 
     try {
       const fileUpload = await uploadFile(
         `recordings/${recording.userId}/${basename(recording.fileName)}`,
         fileName,
-        "video/mp4"
+        "video/mp4",
       );
 
       if (fileUpload) {
@@ -624,8 +627,8 @@ const queueTaskUploading = async () => {
           process.env.RECORDINGS_PATH || "",
           "recordings",
           recording.userId,
-          basename(recording.fileName)
-        )}`
+          basename(recording.fileName),
+        )}`,
       );
     } catch {}
 
@@ -648,31 +651,31 @@ const queueJob = new SimpleIntervalJob(
   {
     id: JOB_RECORDING_QUEUE,
     preventOverrun: true,
-  }
+  },
 );
 
 const queueJobTimeout = new SimpleIntervalJob(
   { minutes: 1, runImmediately: true },
   new AsyncTask(
     "task_" + JOB_RECORDING_QUEUE_TIMEOUT,
-    async () => await queueTaskTimeout()
+    async () => await queueTaskTimeout(),
   ),
   {
     id: JOB_RECORDING_QUEUE_TIMEOUT,
     preventOverrun: true,
-  }
+  },
 );
 
 const queueUploadingJob = new SimpleIntervalJob(
   { minutes: 1, runImmediately: true },
   new AsyncTask(
     "task_" + JOB_UPLOADING_QUEUE,
-    async () => await queueTaskUploading()
+    async () => await queueTaskUploading(),
   ),
   {
     id: JOB_UPLOADING_QUEUE,
     preventOverrun: true,
-  }
+  },
 );
 
 const initScheduler = async () => {
@@ -694,6 +697,8 @@ const initScheduler = async () => {
 initScheduler();
 
 const messagesFromEstrimin = async () => {
+  console.info("Estrimin scheduler started");
+
   const sock = new zmq.Reply();
 
   await sock.bind(DEFAULT_SOCKET);

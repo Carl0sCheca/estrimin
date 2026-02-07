@@ -9,7 +9,7 @@ import {
   useAlertNotification,
 } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
-import { User } from "@prisma/client";
+import { User } from "@/generated/browser";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { flushSync } from "react-dom";
@@ -152,9 +152,8 @@ export const UserForm = ({ userInit }: Props) => {
                   return;
                 }
 
-                const updateUserResponse: UserUpdateResponse = await updateUser(
-                  request
-                );
+                const updateUserResponse: UserUpdateResponse =
+                  await updateUser(request);
 
                 if (!updateUserResponse.ok) {
                   if (updateUserResponse.message === "Invalid email") {
@@ -302,7 +301,7 @@ export const UserForm = ({ userInit }: Props) => {
 
                   showAlert(
                     "An error occurred while changing your password",
-                    true
+                    true,
                   );
                 } else {
                   setFormPasswordState({ password: "", newpassword: "" });
@@ -340,7 +339,7 @@ export const UserForm = ({ userInit }: Props) => {
                     pattern=".{8,}"
                     onInvalid={(e) =>
                       (e.target as HTMLObjectElement).setCustomValidity(
-                        "Must contain 8 or more characters"
+                        "Must contain 8 or more characters",
                       )
                     }
                     onInput={(e) =>
@@ -377,7 +376,7 @@ export const UserForm = ({ userInit }: Props) => {
                     onChange={handleChangePassword}
                     onInvalid={(e) =>
                       (e.target as HTMLObjectElement).setCustomValidity(
-                        "Must contain 8 or more characters"
+                        "Must contain 8 or more characters",
                       )
                     }
                     onInput={(e) =>

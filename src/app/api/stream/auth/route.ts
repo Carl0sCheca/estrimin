@@ -8,7 +8,7 @@ import {
   RecordingVisibility,
   Role,
   User,
-} from "@prisma/client";
+} from "@/generated/client";
 
 const getStreamParams = (
   query: string,
