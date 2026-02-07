@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { join } from "path";
 import { readFileSync, existsSync } from "fs";
 import { getSafePath, validateParameters } from "@/lib/utils-api";
+import s3Client from "@/lib/s3-client";
+import {
+  checkIfFileExists,
+  getFileBuffer,
+} from "../../../../../../../../scheduler/src/S3Service";
 
 interface Params {
   params: Promise<{
@@ -67,7 +72,22 @@ export async function GET(req: NextRequest, { params }: Params) {
       return new NextResponse("Invalid path", { status: 400 });
     }
 
-    if (!existsSync(safePath)) {
+    const isUsingS3Bucket = s3Client !== null;
+
+    let imageBuffer;
+    let existsThumbnail = false;
+
+    if (isUsingS3Bucket) {
+      existsThumbnail = await checkIfFileExists(
+        `${
+          videoType === "n" ? "recordings" : "recordings_saved"
+        }/${userId}/${videoId}.webp`
+      );
+    } else {
+      existsThumbnail = existsSync(safePath);
+    }
+
+    if (!existsThumbnail) {
       console.warn(`Image not found: ${safePath}`);
 
       const defaultImagePath = join(
@@ -88,12 +108,24 @@ export async function GET(req: NextRequest, { params }: Params) {
         });
       }
       return new NextResponse("Image not found", { status: 404 });
+    } else {
+      if (isUsingS3Bucket) {
+        imageBuffer = await getFileBuffer(
+          videoType === "n"
+            ? process.env.S3_BUCKET_RECORDINGS || ""
+            : process.env.S3_BUCKET_RECORDINGS_SAVED || "",
+          `${
+            videoType === "n" ? "recordings" : "recordings_saved"
+          }/${userId}/${videoId}.webp`
+        );
+      } else {
+        imageBuffer = readFileSync(safePath);
+      }
     }
 
-    const imageBuffer = readFileSync(safePath);
     const contentType = "image/webp";
 
-    return new NextResponse(imageBuffer, {
+    return new NextResponse(imageBuffer as BodyInit, {
       status: 200,
       headers: {
         "Content-Type": contentType,

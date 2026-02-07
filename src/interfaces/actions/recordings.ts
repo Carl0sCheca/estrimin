@@ -1,4 +1,4 @@
-import { RecordingVisibility } from "@prisma/client";
+import { RecordingVisibility } from "@/generated/enums";
 
 type RecordingType = "COMPLETED" | "PROCESSING" | "LIVE" | "SAVED";
 
