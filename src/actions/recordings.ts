@@ -16,14 +16,12 @@ import prisma from "@/lib/prisma";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
 import fs from "fs";
 import path from "path";
-import { RecordingQueue, RecordingVisibility } from "@/generated/client";
+import { RecordingQueue, RecordingVisibility } from "@prisma/client";
 import { dateToFilename, getDateFromFileName } from "@/lib/utils-server";
-import s3Client from "@/lib/s3-client";
-import { deleteFile, moveFile } from "../../scheduler/src/S3Service";
 
 export const getNonSavedRecordingsList = async (
   sessionId: string,
-  userId: string,
+  userId: string
 ): Promise<GetNonSavedRecordingsListResponse> => {
   const response: GetNonSavedRecordingsListResponse = {
     ok: false,
@@ -49,7 +47,7 @@ export const getNonSavedRecordingsList = async (
 
   if (
     !fs.existsSync(
-      path.join(process.env.RECORDINGS_PATH || "", "recordings", userId),
+      path.join(process.env.RECORDINGS_PATH || "", "recordings", userId)
     )
   ) {
     response.ok = true;
@@ -79,18 +77,18 @@ export const getNonSavedRecordingsList = async (
       groups[segmentId].push(entry);
       return groups;
     },
-    {},
+    {}
   );
 
   let filteredEntries: Array<RecordingData> = Object.entries(groupedBySegment)
     .map(([_, entries]): RecordingData | null => {
       const allCompleted = entries.every(
-        (entry) => entry.status === "COMPLETED",
+        (entry) => entry.status === "COMPLETED"
       );
 
       const sortedEntries = entries.sort(
         (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
 
       const totalDuration = entries.reduce((sum, entry) => {
@@ -110,7 +108,7 @@ export const getNonSavedRecordingsList = async (
         };
       } else {
         const validEntry = sortedEntries.find(
-          (entry) => entry.status === "COMPLETED",
+          (entry) => entry.status === "COMPLETED"
         );
 
         if (validEntry) {
@@ -149,7 +147,7 @@ export const getNonSavedRecordingsList = async (
 
 export const getRecordingsListAction = async (
   userChannel: UserChannel,
-  session: string,
+  session: string
 ): Promise<GetRecordingsListResponse> => {
   const response: GetRecordingsListResponse = {
     ok: false,
@@ -158,7 +156,7 @@ export const getRecordingsListAction = async (
 
   const nonSavedRecordingsList = await getNonSavedRecordingsList(
     session,
-    userChannel.user.id,
+    userChannel.user.id
   );
 
   if (nonSavedRecordingsList.ok) {
@@ -172,12 +170,12 @@ export const getRecordingsListAction = async (
             JSON.stringify({
               i: recording.fileName.replace(".mp4", ""),
               t: "n",
-            }),
-          ),
+            })
+          )
         )}`,
         visibility: recording.visibility,
         firstSegmentId: recording.firstSegmentId,
-      }),
+      })
     );
 
     response.ok = true;
@@ -198,8 +196,8 @@ export const getRecordingsListAction = async (
               JSON.stringify({
                 i: r.id,
                 t: "s",
-              }),
-            ),
+              })
+            )
           )}`,
           type: "SAVED",
           duration: r.duration,
@@ -226,13 +224,11 @@ export const getRecordingsListAction = async (
 
 export const deleteRecordingAction = async (
   recording: Recording,
-  userChannel: UserChannel,
+  userChannel: UserChannel
 ): Promise<DeleteRecordingResponse> => {
   const response: DeleteRecordingResponse = {
     ok: false,
   };
-
-  const isUsingS3Bucket = s3Client !== null;
 
   if (recording?.type === "COMPLETED") {
     try {
@@ -246,38 +242,13 @@ export const deleteRecordingAction = async (
       }
 
       try {
-        if (isUsingS3Bucket) {
-          await deleteFile(
-            `recordings/${
-              videoRecording.userId
-            }/${videoRecording.fileName.replace("s3://", "")}`,
-            `recordings/${videoRecording.userId}/${videoRecording.fileName
-              .replace("s3://", "")
-              .replace(".mp4", ".webp")}`,
-          );
-        } else {
-          fs.rmSync(
-            path.join(
-              process.env.RECORDINGS_PATH || "",
-              "recordings",
-              videoRecording.userId,
-              videoRecording.fileName,
-            ),
-          );
-          fs.rmSync(
-            path.join(
-              process.env.RECORDINGS_PATH || "",
-              "recordings",
-              videoRecording.userId,
-              videoRecording.fileName.replace(".mp4", ".webp"),
-            ),
-          );
-        }
-
-        await prisma.recordingQueue.deleteMany({
-          where: { firstSegmentId: videoRecording?.firstSegmentId },
-        });
+        fs.rmSync(videoRecording.fileName);
+        fs.rmSync(videoRecording.fileName.replace(".mp4", ".webp"));
       } catch {}
+
+      await prisma.recordingQueue.deleteMany({
+        where: { firstSegmentId: videoRecording?.firstSegmentId },
+      });
 
       response.ok = true;
     } catch {
@@ -285,19 +256,12 @@ export const deleteRecordingAction = async (
     }
   } else if (recording.type === "SAVED" && recording.id) {
     try {
-      if (isUsingS3Bucket) {
-        await deleteFile(
-          `recordings_saved/${userChannel.user.id}/${recording.id}.mp4`,
-          `recordings_saved/${userChannel.user.id}/${recording.id}.webp`,
-        );
-      } else {
-        fs.rmSync(
-          `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.mp4`,
-        );
-        fs.rmSync(
-          `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.webp`,
-        );
-      }
+      fs.rmSync(
+        `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.mp4`
+      );
+      fs.rmSync(
+        `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}/${recording.id}.webp`
+      );
 
       await prisma.recordingSaved.delete({ where: { id: recording.id } });
 
@@ -305,7 +269,7 @@ export const deleteRecordingAction = async (
     } catch {}
   } else {
     response.message =
-      "Recording cannot be deleted right now because it's currently being processed. Please try again later";
+      "Recording cannot be deleted right now because it's currently being processed. Please try again later.";
   }
 
   return response;
@@ -313,16 +277,16 @@ export const deleteRecordingAction = async (
 
 export const getLastVideoFromLive = async (
   entries: Array<RecordingData>,
-  userId: string,
+  userId: string
 ): Promise<string | null> => {
   const entriesDate = await Promise.all(
     entries.map(
-      async (e) => await getDateFromFileName(e.fileName.replace(".mp4", "")),
-    ),
+      async (e) => await getDateFromFileName(e.fileName.replace(".mp4", ""))
+    )
   );
 
   const request = await fetch(
-    `${process.env.STREAM_API_URL}/v3/paths/get/${userId}` || "",
+    `${process.env.STREAM_API_URL}/v3/paths/get/${userId}` || ""
   );
 
   const responseReadyTime = (
@@ -336,7 +300,7 @@ export const getLastVideoFromLive = async (
         const readyTime = new Date(responseReadyTime).getTime();
         const timeDiff = Math.abs(entryTime - readyTime);
         return timeDiff <= 10000; // ±10s
-      }),
+      })
     );
   }
 
@@ -346,7 +310,7 @@ export const getLastVideoFromLive = async (
 export const saveRecordingAction = async (
   recording: Recording,
   userChannel: UserChannel,
-  session: string,
+  session: string
 ): Promise<SaveRecordingResponse> => {
   const response: SaveRecordingResponse = {
     ok: false,
@@ -389,40 +353,23 @@ export const saveRecordingAction = async (
 
     if (recordingDb) {
       try {
-        const isUsingS3Bucket = s3Client !== null;
+        const targetDir = `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}`;
+        const targetPath = `${targetDir}/${recordingDb.id}.mp4`;
 
-        if (isUsingS3Bucket) {
-          await moveFile(
-            `recordings/${
-              userChannel.user.id
-            }/${recordingQueueDb.fileName.replace("s3://", "")}`,
-            `recordings_saved/${userChannel.user.id}/${recordingDb.id}.mp4`,
-          );
-          await moveFile(
-            `recordings/${userChannel.user.id}/${recordingQueueDb.fileName
-              .replace("s3://", "")
-              .replace(".mp4", ".webp")}`,
-            `recordings_saved/${userChannel.user.id}/${recordingDb.id}.webp`,
-          );
-        } else {
-          const targetDir = `${process.env.RECORDINGS_PATH}/recordings_saved/${userChannel.user.id}`;
-          const targetPath = `${targetDir}/${recordingDb.id}.mp4`;
+        fs.mkdirSync(targetDir, { recursive: true });
 
-          fs.mkdirSync(targetDir, { recursive: true });
-
-          fs.renameSync(recordingQueueDb.fileName, targetPath);
-          fs.renameSync(
-            recordingQueueDb.fileName.replace(".mp4", ".webp"),
-            targetPath.replace(".mp4", ".webp"),
-          );
-        }
+        fs.renameSync(recordingQueueDb.fileName, targetPath);
+        fs.renameSync(
+          recordingQueueDb.fileName.replace(".mp4", ".webp"),
+          targetPath.replace(".mp4", ".webp")
+        );
 
         await prisma.recordingQueue.deleteMany({
           where: { firstSegmentId: recording.firstSegmentId },
         });
       } catch (error) {
         await prisma.recordingSaved.delete({ where: { id: recordingDb.id } });
-        throw new Error("Error saving video: " + error);
+        throw Error("Error saving video: " + error);
       }
 
       response.recording = {
@@ -435,8 +382,8 @@ export const saveRecordingAction = async (
               i: recordingDb.id,
               d: recording.duration,
               t: "s",
-            }),
-          ),
+            })
+          )
         )}`,
       };
       response.ok = true;
@@ -450,7 +397,7 @@ export const saveRecordingAction = async (
 
 export const changeDefaultRecordingVisibilityAction = async (
   value: RecordingVisibility,
-  userId: string,
+  userId: string
 ): Promise<ChangeDefaultRecordingVisibilityResponse> => {
   const response: ChangeDefaultRecordingVisibilityResponse = {
     ok: false,
@@ -478,7 +425,7 @@ export const changeDefaultRecordingVisibilityAction = async (
 
 export const changeRecordingVisibility = async (
   recording: Recording,
-  visibility: RecordingVisibility,
+  visibility: RecordingVisibility
 ): Promise<ChangeRecordingVisibilityResponse> => {
   const response: ChangeRecordingVisibilityResponse = {
     ok: false,
@@ -512,7 +459,7 @@ export const changeRecordingVisibility = async (
 
 export const changeRecordingTitle = async (
   recordingId: string | null,
-  title: string,
+  title: string
 ): Promise<ChangeRecordingTitleResponse> => {
   const response: ChangeRecordingTitleResponse = {
     ok: false,
@@ -541,7 +488,7 @@ export const changeRecordingTitle = async (
 
 export const storePastStreamsAction = async (
   value: boolean,
-  userId: string,
+  userId: string
 ): Promise<ChangeDefaultRecordingVisibilityResponse> => {
   const response: ChangeDefaultRecordingVisibilityResponse = {
     ok: false,

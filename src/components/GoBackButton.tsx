@@ -1,13 +1,15 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 export const GoBackButton = () => {
-  const canGoBack = useSyncExternalStore(
-    () => () => {},
-    () => typeof window !== "undefined" && window.history.length > 1,
-    () => false
-  );
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.history) {
+      setCanGoBack(window.history.length > 1);
+    }
+  }, []);
 
   if (!canGoBack) {
     return <></>;

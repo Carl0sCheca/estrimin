@@ -1,6 +1,5 @@
 "use server";
 
-import prisma from "./prisma";
 import fs from "fs";
 import { createFile, MP4BoxBuffer } from "mp4box";
 
@@ -10,7 +9,7 @@ interface MP4MediaInfo {
 }
 
 export const dateToFilename = async (
-  date: Date | undefined,
+  date: Date | undefined
 ): Promise<string | null> => {
   if (!date) {
     return null;
@@ -28,7 +27,7 @@ export const dateToFilename = async (
 
 export const getDateFromFileName = async (fileName: string): Promise<Date> => {
   const dateTimeMatch = fileName.match(
-    /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{6})/,
+    /(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{6})/
   );
   if (!dateTimeMatch) {
     throw new Error(`Date format not recognized in file: ${fileName}`);
@@ -47,7 +46,7 @@ export const getDateFromFileName = async (fileName: string): Promise<Date> => {
     hours,
     minutes,
     seconds,
-    Math.floor(microseconds / 1000),
+    Math.floor(microseconds / 1000)
   );
 
   return new Date(utcDate);
@@ -97,7 +96,7 @@ export const getDurationMP4 = async (filePath: string): Promise<number> => {
         stream.destroy();
         if (!resolved) {
           reject(
-            new Error("Could not find moov atom in the first 2MB of the file"),
+            new Error("Could not find moov atom in the first 2MB of the file")
           );
         }
         return;
@@ -111,7 +110,7 @@ export const getDurationMP4 = async (filePath: string): Promise<number> => {
 
       const arrayBuffer = buffer.buffer.slice(
         buffer.byteOffset,
-        buffer.byteOffset + buffer.byteLength,
+        buffer.byteOffset + buffer.byteLength
       ) as ArrayBufferWithFileStart;
 
       arrayBuffer.fileStart = bytesRead;
@@ -142,32 +141,4 @@ export const getDurationMP4 = async (filePath: string): Promise<number> => {
       }
     });
   });
-};
-
-export const checkAdmin = async (
-  sessionId: string | undefined,
-): Promise<{ ok: boolean; message?: string }> => {
-  const isAdmin: { ok: boolean; message?: string } = {
-    ok: true,
-  };
-
-  try {
-    const sessionDb = await prisma.session.findUnique({
-      where: { id: sessionId },
-      select: { user: true },
-    });
-
-    if (!sessionDb) {
-      isAdmin.ok = false;
-      isAdmin.message = "Session not found";
-    } else if (sessionDb.user.role !== "ADMIN") {
-      isAdmin.ok = false;
-      isAdmin.message = "Forbidden user";
-    }
-  } catch {
-    isAdmin.ok = false;
-    isAdmin.message = "Unexpected error";
-  }
-
-  return isAdmin;
 };

@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { SITE_SETTING } from "@/interfaces";
 import { registerAction } from "@/actions";
-import { Role } from "@/generated/client";
+import { Role } from "@prisma/client";
 
 const main = async () => {
   const forbiddenNames = [
@@ -74,7 +74,7 @@ const main = async () => {
         "chan@ge.me",
         "changeme",
         "administrator",
-        undefined,
+        undefined
       );
 
       await prisma.user.updateMany({

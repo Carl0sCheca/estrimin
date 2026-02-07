@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17
+    image: postgres
     restart: always
     shm_size: 128mb
     ports:
@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       TZ: Europe/Madrid
     volumes:
-      - db-dev-estrimin:/var/lib/postgresql/data
+      - ./db-dev:/var/lib/postgresql/data
     networks:
       - default
   mediamtx:
@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: mediamtx.Dockerfile
       args:
-        - MEDIAMTX_VERSION=v1.15.3
+        - MEDIAMTX_VERSION=v1.14.0
     environment:
       - MTX_WEBRTCADDITIONALHOSTS=${MTX_WEBRTCADDITIONALHOSTS}
       - TZ=Europe/Madrid
@@ -32,6 +32,3 @@ services:
       - "8889:8889"
       - "8888:8888"
       - "8189:8189/udp"
-
-volumes:
-  db-dev-estrimin:
