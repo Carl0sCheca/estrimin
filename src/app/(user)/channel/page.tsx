@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ChannelSettingsForm } from "./ui/channelSettingsForm";
 import prisma from "@/lib/prisma";
-import { SiteSetting } from "@/generated/client";
+import { SiteSetting } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

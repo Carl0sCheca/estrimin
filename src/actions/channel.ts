@@ -20,12 +20,12 @@ import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
 import { getLastVideoFromLive } from ".";
-import { RecordingQueue, RecordingVisibility } from "@/generated/client";
+import { RecordingQueue, RecordingVisibility } from "@prisma/client";
 import { RecordingDto } from "@/interfaces/api/channel";
 import { formatDate, secondsToHMS } from "@/lib/utils";
 
 export const createChannel = async (
-  user: User | null = null,
+  user: User | null = null
 ): Promise<CreateChannelResponse> => {
   const response: CreateChannelResponse = {
     ok: false,
@@ -65,7 +65,7 @@ export const createChannel = async (
 };
 
 export const changeWatchStreamsStateAction = async (
-  request: UpdateVisibilityStatusRequest,
+  request: UpdateVisibilityStatusRequest
 ): Promise<UpdateVisibilityStatusResponse> => {
   const response: UpdateVisibilityStatusResponse = { ok: false };
 
@@ -88,7 +88,7 @@ export const changeWatchStreamsStateAction = async (
 };
 
 export const setPasswordChannelAction = async (
-  request: SetPasswordRequest,
+  request: SetPasswordRequest
 ): Promise<SetPasswordResponse> => {
   const response: SetPasswordResponse = { ok: false };
 
@@ -107,7 +107,7 @@ export const setPasswordChannelAction = async (
 };
 
 export const addUserAllowlistAction = async (
-  request: AddUserAllowlistRequest,
+  request: AddUserAllowlistRequest
 ): Promise<AddUserAllowlistResponse> => {
   const response: AddUserAllowlistResponse = { ok: false };
 
@@ -170,7 +170,7 @@ export const addUserAllowlistAction = async (
 };
 
 export const removeUserAllowlistAction = async (
-  request: RemoveUserAllowlistRequest,
+  request: RemoveUserAllowlistRequest
 ): Promise<RemoveUserAllowlistResponse> => {
   const response: RemoveUserAllowlistResponse = {
     ok: false,
@@ -185,7 +185,7 @@ export const removeUserAllowlistAction = async (
 };
 
 export const getChannelRecordingsAction = async (
-  channel: UserChannel,
+  channel: UserChannel
 ): Promise<GetChannelRecordingsResponse> => {
   const response: GetChannelRecordingsResponse = {
     ok: false,
@@ -210,8 +210,8 @@ export const getChannelRecordingsAction = async (
       session?.user.id === channel.user.id
         ? Object.values(RecordingVisibility)
         : userAllowed
-          ? [RecordingVisibility.PUBLIC, RecordingVisibility.ALLOWLIST]
-          : [RecordingVisibility.PUBLIC];
+        ? [RecordingVisibility.PUBLIC, RecordingVisibility.ALLOWLIST]
+        : [RecordingVisibility.PUBLIC];
 
     const entriesDb = await prisma.recordingQueue.findMany({
       where: {
@@ -236,18 +236,18 @@ export const getChannelRecordingsAction = async (
         groups[segmentId].push(entry);
         return groups;
       },
-      {},
+      {}
     );
 
     let filteredEntries: Array<RecordingData> = Object.entries(groupedBySegment)
       .map(([_, entries]): RecordingData | null => {
         const allCompleted = entries.every(
-          (entry) => entry.status === "COMPLETED",
+          (entry) => entry.status === "COMPLETED"
         );
 
         const sortedEntries = entries.sort(
           (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
 
         const totalDuration = entries.reduce((sum, entry) => {
@@ -267,7 +267,7 @@ export const getChannelRecordingsAction = async (
           };
         } else {
           const validEntry = sortedEntries.find(
-            (entry) => entry.status === "COMPLETED",
+            (entry) => entry.status === "COMPLETED"
           );
 
           if (validEntry) {
@@ -289,7 +289,7 @@ export const getChannelRecordingsAction = async (
 
     const recording = await getLastVideoFromLive(
       filteredEntries,
-      channel.user.id,
+      channel.user.id
     );
 
     if (recording) {
@@ -302,7 +302,7 @@ export const getChannelRecordingsAction = async (
     }
 
     const publicRecordings = filteredEntries.filter((entry) =>
-      visibilitiesAllowed.includes(entry.visibility),
+      visibilitiesAllowed.includes(entry.visibility)
     );
 
     response.recordings = publicRecordings.map((recording) => {
@@ -317,8 +317,8 @@ export const getChannelRecordingsAction = async (
             JSON.stringify({
               i: recording.fileName.replace(".mp4", ""),
               t: "n",
-            }),
-          ),
+            })
+          )
         )}`,
         thumbnail: `/api/videos/thumbnails/${
           channel.user.id
@@ -353,8 +353,8 @@ export const getChannelRecordingsAction = async (
               JSON.stringify({
                 i: recording.id,
                 t: "s",
-              }),
-            ),
+              })
+            )
           )}`,
           thumbnail: `/api/videos/thumbnails/${channel.user.id}/s/${recording.id}`,
         };
@@ -364,7 +364,7 @@ export const getChannelRecordingsAction = async (
     ];
 
     response.recordings = response.recordings.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
     response.ok = true;
   } catch {}

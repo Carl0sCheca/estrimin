@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut } from "@/lib/auth-client";
-import { User } from "@/generated/browser";
+import { User } from "@prisma/client";
 import { useRouter } from "next/navigation";
 
 export function LogoutButton({ user }: { user: User | undefined }) {

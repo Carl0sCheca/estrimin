@@ -23,15 +23,15 @@ import {
 } from "@/interfaces";
 import { ChangeEvent, MouseEvent, useState } from "react";
 import { UserChannel } from "./channelSettingsForm";
+import { ChannelVisibility } from "@prisma/client";
 import { MouseEnterEventOptions } from "@/components";
-import { ChannelVisibility } from "@/generated/enums";
 
 interface Props {
   showAlert: (message: string, error?: boolean, duration?: number) => void;
   tooltipMouseEnter: (
     event: React.MouseEvent<HTMLElement>,
     text: string,
-    options?: MouseEnterEventOptions,
+    options?: MouseEnterEventOptions
   ) => void;
   tooltipMouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   tooltipMouseMove: (event: React.MouseEvent<HTMLElement>) => void;
@@ -48,11 +48,11 @@ export const StreamWatchSettingsForm = ({
   channelUrl,
 }: Props) => {
   const [visibilityOption, setVisibilityOption] = useState<ChannelVisibility>(
-    userChannel.visibility,
+    userChannel.visibility
   );
 
   const [visibilityPassword, setVisibilityPassword] = useState(
-    userChannel.visibilityPassword || "",
+    userChannel.visibilityPassword || ""
   );
 
   const [buttonsState, setButtonsState] = useState({
@@ -62,7 +62,7 @@ export const StreamWatchSettingsForm = ({
 
   const [addUserAllowlist, setAddUserAllowlist] = useState("");
   const [allowListUsers, setAllowListUsers] = useState<Array<AllowListUser>>(
-    userChannel.channelAllowList,
+    userChannel.channelAllowList
   );
 
   const isOverflowX = (element: HTMLElement) =>
@@ -156,14 +156,14 @@ export const StreamWatchSettingsForm = ({
                       ]);
 
                       showAlert(
-                        `User ${addUserResponse.data?.user.name} added to the allowlist`,
+                        `User ${addUserResponse.data?.user.name} added to the allowlist`
                       );
 
                       setAddUserAllowlist("");
                     } else {
                       showAlert(
                         addUserResponse.message || "An error has occurred",
-                        true,
+                        true
                       );
                     }
                   }
@@ -215,12 +215,12 @@ export const StreamWatchSettingsForm = ({
 
                         const removeUserResponse: RemoveUserAllowlistResponse =
                           await removeUserAllowlistAction(
-                            removeUserRequestBody,
+                            removeUserRequestBody
                           );
 
                         if (removeUserResponse) {
                           setAllowListUsers(
-                            allowListUsers.filter((p) => p !== elem),
+                            allowListUsers.filter((p) => p !== elem)
                           );
                         }
                       }}
