@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres
+    image: postgres:17
     restart: always
     shm_size: 128mb
     ports:
@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: mediamtx.Dockerfile
       args:
-        - MEDIAMTX_VERSION=v1.14.0
+        - MEDIAMTX_VERSION=v1.15.3
     environment:
       - MTX_WEBRTCADDITIONALHOSTS=${MTX_WEBRTCADDITIONALHOSTS}
       - TZ=Europe/Madrid

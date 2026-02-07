@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { createReadStream, existsSync, statSync } from "fs";
 import prisma from "@/lib/prisma";
-import { RecordingVisibility } from "@prisma/client";
+import { RecordingVisibility } from "@/generated/client";
 import { getSafePath, validateParameters } from "@/lib/utils-api";
 import s3Client from "@/lib/s3-client";
 import { checkIfFileExists } from "../../../../../../../../scheduler/src/S3Service";
@@ -20,7 +20,7 @@ const isRecordingVisible = async (
   userId: string,
   videoId: string,
   videoType: string,
-  session: string
+  session: string,
 ): Promise<number> => {
   if (!validateParameters(userId, videoId, videoType)) {
     return 404;
@@ -38,7 +38,7 @@ const isRecordingVisible = async (
         const existsFileInS3 = await checkIfFileExists(
           `${
             videoType === "n" ? "recordings" : "recordings_saved"
-          }/${userId}/${videoId}.mp4`
+          }/${userId}/${videoId}.mp4`,
         );
 
         if (existsFileInS3) {
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     userId,
     videoId,
     videoType,
-    session
+    session,
   );
 
   if (canViewRecording === 200) {
@@ -158,7 +158,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     userId,
     videoId,
     videoType,
-    session
+    session,
   );
 
   if (canViewRecording !== 200) {
@@ -186,7 +186,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           Key: `${
             videoType === "n" ? "recordings" : "recordings_saved"
           }/${userId}/${videoId}.mp4`,
-        })
+        }),
       );
 
       const fileSize = head?.ContentLength || 0;
@@ -260,7 +260,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         "Accept-Ranges": "bytes",
         "Cache-Control": "no-cache",
         "Content-Disposition": `inline; filename="${path.basename(
-          safeVideoPath
+          safeVideoPath,
         )}"`,
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
@@ -287,7 +287,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           {
             status: 206,
             headers,
-          }
+          },
         );
 
         return response;
@@ -299,7 +299,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           {
             status: 200,
             headers,
-          }
+          },
         );
 
         return response;

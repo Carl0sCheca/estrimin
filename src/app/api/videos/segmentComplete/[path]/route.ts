@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import { SITE_SETTING, USER_SETTING } from "@/interfaces";
 import { StartAllScheduledJobAction } from "@/actions";
 import { getDateFromFileName } from "@/lib/utils-server";
-import { RecordingQueueState, RecordingVisibility } from "@prisma/client";
+import { RecordingQueueState, RecordingVisibility } from "@/generated/client";
 
 interface Params {
   params: Promise<{
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const duration = Number(req.nextUrl.searchParams.get("duration")) || 0;
 
   const fileDate = await getDateFromFileName(
-    segment.split("/").pop()?.replace(".mp4", "") || ""
+    segment.split("/").pop()?.replace(".mp4", "") || "",
   );
 
   let recordingShouldBeDeleted =

@@ -14,7 +14,7 @@ import {
   useTooltip,
 } from "@/components";
 import { ChangeUserRoleResponse } from "@/interfaces";
-import { SiteSetting } from "@prisma/client";
+import { SiteSetting } from "@/generated/browser";
 import Link from "next/link";
 import { useState } from "react";
 import { CgFormatSlash } from "react-icons/cg";
@@ -131,12 +131,12 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
 
                   if (changeUserRoleResponse.ok) {
                     showAlert(
-                      `${changeUserRole} is now ${changeUserRoleResponse.newRole}`
+                      `${changeUserRole} is now ${changeUserRoleResponse.newRole}`,
                     );
                   } else {
                     showAlert(
                       changeUserRoleResponse.message || "An error has occurred",
-                      true
+                      true,
                     );
                   }
                   setButtonsState({ ...buttonsState, changeRole: false });
