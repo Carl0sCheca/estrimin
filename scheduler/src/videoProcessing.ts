@@ -12,6 +12,9 @@ import {
   listRecordingFilesS3,
   uploadFile,
 } from "./S3Service";
+
+import prisma from "../../src/lib/prisma";
+
 const execAsync = promisify(exec);
 
 interface ExecError extends Error {
@@ -43,7 +46,7 @@ export interface VideoMetadata {
 }
 
 export const getSortedVideoFiles = async (
-  directory: string
+  directory: string,
 ): Promise<string[]> => {
   return new Promise((resolve, reject) => {
     fs.readdir(directory, (err, files) => {
@@ -59,7 +62,7 @@ export const getSortedVideoFiles = async (
 export const handleNewVideo = async (
   userId: string,
   segmentPath: string,
-  thresholdMs: number
+  thresholdMs: number,
 ): Promise<void> => {
   try {
     const isUsingS3Bucket = segmentPath.startsWith("s3://");
@@ -67,12 +70,12 @@ export const handleNewVideo = async (
     const recordingsDir = path.join(
       process.env.RECORDINGS_PATH || "",
       "recordings",
-      userId
+      userId,
     );
 
     const fullVideoPath = path.join(
       recordingsDir,
-      segmentPath.replace("s3://", "")
+      segmentPath.replace(`s3://`, ""),
     );
 
     const fileName = fullVideoPath.split("/").pop() || "";
@@ -118,7 +121,7 @@ export const handleNewVideo = async (
 
         await downloadFile(
           `recordings/${userId}/${previousFileName}`,
-          previousVideoPath
+          previousVideoPath,
         );
       } catch (err) {
         console.error("Error downloading recordings:", err);
@@ -145,24 +148,66 @@ export const handleNewVideo = async (
         (previousVideo.duration || 0) * 1000);
 
     if (Math.abs(timeDifference) <= thresholdMs) {
+      await prisma.recordingQueue.updateMany({
+        where: {
+          AND: {
+            userId,
+            fileName: {
+              contains: previousVideo.fileName,
+            },
+          },
+        },
+        data: {
+          status: "MERGING",
+        },
+      });
+
       await handleConsecutiveVideos(previousVideo, currentVideo);
 
       if (isUsingS3Bucket) {
         try {
+          await prisma.recordingQueue.updateMany({
+            where: {
+              AND: {
+                userId,
+                fileName: {
+                  contains: previousVideo.fileName,
+                },
+              },
+            },
+            data: {
+              status: "UPLOADING",
+            },
+          });
+
           await uploadFile(
             `recordings/${userId}/${previousVideo.fileName}`,
             previousVideo.filePath,
-            "video/mp4"
+            "video/mp4",
           );
 
           await uploadFile(
             `recordings/${userId}/${previousVideo.fileName.replace(
               ".mp4",
-              ".webp"
+              ".webp",
             )}`,
             previousVideo.filePath.replace(".mp4", ".webp"),
-            "image/webp"
+            "image/webp",
           );
+
+          await prisma.recordingQueue.updateMany({
+            where: {
+              AND: {
+                userId,
+                fileName: {
+                  contains: previousVideo.fileName,
+                },
+              },
+            },
+            data: {
+              status: "COMPLETED",
+            },
+          });
 
           fs.rmSync(previousVideo.filePath);
           fs.rmSync(previousVideo.filePath.replace(".mp4", ".webp"));
@@ -171,8 +216,8 @@ export const handleNewVideo = async (
             `recordings/${userId}/${currentVideo.fileName}`,
             `recordings/${userId}/${currentVideo.fileName.replace(
               ".mp4",
-              ".webp"
-            )}`
+              ".webp",
+            )}`,
           );
         } catch (err) {
           console.error("Error", err);
@@ -193,7 +238,7 @@ export const handleNewVideo = async (
 
 const handleConsecutiveVideos = async (
   previousVideo: VideoInfo,
-  currentVideo: VideoInfo
+  currentVideo: VideoInfo,
 ): Promise<void> => {
   try {
     const outputFile = `${previousVideo.filePath}.mp4.merged`;
@@ -300,7 +345,7 @@ export const getVideoMetadata = async (filePath: string) => {
 
 export const reencodeWithOriginalSettings = async (
   inputFile: string,
-  outputFile: string
+  outputFile: string,
 ) => {
   try {
     const { width, height, bitrate } = await getVideoMetadata(inputFile);

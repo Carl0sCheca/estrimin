@@ -371,9 +371,18 @@ const queueTask = async () => {
       ).reverse();
     }
 
-    fileList = fileList.filter((elem) =>
-      recordingsShouldBeMerged[0].map((e) => e.fileName).includes(elem || ""),
-    );
+    fileList = fileList
+      .filter(
+        (elem) =>
+          elem &&
+          recordingsShouldBeMerged[0].some((recording) =>
+            elem.endsWith(recording.fileName.split("/").pop() || ""),
+          ),
+      )
+      .map((elem) =>
+        elem?.replace(`/${recordingsShouldBeMerged[0][0].userId}`, ""),
+      )
+      .reverse();
 
     if (fileList.length > 1) {
       await handleNewVideo(
@@ -496,10 +505,6 @@ const queueTaskUploading = async () => {
   jobsRunning.set(JOB_UPLOADING_QUEUE, true);
 
   await updateLastExecutionFromSettings(JOB_UPLOADING_QUEUE);
-
-  // recording.status === RecordingQueueState.FAILED &&
-  //   recording.error === RecordingQueueState.UPLOADING &&
-  //   recording.attempts < 3;
 
   while (true) {
     const recordings = await prisma.recordingQueue.findMany({
