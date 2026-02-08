@@ -22,13 +22,13 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     if (!validateParameters(userId, videoId, videoType)) {
       console.warn(
-        `Invalid parameters: userId=${userId}, type=${videoType}, videoId=${videoId}`
+        `Invalid parameters: userId=${userId}, type=${videoType}, videoId=${videoId}`,
       );
 
       const defaultImagePath = join(
         process.cwd(),
         "public",
-        "nothumbnail.webp"
+        "nothumbnail.webp",
       );
       if (existsSync(defaultImagePath)) {
         const defaultImage = readFileSync(defaultImagePath);
@@ -49,13 +49,13 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     if (!safePath) {
       console.warn(
-        `Unsafe or invalid path: userId=${userId}, type=${videoType}, videoId=${videoId}`
+        `Unsafe or invalid path: userId=${userId}, type=${videoType}, videoId=${videoId}`,
       );
 
       const defaultImagePath = join(
         process.cwd(),
         "public",
-        "nothumbnail.webp"
+        "nothumbnail.webp",
       );
       if (existsSync(defaultImagePath)) {
         const defaultImage = readFileSync(defaultImagePath);
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       existsThumbnail = await checkIfFileExists(
         `${
           videoType === "n" ? "recordings" : "recordings_saved"
-        }/${userId}/${videoId}.webp`
+        }/${userId}/${videoId}.webp`,
       );
     } else {
       existsThumbnail = existsSync(safePath);
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       const defaultImagePath = join(
         process.cwd(),
         "public",
-        "nothumbnail.webp"
+        "nothumbnail.webp",
       );
       if (existsSync(defaultImagePath)) {
         const defaultImage = readFileSync(defaultImagePath);
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest, { params }: Params) {
             : process.env.S3_BUCKET_RECORDINGS_SAVED || "",
           `${
             videoType === "n" ? "recordings" : "recordings_saved"
-          }/${userId}/${videoId}.webp`
+          }/${userId}/${videoId}.webp`,
         );
       } else {
         imageBuffer = readFileSync(safePath);

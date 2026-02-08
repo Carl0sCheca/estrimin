@@ -30,7 +30,7 @@ export const FollowButton = ({
         const response = await SetUserFollowAction(
           sessionUserId,
           channelUserId,
-          !isUserFolling
+          !isUserFolling,
         );
 
         if (response.ok && response.following !== undefined) {

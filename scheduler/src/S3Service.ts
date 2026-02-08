@@ -19,7 +19,7 @@ const streamPipeline = promisify(pipeline);
 export const uploadFile = async (
   key: string,
   filePath: string,
-  contentType: string
+  contentType: string,
 ): Promise<string | null> => {
   try {
     const fileStream = fs.createReadStream(filePath);
@@ -43,7 +43,7 @@ export const uploadFile = async (
 
 export const downloadFile = async (
   key: string,
-  localFilePath: string
+  localFilePath: string,
 ): Promise<void> => {
   try {
     const command = new GetObjectCommand({
@@ -55,7 +55,7 @@ export const downloadFile = async (
 
     await streamPipeline(
       response?.Body as NodeJS.ReadableStream,
-      fs.createWriteStream(localFilePath)
+      fs.createWriteStream(localFilePath),
     );
   } catch (err) {
     console.error("Error downloading file from S3:", err);
@@ -64,7 +64,7 @@ export const downloadFile = async (
 
 export const getFileBuffer = async (
   bucket: string,
-  key: string
+  key: string,
 ): Promise<Buffer> => {
   const command = new GetObjectCommand({ Bucket: bucket, Key: key });
   const response = await s3Client?.send(command);
@@ -102,7 +102,7 @@ export const deleteFile = async (...keys: string[]): Promise<void> => {
 };
 
 export const listRecordingFilesS3 = async (
-  userId: string
+  userId: string,
 ): Promise<Array<_Object>> => {
   const command = new ListObjectsV2Command({
     Bucket: process.env.S3_BUCKET_RECORDINGS,
@@ -133,7 +133,7 @@ export const moveFile = async (
   keyFrom: string,
   keyTo: string,
   bucketFrom?: string,
-  bucketTo?: string
+  bucketTo?: string,
 ) => {
   try {
     const copyCommand = new CopyObjectCommand({

@@ -12,7 +12,7 @@ interface Props {
   tooltipMouseEnter: (
     event: React.MouseEvent<HTMLElement>,
     text: string,
-    options?: MouseEnterEventOptions
+    options?: MouseEnterEventOptions,
   ) => void;
   tooltipMouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   tooltipMouseMove: (event: React.MouseEvent<HTMLElement>) => void;

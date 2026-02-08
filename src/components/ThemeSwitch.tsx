@@ -19,7 +19,7 @@ export const ThemeSwitch = ({ className }: Props) => {
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
+    () => false,
   );
 
   return (
@@ -37,9 +37,9 @@ export const ThemeSwitch = ({ className }: Props) => {
                 (Object.keys(ThemeSettings).at(
                   currentSelected + 1 >= Object.keys(ThemeSettings).length
                     ? 0
-                    : currentSelected + 1
+                    : currentSelected + 1,
                 ) || "System") as keyof typeof ThemeSettings
-              ]
+              ],
             );
           }}
         >
