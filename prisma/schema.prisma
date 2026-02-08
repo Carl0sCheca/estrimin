@@ -1,12 +1,12 @@
 generator client {
-  provider        = "prisma-client"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
   binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
-  output          = "../src/generated"
 }
 
 datasource db {
   provider   = "postgresql"
+  url        = env("DATABASE_URL")
   extensions = [citext]
 }
 
@@ -173,8 +173,6 @@ model UserSetting {
 }
 
 enum RecordingQueueState {
-  UPLOADING
-  UPLOADED
   PENDING
   ENCODING
   ENCODED

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AdminForm } from "./ui/adminForm";
 import prisma from "@/lib/prisma";
-import { SiteSetting } from "@/generated/client";
+import { SiteSetting } from "@prisma/client";
 
 export const metadata: Metadata = {
   title: "Administration",

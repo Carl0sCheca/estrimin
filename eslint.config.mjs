@@ -1,34 +1,27 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextPlugin from "@next/eslint-plugin-next";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import tseslint from "typescript-eslint";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import js from "@eslint/js";
+import { FlatCompat } from "@eslint/eslintrc";
 
-const eslintConfig = defineConfig(
-  [
-    ...nextVitals,
-    tseslint.configs.recommended,
-    nextPlugin.configs["core-web-vitals"],
-    globalIgnores([
-      ".next/**",
-      "out/**",
-      "build/**",
-      "next-env.d.ts",
-      "dist/**",
-      "prisma/**",
-    ]),
-  ],
-  {
-    rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        {
-          varsIgnorePattern: "^_",
-          argsIgnorePattern: "^_",
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const compat = new FlatCompat({
+    baseDirectory: __dirname,
+    recommendedConfig: js.configs.recommended,
+    allConfig: js.configs.all
+});
+
+export default defineConfig([
+    globalIgnores(["node_modules", "dist", "db-dev", ".next", "prisma", "**/next-env.d.ts"]),
+    {
+        extends: compat.extends("next/core-web-vitals", "next/typescript"),
+
+        rules: {
+            "@typescript-eslint/no-unused-vars": ["error", {
+                varsIgnorePattern: "^_",
+                argsIgnorePattern: "^_",
+            }],
         },
-      ],
-      "react-hooks/set-state-in-effect": "off",
     },
-  }
-);
-
-export default eslintConfig;
+]);

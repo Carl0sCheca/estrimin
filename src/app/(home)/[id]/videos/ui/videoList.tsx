@@ -1,7 +1,7 @@
 import { getChannelRecordingsAction } from "@/actions";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
 import { formatDate } from "@/lib/utils";
-import { RecordingVisibility } from "@/generated/client";
+import { RecordingVisibility } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { FaCircle } from "react-icons/fa";

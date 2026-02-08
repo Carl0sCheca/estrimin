@@ -9,7 +9,7 @@ import {
   useAlertNotification,
 } from "@/components";
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
-import { User } from "@/generated/browser";
+import { User } from "@prisma/client";
 import Link from "next/link";
 import { ChangeEvent, FormEvent, useState } from "react";
 import { flushSync } from "react-dom";
@@ -33,12 +33,10 @@ enum FormPasswordError {
 }
 
 interface Props {
-  userInit: User;
+  user: User;
 }
 
-export const UserForm = ({ userInit }: Props) => {
-  const [user, setUser] = useState(userInit);
-
+export const UserForm = ({ user }: Props) => {
   const [formState, setFormState] = useState({
     name: user.name,
     email: user.email,
@@ -152,8 +150,9 @@ export const UserForm = ({ userInit }: Props) => {
                   return;
                 }
 
-                const updateUserResponse: UserUpdateResponse =
-                  await updateUser(request);
+                const updateUserResponse: UserUpdateResponse = await updateUser(
+                  request
+                );
 
                 if (!updateUserResponse.ok) {
                   if (updateUserResponse.message === "Invalid email") {
@@ -179,13 +178,8 @@ export const UserForm = ({ userInit }: Props) => {
 
                   showAlert("Failed to save changes", true);
                 } else {
-                  const updatedUser = {
-                    ...user,
-                    name: updateUserResponse.data?.name ?? user.name,
-                    email: updateUserResponse.data?.email ?? user.email,
-                  };
-
-                  setUser(updatedUser);
+                  user.name = updateUserResponse.data?.name ?? user.name;
+                  user.email = updateUserResponse.data?.email ?? user.email;
 
                   showAlert("Your changes have been saved");
                 }
@@ -301,7 +295,7 @@ export const UserForm = ({ userInit }: Props) => {
 
                   showAlert(
                     "An error occurred while changing your password",
-                    true,
+                    true
                   );
                 } else {
                   setFormPasswordState({ password: "", newpassword: "" });
@@ -339,7 +333,7 @@ export const UserForm = ({ userInit }: Props) => {
                     pattern=".{8,}"
                     onInvalid={(e) =>
                       (e.target as HTMLObjectElement).setCustomValidity(
-                        "Must contain 8 or more characters",
+                        "Must contain 8 or more characters"
                       )
                     }
                     onInput={(e) =>
@@ -376,7 +370,7 @@ export const UserForm = ({ userInit }: Props) => {
                     onChange={handleChangePassword}
                     onInvalid={(e) =>
                       (e.target as HTMLObjectElement).setCustomValidity(
-                        "Must contain 8 or more characters",
+                        "Must contain 8 or more characters"
                       )
                     }
                     onInput={(e) =>

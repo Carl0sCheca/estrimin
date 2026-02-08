@@ -1,4 +1,4 @@
-import { ChannelVisibility, RecordingVisibility } from "@/generated/enums";
+import { ChannelVisibility, RecordingVisibility } from "@prisma/client";
 
 export interface CreateChannelResponse {
   ok: boolean;
