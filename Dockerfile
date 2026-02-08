@@ -14,8 +14,6 @@ RUN npm install
 
 COPY . .
 
-RUN npm run generate
-
 EXPOSE 3000
 
 ENV HOSTNAME="0.0.0.0"

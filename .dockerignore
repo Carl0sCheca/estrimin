@@ -2,3 +2,8 @@
 .next
 node_modules
 db-dev
+videos
+dist
+docker-compose-dev.yml
+mediamtx.yml
+/src/generated/**

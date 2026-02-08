@@ -5,16 +5,16 @@
   "target": "ES2017",
   "type": "module",
   "scripts": {
-    "dev": "dotenvx run -- next dev --turbopack",
+    "dev": "next dev --turbopack",
     "generate": "npx prisma generate",
-    "build": "dotenvx run -- next build",
-    "start": "dotenvx run -- next start",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint .",
     "startup": "dotenvx run -- tsx src/scripts/startup.ts",
-    "buildandstart": "dotenvx run -- npx prisma migrate deploy && tsx src/scripts/startup.ts && next build && next start",
-    "build:scheduler": "dotenvx run -- esbuild scheduler/src/index.ts --bundle --platform=node --format=esm --outfile=dist/scheduler/index.js --external:@prisma/client --external:zeromq --tsconfig=scheduler/tsconfig.json",
-    "start:scheduler": "dotenvx run -- node ./dist/scheduler/index.js",
-    "dev:scheduler": "dotenvx run -- tsx watch scheduler/src/index.ts",
+    "buildandstart": "npx prisma generate && npx prisma migrate deploy && tsx src/scripts/startup.ts && next build && next start",
+    "build:scheduler": "esbuild scheduler/src/index.ts --bundle --platform=node --format=esm --outfile=dist/scheduler/index.js --external:@prisma/client --external:zeromq --tsconfig=scheduler/tsconfig.json",
+    "start:scheduler": "node ./dist/scheduler/index.js",
+    "dev:scheduler": "tsx watch scheduler/src/index.ts",
     "buildandstart:scheduler": "npm run build:scheduler && npm run start:scheduler"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "better-auth": "^1.4.18",
+    "dotenv": "^17.2.4",
     "ffmpeg-stream": "^1.0.1",
     "mp4box": "^2.3.0",
     "next": "16.1.6",
@@ -36,7 +37,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@dotenvx/dotenvx": "^1.52.0",
     "@eslint/eslintrc": "^3.3.3",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/postcss": "^4.1.18",

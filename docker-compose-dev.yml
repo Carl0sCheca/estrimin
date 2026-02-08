@@ -1,6 +1,15 @@
 services:
+  # estrimin:
+  #   build: .
+  #   networks: 
+  #     - default
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - "3000:3000"
+
   db:
-    image: postgres:17
+    image: pgautoupgrade/pgautoupgrade:17.7-alpine3.23
     restart: always
     shm_size: 128mb
     ports:
