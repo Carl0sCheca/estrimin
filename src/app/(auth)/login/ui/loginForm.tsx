@@ -44,7 +44,7 @@ export const LoginForm = ({ isDisabled }: Props) => {
           setButton(false);
           setErrorState(LoginError.Invalid);
         },
-      }
+      },
     );
   };
 
@@ -135,7 +135,7 @@ export const LoginForm = ({ isDisabled }: Props) => {
                   pattern=".{8,}"
                   onInvalid={(e) =>
                     (e.target as HTMLObjectElement).setCustomValidity(
-                      "Must contain 8 or more characters"
+                      "Must contain 8 or more characters",
                     )
                   }
                   onInput={(e) =>

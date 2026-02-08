@@ -1,4 +1,4 @@
-FROM alpine:3.22.0
+FROM alpine:3.23.0
 
 ARG MEDIAMTX_VERSION=v1.12.3
 

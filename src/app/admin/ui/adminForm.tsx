@@ -1,6 +1,10 @@
 "use client";
 
-import { changeUserRoleAction, disableRegistration } from "@/actions";
+import {
+  changeUserRoleAction,
+  disableRecordingsAction,
+  disableRegistrationAction,
+} from "@/actions";
 import {
   Logo,
   Notification,
@@ -10,7 +14,7 @@ import {
   useTooltip,
 } from "@/components";
 import { ChangeUserRoleResponse } from "@/interfaces";
-import { SiteSetting } from "@prisma/client";
+import { SiteSetting } from "@/generated/browser";
 import Link from "next/link";
 import { useState } from "react";
 import { CgFormatSlash } from "react-icons/cg";
@@ -18,6 +22,7 @@ import { RiUserFill, RiUserStarFill } from "react-icons/ri";
 import { RegistrationCodes } from "./RegistrationCodes";
 import { LiveChannels } from "./LiveChannels";
 import { QueueJobs } from "./QueueJobs";
+import { FailedQueueItems } from "./FailedQueueItems";
 
 interface Props {
   settings: Array<SiteSetting>;
@@ -29,7 +34,13 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
     (settings.find((p) => p.key === "DISABLE_REGISTER")?.value as boolean) ??
     false;
 
+  const initRecordingsState =
+    (settings.find((p) => p.key === "DISABLE_RECORDINGS")?.value as boolean) ??
+    false;
+
   const [disableRegister, setDisableRegister] = useState(initRegisterState);
+  const [disableRecordings, setDisableRecordings] =
+    useState(initRecordingsState);
 
   const [buttonsState, setButtonsState] = useState({
     changeRole: false,
@@ -64,11 +75,23 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
             onChange={async () => {
               setDisableRegister(!disableRegister);
 
-              await disableRegistration(!disableRegister);
+              await disableRegistrationAction(!disableRegister);
             }}
             checked={disableRegister}
           >
             Disable registration
+          </Toggle>
+        </div>
+        <div className={"mt-6 sm:mx-auto sm:w-full sm:max-w-sm"}>
+          <Toggle
+            onChange={async () => {
+              setDisableRecordings(!disableRecordings);
+
+              await disableRecordingsAction(!disableRecordings);
+            }}
+            checked={disableRecordings}
+          >
+            Disable recordings
           </Toggle>
         </div>
         <div className="mt-6">
@@ -109,12 +132,12 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
 
                   if (changeUserRoleResponse.ok) {
                     showAlert(
-                      `${changeUserRole} is now ${changeUserRoleResponse.newRole}`
+                      `${changeUserRole} is now ${changeUserRoleResponse.newRole}`,
                     );
                   } else {
                     showAlert(
                       changeUserRoleResponse.message || "An error has occurred",
-                      true
+                      true,
                     );
                   }
                   setButtonsState({ ...buttonsState, changeRole: false });
@@ -147,6 +170,14 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
         </div>
         <div className="mt-6">
           <QueueJobs
+            tooltip={{
+              mouseEnter: tooltipMouseEnter,
+              mouseLeave: tooltipMouseLeave,
+            }}
+          />
+        </div>
+        <div className="mt-6">
+          <FailedQueueItems
             tooltip={{
               mouseEnter: tooltipMouseEnter,
               mouseLeave: tooltipMouseLeave,

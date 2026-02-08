@@ -11,7 +11,7 @@ interface Props {
     mouseEnter: (
       event: React.MouseEvent<HTMLElement>,
       text: string,
-      options?: MouseEnterEventOptions
+      options?: MouseEnterEventOptions,
     ) => void;
     mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
     text: string;

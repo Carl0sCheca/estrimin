@@ -31,7 +31,7 @@ export default async function authMiddleware(request: NextRequest) {
 
   if (
     protectedAuthPaths.some((path) =>
-      request.nextUrl.pathname.startsWith(path)
+      request.nextUrl.pathname.startsWith(path),
     ) &&
     user
   ) {

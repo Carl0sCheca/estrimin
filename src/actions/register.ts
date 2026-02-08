@@ -18,7 +18,7 @@ export const registerAction = async (
   email: string,
   password: string,
   name: string,
-  registrationCode: string | undefined
+  registrationCode: string | undefined,
 ) => {
   const response: RegisterResponse = {
     ok: false,

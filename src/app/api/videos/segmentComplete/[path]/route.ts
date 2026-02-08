@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import { SITE_SETTING, USER_SETTING } from "@/interfaces";
 import { StartAllScheduledJobAction } from "@/actions";
 import { getDateFromFileName } from "@/lib/utils-server";
-import { RecordingVisibility } from "@prisma/client";
+import { RecordingQueueState, RecordingVisibility } from "@/generated/client";
 
 interface Params {
   params: Promise<{
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const duration = Number(req.nextUrl.searchParams.get("duration")) || 0;
 
   const fileDate = await getDateFromFileName(
-    segment.split("/").pop()?.replace(".mp4", "") || ""
+    segment.split("/").pop()?.replace(".mp4", "") || "",
   );
 
   let recordingShouldBeDeleted =
@@ -39,10 +39,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     );
   }
 
-  const videoPath =
-    process.env.NODE_ENV === "development"
-      ? nodePath.join(process.env.RECORDINGS_PATH || "", segment)
-      : nodePath.join(segment);
+  const videoPath = nodePath.join(process.env.RECORDINGS_PATH || "", segment);
 
   const fileSize = fs.statSync(videoPath);
 
@@ -95,15 +92,15 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     const createdRecording = await prisma.recordingQueue.create({
       data: {
-        fileName:
-          process.env.NODE_ENV === "development"
-            ? nodePath.join(process.env.RECORDINGS_PATH || "", segment)
-            : nodePath.join(segment),
+        fileName: videoPath.split("/").pop() || videoPath,
         userId: path,
         duration,
         createdAt: fileDate,
         firstSegmentId,
         visibility: defaultVisibility,
+        status: process.env.S3_BUCKET_ENDPOINT
+          ? RecordingQueueState.UPLOADING
+          : RecordingQueueState.PENDING,
       },
     });
 

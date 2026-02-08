@@ -10,12 +10,12 @@ import {
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import { PrismaClientKnownRequestError } from "@/generated/internal/prismaNamespace";
 import { headers } from "next/headers";
 import { z } from "zod";
 
 export const checkValidUsername = async (
-  username: string
+  username: string,
 ): Promise<boolean> => {
   let result = false;
 
@@ -49,7 +49,7 @@ export const checkValidUsername = async (
 };
 
 export const updateUser = async (
-  request: UserUpdateDataRequest
+  request: UserUpdateDataRequest,
 ): Promise<UserUpdateResponse> => {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -177,7 +177,7 @@ export const liveFollowingListAction =
         `${process.env.STREAM_API_URL}/v3/paths/list`,
         {
           method: "GET",
-        }
+        },
       );
 
       if (request.ok) {
@@ -196,7 +196,7 @@ export const liveFollowingListAction =
                 readyTime: i.readyTime,
                 viewers: i.readers.length,
               };
-            }
+            },
           );
 
           response.following = await Promise.all(
@@ -211,11 +211,11 @@ export const liveFollowingListAction =
                     })
                   )?.name || "Failed to get name",
               };
-            })
+            }),
           );
 
           response.following = response.following.filter((following) =>
-            followingList.includes(following.id)
+            followingList.includes(following.id),
           );
 
           response.ok = true;
@@ -249,7 +249,7 @@ export const followingListAction =
 
       response.ok = true;
       response.following = followingList.map(
-        (following) => following.followed.name
+        (following) => following.followed.name,
       );
     } catch {}
 

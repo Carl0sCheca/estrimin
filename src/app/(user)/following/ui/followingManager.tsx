@@ -29,12 +29,12 @@ export const FollowingManager = ({
               onClick={async () => {
                 const response = await UserUnFollowAction(
                   sessionUserId,
-                  following
+                  following,
                 );
 
                 if (response.ok) {
                   setFollowingList((prev) =>
-                    prev.filter((p) => p !== following)
+                    prev.filter((p) => p !== following),
                   );
                 }
               }}

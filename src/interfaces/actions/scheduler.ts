@@ -20,6 +20,13 @@ export interface Job {
   lastExecution: Date;
 }
 
+export interface FailedItems {
+  id: number;
+  fileName: string;
+  error?: string;
+  date?: Date;
+}
+
 export interface GetProcessingStatisticsResponse {
   ok: boolean;
   pending?: number;
@@ -38,4 +45,9 @@ export interface SetQueueSiteSettingsResponse {
 export interface GetAllTasksSchedulerResponse {
   ok: boolean;
   tasks: Array<Job>;
+}
+
+export interface GetAllFailedQueueItemsResponse {
+  ok: boolean;
+  items: Array<FailedItems>;
 }

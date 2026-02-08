@@ -4,7 +4,7 @@ import { existsSync } from "fs";
 export const validateParameters = (
   userId: string,
   videoId: string,
-  type: string
+  type: string,
 ): boolean => {
   if (!/^[a-zA-Z0-9\-_]+$/.test(userId)) return false;
 
@@ -18,7 +18,7 @@ export const validateParameters = (
 export const getSafePath = (
   userId: string,
   fileName: string,
-  type: string
+  type: string,
 ): string | null => {
   try {
     const basePath = path.resolve(process.env.RECORDINGS_PATH || "");

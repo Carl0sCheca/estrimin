@@ -1,14 +1,18 @@
 "use server";
 
+import { RecordingQueueState } from "@/generated/enums";
 import { SITE_SETTING } from "@/interfaces";
 import {
   Command,
   DEFAULT_SOCKET,
+  GetAllFailedQueueItemsResponse,
   GetAllTasksSchedulerResponse,
   GetProcessingStatisticsResponse,
   GetQueueSiteSettingsResponse,
   SOCK_COMMAND,
 } from "@/interfaces/actions/scheduler";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import prisma from "@/lib/prisma";
 import * as zmq from "zeromq";
 
@@ -165,14 +169,14 @@ export const GetProcessingStatisticsAction =
 
       response.ok = true;
       response.completed = queueRecordings.filter(
-        (recording) => recording.status === "COMPLETED"
+        (recording) => recording.status === "COMPLETED",
       ).length;
       response.pending = queueRecordings.filter(
         (recording) =>
-          recording.status !== "COMPLETED" && recording.status !== "FAILED"
+          recording.status !== "COMPLETED" && recording.status !== "FAILED",
       ).length;
       response.failed = queueRecordings.filter(
-        (recording) => recording.status === "FAILED"
+        (recording) => recording.status === "FAILED",
       ).length;
     } catch {}
 
@@ -198,7 +202,7 @@ export const GetQueueSiteSettingsAction =
   };
 
 export const SetQueueSiteSettingsAction = async (
-  state: boolean
+  state: boolean,
 ): Promise<GetQueueSiteSettingsResponse> => {
   const response: GetQueueSiteSettingsResponse = {
     ok: false,
@@ -224,3 +228,76 @@ export const SetQueueSiteSettingsAction = async (
 
   return response;
 };
+
+export const RetryAllFailedQueueItems = async () => {
+  try {
+    await prisma.$executeRaw`
+      UPDATE "recordingQueue"
+      SET 
+        "attempts" = 0,
+        "status" = "error"::"RecordingQueueState",
+        "error" = NULL
+      WHERE "status" = ${RecordingQueueState.FAILED}
+    `;
+  } catch (e) {
+    console.error("RetryAllFailedQueueItems: ", e);
+  }
+};
+
+export const RetryFailedQueueItem = async (id: number) => {
+  try {
+    await prisma.$executeRaw`
+      UPDATE "recordingQueue"
+      SET 
+        "attempts" = 0,
+        "status" = "error"::"RecordingQueueState",
+        "error" = NULL
+      WHERE "status" = ${RecordingQueueState.FAILED}
+      AND "id" = ${id}
+    `;
+  } catch (e) {
+    console.error("RetryFailedQueueItem: ", e);
+  }
+};
+
+export const GetAllFailedQueueItems =
+  async (): Promise<GetAllFailedQueueItemsResponse> => {
+    const response: GetAllFailedQueueItemsResponse = {
+      ok: true,
+      items: [],
+    };
+
+    const sessionData = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!sessionData || (sessionData && sessionData.user.role !== "ADMIN")) {
+      response.ok = false;
+      return response;
+    }
+
+    try {
+      const items = await prisma.recordingQueue.findMany({
+        where: { status: "FAILED" },
+        select: {
+          finishedAt: true,
+          fileName: true,
+          error: true,
+          id: true,
+        },
+      });
+
+      response.items = items.map((item) => {
+        return {
+          id: item.id,
+          fileName: item.fileName,
+          date: item.finishedAt ?? undefined,
+          error: item.error ?? undefined,
+        };
+      });
+    } catch {
+      response.ok = false;
+    }
+
+    return response;
+  };

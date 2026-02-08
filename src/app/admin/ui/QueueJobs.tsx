@@ -20,7 +20,7 @@ interface Props {
     mouseEnter: (
       event: React.MouseEvent<HTMLElement>,
       text: string,
-      { defaultPosition, followCursor, extraGapY }?: MouseEnterEventOptions
+      { defaultPosition, followCursor, extraGapY }?: MouseEnterEventOptions,
     ) => void;
     mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   };
@@ -43,7 +43,7 @@ export const QueueJobs = ({ tooltip }: Props) => {
           GetAllTasksSchedulerAction(),
           GetProcessingStatisticsAction(),
           GetQueueSiteSettingsAction(),
-        ]
+        ],
       );
 
       if (requestJobs.ok) {
@@ -110,14 +110,13 @@ export const QueueJobs = ({ tooltip }: Props) => {
 
   return (
     <>
-      <Collapsible title="Queue jobs">
+      <Collapsible title="Queue jobs" maxHeight={500}>
         <div className="space-y-4">
           <div className="flex justify-center">
             <Toggle
               onChange={async () => {
-                const response = await SetQueueSiteSettingsAction(
-                  !disabledQueueJobs
-                );
+                const response =
+                  await SetQueueSiteSettingsAction(!disabledQueueJobs);
 
                 if (response.ok) {
                   setDisabledQueueJobs(!disabledQueueJobs);
@@ -186,7 +185,7 @@ export const QueueJobs = ({ tooltip }: Props) => {
                           (completedRecordings +
                             pendingRecordings +
                             failedRecordings)) *
-                          100
+                          100,
                       ) + "%"
                     : "100%"}
                 </span>

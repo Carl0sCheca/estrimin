@@ -12,12 +12,12 @@ import {
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { checkAdmin } from "@/lib/utils";
+import { checkAdmin } from "@/lib/utils-server";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
-export const disableRegistration = async (
-  enabled: boolean
+export const disableRegistrationAction = async (
+  enabled: boolean,
 ): Promise<DisableRegisterResponse> => {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -55,8 +55,46 @@ export const disableRegistration = async (
   return response;
 };
 
+export const disableRecordingsAction = async (
+  enabled: boolean,
+): Promise<DisableRegisterResponse> => {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  const response: DisableRegisterResponse = {
+    ok: false,
+  };
+
+  const isAdmin = await checkAdmin(session?.session.id);
+
+  if (!isAdmin.ok) {
+    response.message = isAdmin.message;
+    return response;
+  }
+
+  try {
+    const updateSettings = await prisma.siteSetting.update({
+      where: { key: SITE_SETTING.DISABLE_RECORDINGS },
+      data: {
+        value: enabled,
+      },
+    });
+
+    if (updateSettings) {
+      response.ok = true;
+
+      revalidatePath("/admin");
+    }
+  } catch {
+    response.message = "An error has occurred";
+  }
+
+  return response;
+};
+
 export const changeUserRoleAction = async (
-  user: string
+  user: string,
 ): Promise<ChangeUserRoleResponse> => {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -101,7 +139,7 @@ export const changeUserRoleAction = async (
 };
 
 export const generateRegistrationCode = async (
-  request: GenerateRegistrationCodeRequest
+  request: GenerateRegistrationCodeRequest,
 ): Promise<GenerateRegistrationCodeResponse> => {
   const response: GenerateRegistrationCodeResponse = {
     ok: false,
@@ -120,7 +158,7 @@ export const generateRegistrationCode = async (
 
   if (request.expirationDate) {
     response.expirationDate = new Date(
-      request.expirationDate.setUTCHours(23, 59, 59, 999)
+      request.expirationDate.setUTCHours(23, 59, 59, 999),
     );
   }
 
@@ -168,7 +206,7 @@ export const getRegistrationCodesAction =
   };
 
 export const deleteRegistrationCodesAction = async (
-  id: string
+  id: string,
 ): Promise<DeleteRegistrationCodesResponse> => {
   const response: DeleteRegistrationCodesResponse = {
     ok: false,
@@ -220,7 +258,7 @@ export const getLiveChannelsAction =
         `${process.env.STREAM_API_URL}/v3/paths/list`,
         {
           method: "GET",
-        }
+        },
       );
 
       if (request.ok) {
@@ -239,7 +277,7 @@ export const getLiveChannelsAction =
                 readyTime: i.readyTime,
                 viewers: i.readers.length,
               };
-            }
+            },
           );
 
           response.items = await Promise.all(
@@ -254,7 +292,7 @@ export const getLiveChannelsAction =
                     })
                   )?.name || "Failed to get name",
               };
-            })
+            }),
           );
         }
       }
