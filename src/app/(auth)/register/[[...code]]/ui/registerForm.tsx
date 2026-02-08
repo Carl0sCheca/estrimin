@@ -122,7 +122,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                 email,
                 password,
                 name,
-                registrationCode
+                registrationCode,
               );
 
               if (!response.ok) {
@@ -248,7 +248,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   pattern=".{8,}"
                   onInvalid={(e) =>
                     (e.target as HTMLObjectElement).setCustomValidity(
-                      "Must contain 8 or more characters"
+                      "Must contain 8 or more characters",
                     )
                   }
                   onInput={(e) =>

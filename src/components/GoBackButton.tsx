@@ -6,7 +6,7 @@ export const GoBackButton = () => {
   const canGoBack = useSyncExternalStore(
     () => () => {},
     () => typeof window !== "undefined" && window.history.length > 1,
-    () => false
+    () => false,
   );
 
   if (!canGoBack) {

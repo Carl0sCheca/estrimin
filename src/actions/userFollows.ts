@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 export const SetUserFollowAction = async (
   userId: string,
   followUserId: string,
-  following: boolean
+  following: boolean,
 ): Promise<SetUserFollowResponse> => {
   const response: SetUserFollowResponse = {
     ok: false,
@@ -60,7 +60,7 @@ export const SetUserFollowAction = async (
 
 export const UserUnFollowAction = async (
   userId: string,
-  followUserName: string
+  followUserName: string,
 ): Promise<UserUnFollowResponse> => {
   const response: UserUnFollowResponse = {
     ok: false,

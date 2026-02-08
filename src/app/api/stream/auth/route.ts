@@ -20,7 +20,7 @@ const getStreamParams = (
 } => {
   const parsedParams = queryString.parse(query);
   const { password, session } = parsedParams;
-  const stream = path;
+  const stream = path.split("/").pop();
 
   return {
     stream,

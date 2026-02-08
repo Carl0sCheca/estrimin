@@ -19,7 +19,7 @@ interface Props {
     mouseEnter: (
       event: React.MouseEvent<HTMLElement>,
       text: string,
-      options?: MouseEnterEventOptions
+      options?: MouseEnterEventOptions,
     ) => void;
     mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   };
@@ -27,7 +27,7 @@ interface Props {
   chooseSelectedOption: string;
   callback?: (
     event: React.MouseEvent<HTMLElement>,
-    selected: Option | undefined
+    selected: Option | undefined,
   ) => void;
 }
 
@@ -45,7 +45,7 @@ export const Selector = ({
 
   const handleOptionClick = (
     event: React.MouseEvent<HTMLElement>,
-    option: Option
+    option: Option,
   ) => {
     try {
       if (callback && parentElement) {
@@ -83,7 +83,7 @@ export const Selector = ({
           tooltip?.mouseEnter(
             e,
             options.find((opt) => opt.value === selectedOption)?.label || "",
-            { extraGapY: 6 }
+            { extraGapY: 6 },
           );
         }}
         onMouseLeave={tooltip?.mouseLeave}
