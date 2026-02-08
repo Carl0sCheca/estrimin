@@ -12,7 +12,7 @@ export const GetViewers = async (channelUserId: string): Promise<Viewers> => {
       `${process.env.STREAM_API_URL}/v3/paths/get/${channelUserId}`,
       {
         method: "GET",
-      }
+      },
     );
 
     if (request.ok) {

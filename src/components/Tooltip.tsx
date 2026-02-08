@@ -46,7 +46,7 @@ export const useTooltip = () => {
   const getPosition = (
     element: Element,
     event: React.MouseEvent<HTMLElement>,
-    tooltip?: TooltipElement
+    tooltip?: TooltipElement,
   ): Position => {
     const elementBounding = element.element.getBoundingClientRect();
     const options = element.options;
@@ -140,7 +140,7 @@ export const useTooltip = () => {
       defaultPosition = "top",
       followCursor = false,
       extraGapY = 3,
-    }: MouseEnterEventOptions = {}
+    }: MouseEnterEventOptions = {},
   ) => {
     const element = event.currentTarget as HTMLElement;
 
@@ -198,7 +198,7 @@ export const useTooltip = () => {
               }
 
               return item;
-            })
+            }),
           );
         }, 20);
 
@@ -231,7 +231,7 @@ export const useTooltip = () => {
                 };
               }
               return item;
-            })
+            }),
           );
         }, 20);
 
@@ -270,7 +270,7 @@ export const useTooltip = () => {
         }
 
         return item;
-      })
+      }),
     );
   };
 
@@ -283,7 +283,7 @@ export const useTooltip = () => {
           return { ...item, visible: false };
         }
         return item;
-      })
+      }),
     );
 
     const existingTimeout = timeoutsMap.current.get(element);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 
 enum ThemeSettings {
@@ -14,12 +14,14 @@ interface Props {
 }
 
 export const ThemeSwitch = ({ className }: Props) => {
-  const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
   return (
     <>
       {mounted && (
@@ -35,9 +37,9 @@ export const ThemeSwitch = ({ className }: Props) => {
                 (Object.keys(ThemeSettings).at(
                   currentSelected + 1 >= Object.keys(ThemeSettings).length
                     ? 0
-                    : currentSelected + 1
+                    : currentSelected + 1,
                 ) || "System") as keyof typeof ThemeSettings
-              ]
+              ],
             );
           }}
         >
@@ -45,7 +47,11 @@ export const ThemeSwitch = ({ className }: Props) => {
         </button>
       )}
 
-      {!mounted && <button></button>}
+      {!mounted && (
+        <button
+          className={`${className} animate-pulse h-2.5 bg-gray-200 rounded-full dark:bg-gray-700 w-24 mb-4"`}
+        ></button>
+      )}
     </>
   );
 };

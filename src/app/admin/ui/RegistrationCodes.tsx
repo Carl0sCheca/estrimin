@@ -22,7 +22,7 @@ interface Props {
     mouseEnter: (
       event: React.MouseEvent<HTMLElement>,
       text: string,
-      { defaultPosition, followCursor, extraGapY }?: MouseEnterEventOptions
+      { defaultPosition, followCursor, extraGapY }?: MouseEnterEventOptions,
     ) => void;
     mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   };
@@ -71,7 +71,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
         !prevState.some(
           (element) =>
             element.id === id &&
-            element.element === (currentTarget as HTMLElement)
+            element.element === (currentTarget as HTMLElement),
         )
       ) {
         prevState.push({ id, element: currentTarget as HTMLElement });
@@ -128,9 +128,8 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
                   request.expirationDate = new Date(expiresDate);
                 }
 
-                const registrationCodeResponse = await generateRegistrationCode(
-                  request
-                );
+                const registrationCodeResponse =
+                  await generateRegistrationCode(request);
 
                 if (!registrationCodeResponse || !registrationCodeResponse.id) {
                   return;
@@ -170,7 +169,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
               onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(
-                    `${baseUrl}/register/${registrationCode.id}`
+                    `${baseUrl}/register/${registrationCode.id}`,
                   );
                 } catch {}
               }}
@@ -198,8 +197,8 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
                       registrationCode.expirationDate
                     ? "Expired"
                     : registrationCode.used
-                    ? `Used by ${registrationCode.user!.name}`
-                    : "Not used"
+                      ? `Used by ${registrationCode.user!.name}`
+                      : "Not used",
                 );
               }}
               onMouseLeave={tooltip.mouseLeave}
@@ -223,7 +222,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
               onMouseLeave={tooltip.mouseLeave}
               onClick={async (e) => {
                 const deleteResponse = await deleteRegistrationCodesAction(
-                  registrationCode.id
+                  registrationCode.id,
                 );
 
                 if (!deleteResponse) {
@@ -232,12 +231,12 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
 
                 setRegistrationCodes((prevRegistrationCodes) =>
                   prevRegistrationCodes.filter(
-                    (code) => code.id !== registrationCode.id
-                  )
+                    (code) => code.id !== registrationCode.id,
+                  ),
                 );
 
                 const tooltipsToDelete = elementsWithTooltip.filter(
-                  (e) => e.id === registrationCode.id
+                  (e) => e.id === registrationCode.id,
                 );
 
                 tooltipsToDelete.forEach((toDelete) => {
@@ -248,7 +247,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
                 });
 
                 setElementsWithTooltip((prevState) =>
-                  prevState.filter((e) => e.id !== registrationCode.id)
+                  prevState.filter((e) => e.id !== registrationCode.id),
                 );
               }}
             >

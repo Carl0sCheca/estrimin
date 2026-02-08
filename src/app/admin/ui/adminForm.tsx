@@ -18,6 +18,7 @@ import { RiUserFill, RiUserStarFill } from "react-icons/ri";
 import { RegistrationCodes } from "./RegistrationCodes";
 import { LiveChannels } from "./LiveChannels";
 import { QueueJobs } from "./QueueJobs";
+import { FailedQueueItems } from "./FailedQueueItems";
 
 interface Props {
   settings: Array<SiteSetting>;
@@ -147,6 +148,14 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
         </div>
         <div className="mt-6">
           <QueueJobs
+            tooltip={{
+              mouseEnter: tooltipMouseEnter,
+              mouseLeave: tooltipMouseLeave,
+            }}
+          />
+        </div>
+        <div className="mt-6">
+          <FailedQueueItems
             tooltip={{
               mouseEnter: tooltipMouseEnter,
               mouseLeave: tooltipMouseLeave,

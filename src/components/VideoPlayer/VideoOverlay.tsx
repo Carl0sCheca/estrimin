@@ -46,7 +46,7 @@ export const VideoOverlay = ({
         timeoutRef.current = null;
       }, duration);
     },
-    []
+    [],
   );
 
   useEffect(() => {
