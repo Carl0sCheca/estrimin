@@ -172,7 +172,7 @@ export const checkAdmin = async (
   return isAdmin;
 };
 
-export const hasPathname = (urlString: string): boolean => {
+export const hasPathname = async (urlString: string): Promise<boolean> => {
   try {
     const url = new URL(urlString);
 
@@ -184,7 +184,9 @@ export const hasPathname = (urlString: string): boolean => {
   }
 };
 
-export const getLastPathname = (urlString: string): string | undefined => {
+export const getLastPathname = async (
+  urlString: string,
+): Promise<string | undefined> => {
   try {
     const url = new URL(urlString);
     const segments = url.pathname.split("/").filter((s) => s.length > 0);
