@@ -171,3 +171,26 @@ export const checkAdmin = async (
 
   return isAdmin;
 };
+
+export const hasPathname = (urlString: string): boolean => {
+  try {
+    const url = new URL(urlString);
+
+    const path = url.pathname.replace(/\/+$/, "");
+
+    return path.length > 0;
+  } catch (error) {
+    return false;
+  }
+};
+
+export const getLastPathname = (urlString: string): string | undefined => {
+  try {
+    const url = new URL(urlString);
+    const segments = url.pathname.split("/").filter((s) => s.length > 0);
+
+    return segments.pop();
+  } catch {
+    return undefined;
+  }
+};

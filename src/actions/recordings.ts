@@ -17,7 +17,11 @@ import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
 import fs from "fs";
 import path from "path";
 import { RecordingQueue, RecordingVisibility } from "@/generated/client";
-import { dateToFilename, getDateFromFileName } from "@/lib/utils-server";
+import {
+  dateToFilename,
+  getDateFromFileName,
+  getLastPathname,
+} from "@/lib/utils-server";
 import s3Client from "@/lib/s3-client";
 import { deleteFile, moveFile } from "../../scheduler/src/S3Service";
 
@@ -313,13 +317,15 @@ export const deleteRecordingAction = async (
 
 export const getLastVideoFromLive = async (
   entries: Array<RecordingData>,
-  userId: string,
+  userIdPath: string,
 ): Promise<string | null> => {
   const entriesDate = await Promise.all(
     entries.map(
       async (e) => await getDateFromFileName(e.fileName.replace(".mp4", "")),
     ),
   );
+
+  const userId = getLastPathname(userIdPath);
 
   const request = await fetch(
     `${process.env.STREAM_API_URL}/v3/paths/get/${userId}` || "",
