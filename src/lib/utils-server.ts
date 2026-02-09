@@ -179,7 +179,7 @@ export const hasPathname = async (urlString: string): Promise<boolean> => {
     const path = url.pathname.replace(/\/+$/, "");
 
     return path.length > 0;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
