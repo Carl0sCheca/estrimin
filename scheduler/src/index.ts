@@ -255,7 +255,7 @@ const queueTask = async () => {
           });
         }
 
-        await handleNewVideo(recording.userId, recording.fileName, 2000);
+        await handleNewVideo(recording.userId, recording.fileName, 2000, false);
 
         await prisma.recordingQueue.update({
           where: { id: recording.id },
@@ -389,6 +389,7 @@ const queueTask = async () => {
         recordingsShouldBeMerged[0][0].userId,
         fileList[0] || "",
         2000,
+        true,
       );
     }
   }

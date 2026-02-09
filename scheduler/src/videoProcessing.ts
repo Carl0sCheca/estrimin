@@ -63,6 +63,7 @@ export const handleNewVideo = async (
   userId: string,
   segmentPath: string,
   thresholdMs: number,
+  shouldMerge: boolean,
 ): Promise<void> => {
   try {
     const isUsingS3Bucket = segmentPath.startsWith("s3://");
@@ -147,7 +148,7 @@ export const handleNewVideo = async (
       (previousVideo.creationDate.getTime() +
         (previousVideo.duration || 0) * 1000);
 
-    if (Math.abs(timeDifference) <= thresholdMs) {
+    if (Math.abs(timeDifference) <= thresholdMs || shouldMerge) {
       await prisma.recordingQueue.updateMany({
         where: {
           AND: {
