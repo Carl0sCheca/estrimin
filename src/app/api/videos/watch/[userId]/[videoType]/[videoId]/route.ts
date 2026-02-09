@@ -57,7 +57,7 @@ const isRecordingVisible = async (
       visibility = (
         await prisma.recordingQueue.findFirst({
           where: {
-            fileName: safePath,
+            fileName: `s3://${safePath.split("/").pop()}`,
           },
         })
       )?.visibility;
@@ -127,10 +127,6 @@ const isRecordingVisible = async (
 export async function POST(req: NextRequest, { params }: Params) {
   const { userId, videoId, videoType } = await params;
   const session = req.nextUrl.searchParams.get("session") || "";
-
-  if (!validateParameters(userId, videoId, videoType)) {
-    return NextResponse.json({ ok: false }, { status: 404 });
-  }
 
   const canViewRecording = await isRecordingVisible(
     userId,
