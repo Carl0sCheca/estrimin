@@ -272,7 +272,7 @@ export const getLiveChannelsAction =
               readers: [];
             }) => {
               return {
-                id: i.name,
+                id: i.name.split("/").pop(),
                 ready: i.ready,
                 readyTime: i.readyTime,
                 viewers: i.readers.length,
