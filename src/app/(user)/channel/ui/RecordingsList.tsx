@@ -19,7 +19,7 @@ import {
   Spinner,
   Toggle,
 } from "@/components";
-import { Recording } from "@/interfaces";
+import { Recording, USER_SETTING } from "@/interfaces";
 import { formatDate, formatTimeAgo, secondsToHMS } from "@/lib/utils";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -64,8 +64,9 @@ export const RecordingsList = ({
 
   const [visibilityUnsavedRecordings, setVisibilityUnsavedRecordings] =
     useState<RecordingVisibility>(
-      (userSettings.find((e) => e.key === "VISIBILITY_UNSAVED_RECORDINGS")
-        ?.value as RecordingVisibility) || RecordingVisibility.PRIVATE,
+      (userSettings.find(
+        (e) => e.key === USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
+      )?.value as RecordingVisibility) || RecordingVisibility.PRIVATE,
     );
 
   const [storePastStreams, setStorePastStreams] = useState<boolean>(
