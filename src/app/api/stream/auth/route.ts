@@ -22,6 +22,10 @@ const getStreamParams = (
   const { password, session } = parsedParams;
   const stream = path.split("/").pop();
 
+  if (process.env.DEBUG) {
+    console.log("POST /api/stream/auth getStreamParams:", query, path);
+  }
+
   return {
     stream,
     password: Array.isArray(password) ? password[0] : password,

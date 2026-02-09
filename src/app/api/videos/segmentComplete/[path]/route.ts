@@ -18,6 +18,16 @@ export async function GET(req: NextRequest, { params }: Params) {
   const segment = req.nextUrl.searchParams.get("segment") || "";
   const duration = Number(req.nextUrl.searchParams.get("duration")) || 0;
 
+  if (process.env.DEBUG) {
+    console.log(
+      "GET /api/videos/segmentComplete:",
+      await params,
+      path,
+      segment,
+      req,
+    );
+  }
+
   const fileDate = await getDateFromFileName(
     segment.split("/").pop()?.replace(".mp4", "") || "",
   );
