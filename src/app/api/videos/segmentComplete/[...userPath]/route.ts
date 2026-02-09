@@ -9,27 +9,37 @@ import { RecordingQueueState, RecordingVisibility } from "@/generated/client";
 
 interface Params {
   params: Promise<{
-    path: string;
+    userPath: string | Array<string>;
   }>;
 }
 
 export async function GET(req: NextRequest, { params }: Params) {
-  const { path } = await params;
+  const { userPath } = await params;
   const segment = req.nextUrl.searchParams.get("segment") || "";
   const duration = Number(req.nextUrl.searchParams.get("duration")) || 0;
+
+  let path;
+
+  if (typeof userPath === "string") {
+    path = userPath;
+  } else {
+    path = userPath.at(-1) || "";
+  }
+
+  const segmentPath = `recordings/${path}/${segment.split("/").pop()}`;
 
   if (process.env.DEBUG) {
     console.log(
       "GET /api/videos/segmentComplete:",
       await params,
       path,
-      segment,
+      segmentPath,
       req,
     );
   }
 
   const fileDate = await getDateFromFileName(
-    segment.split("/").pop()?.replace(".mp4", "") || "",
+    segmentPath.split("/").pop()?.replace(".mp4", "") || "",
   );
 
   let recordingShouldBeDeleted =
@@ -49,7 +59,10 @@ export async function GET(req: NextRequest, { params }: Params) {
     );
   }
 
-  const videoPath = nodePath.join(process.env.RECORDINGS_PATH || "", segment);
+  const videoPath = nodePath.join(
+    process.env.RECORDINGS_PATH || "",
+    segmentPath,
+  );
 
   const fileSize = fs.statSync(videoPath);
 
