@@ -184,14 +184,16 @@ export const hasPathname = async (urlString: string): Promise<boolean> => {
   }
 };
 
-export const getLastPathname = async (
+export const getLastUrlSegment = async (urlString: string) =>
+  getUrlSegment(-1, urlString);
+
+export const getUrlSegment = async (
+  index: number,
   urlString: string,
 ): Promise<string | undefined> => {
   try {
     const url = new URL(urlString);
-    const segments = url.pathname.split("/").filter((s) => s.length > 0);
-
-    return segments.pop();
+    return url.pathname.split("/").filter(Boolean).at(index);
   } catch {
     return undefined;
   }

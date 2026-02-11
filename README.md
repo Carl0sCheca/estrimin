@@ -2,13 +2,15 @@
 
 1 - `docker compose -f docker-compose-dev.yml up -d`
 
-2 - `npm install`
+2 - `pnpm install`
 
-3 - `npx prisma migrate dev`
+3 - `pnpm prisma generate`
 
-4 - `npm run startup`
+4 - `pnpm prisma migrate dev`
 
-5 - `npm run dev`
+5 - `pnpm run startup`
+
+6 - `pnpm run dev`
 
 ### Default credentials for administrator account
 

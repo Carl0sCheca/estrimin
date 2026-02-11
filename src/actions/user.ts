@@ -182,6 +182,7 @@ export const liveFollowingListAction =
 
       if (request.ok) {
         const responseApi = await request.json();
+
         if (responseApi) {
           response.following = responseApi.items.map(
             (i: {

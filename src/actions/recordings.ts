@@ -20,7 +20,7 @@ import { RecordingQueue, RecordingVisibility } from "@/generated/client";
 import {
   dateToFilename,
   getDateFromFileName,
-  getLastPathname,
+  getLastUrlSegment,
 } from "@/lib/utils-server";
 import s3Client from "@/lib/s3-client";
 import { deleteFile, moveFile } from "../../scheduler/src/S3Service";
@@ -325,7 +325,7 @@ export const getLastVideoFromLive = async (
     ),
   );
 
-  const userId = getLastPathname(userIdPath);
+  const userId = getLastUrlSegment(userIdPath);
 
   const request = await fetch(
     `${process.env.STREAM_API_URL}/v3/paths/get/${userId}` || "",
