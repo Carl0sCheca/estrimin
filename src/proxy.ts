@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { betterFetch } from "@better-fetch/fetch";
-import type { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 const protectedUserPaths = ["/user", "/channel"];
 const protectedAdminPaths = ["/admin"];
 const protectedAuthPaths = ["/login", "/register"];
 
-type Session = typeof auth.$Infer.Session;
-
 export default async function authMiddleware(request: NextRequest) {
-  const { data } = await betterFetch<Session>("/api/auth/get-session", {
-    baseURL: process.env.BASE_URL,
-    headers: {
-      cookie: request.headers.get("cookie") || "",
-    },
+  const session = await auth.api.getSession({
+    headers: await headers(),
   });
 
-  const user = data?.user;
+  const user = session?.user;
 
   const baseURL = process.env.BASE_URL;
   if (protectedUserPaths.includes(request.nextUrl.pathname) && !user) {
