@@ -10,6 +10,8 @@ import {
   User,
 } from "@/generated/client";
 
+export const dynamic = "force-dynamic";
+
 const getStreamParams = (
   query: string,
   path: string,

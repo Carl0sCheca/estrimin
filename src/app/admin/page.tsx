@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   title: "Administration",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const settings: Array<SiteSetting> = await prisma.siteSetting.findMany();
   const baseUrl = process.env.BASE_URL || "";
