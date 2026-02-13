@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   title: "Following",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function FollowingPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
