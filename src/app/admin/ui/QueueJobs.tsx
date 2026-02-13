@@ -20,7 +20,7 @@ interface Props {
     mouseEnter: (
       event: React.MouseEvent<HTMLElement>,
       text: string,
-      { defaultPosition, followCursor, extraGapY }?: MouseEnterEventOptions,
+      options?: MouseEnterEventOptions,
     ) => void;
     mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   };
