@@ -127,10 +127,7 @@ export const useTooltip = () => {
       }
     }
 
-    return {
-      x,
-      y,
-    };
+    return { x, y };
   };
 
   const tooltipMouseEnter = (
@@ -163,11 +160,7 @@ export const useTooltip = () => {
           text,
           tooltipRef: createRef<HTMLSpanElement>(),
           followCursor,
-          options: {
-            defaultPosition,
-            followCursor,
-            extraGapY,
-          },
+          options: { defaultPosition, followCursor, extraGapY },
         };
 
         const visibilityTimeout = setTimeout(() => {
@@ -186,15 +179,7 @@ export const useTooltip = () => {
 
                 const { x, y } = getPosition(item, event, { size, position });
 
-                return {
-                  ...item,
-                  visible: true,
-                  size,
-                  position: {
-                    x,
-                    y,
-                  },
-                };
+                return { ...item, visible: true, size, position: { x, y } };
               }
 
               return item;
@@ -258,15 +243,9 @@ export const useTooltip = () => {
             position = { x: rect.x, y: rect.y };
           }
 
-          const { x, y } = getPosition(item, event, {
-            size,
-            position,
-          });
+          const { x, y } = getPosition(item, event, { size, position });
 
-          return {
-            ...item,
-            position: { x, y },
-          };
+          return { ...item, position: { x, y } };
         }
 
         return item;
@@ -292,10 +271,51 @@ export const useTooltip = () => {
     const newTimeout = setTimeout(() => {
       setElements((prev) => prev.filter((el) => el.element !== element));
       timeoutsMap.current.delete(element);
-    }, 1000);
+    }, 500);
 
     timeoutsMap.current.set(element, newTimeout);
   };
+
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      elements.forEach((item) => {
+        if (!item.visible) return;
+
+        const rect = item.element.getBoundingClientRect();
+        const isInside =
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom;
+
+        if (!isInside) {
+          setElements((prev) => {
+            const stillExists = prev.find(
+              (el) => el.element === item.element && el.visible,
+            );
+            if (!stillExists) return prev;
+
+            const existingTimeout = timeoutsMap.current.get(item.element);
+            if (existingTimeout) clearTimeout(existingTimeout);
+
+            const newTimeout = setTimeout(() => {
+              setElements((p) => p.filter((el) => el.element !== item.element));
+              timeoutsMap.current.delete(item.element);
+            }, 500);
+
+            timeoutsMap.current.set(item.element, newTimeout);
+
+            return prev.map((el) =>
+              el.element === item.element ? { ...el, visible: false } : el,
+            );
+          });
+        }
+      });
+    };
+
+    window.addEventListener("mousemove", handleGlobalMouseMove);
+    return () => window.removeEventListener("mousemove", handleGlobalMouseMove);
+  }, [elements]);
 
   useEffect(() => {
     const currentTimeoutsMap = timeoutsMap.current;
@@ -321,7 +341,7 @@ export const Tooltip = ({ elements }: TooltipProps) => {
         return (
           <span
             key={element.id}
-            className="select-none z-40 pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500k ease-out"
+            className="select-none z-40 pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500 ease-out"
             style={{
               left: `${element.position?.x || 0}px`,
               top: `${element.position?.y || 0}px`,
