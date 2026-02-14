@@ -14,6 +14,8 @@ interface Props {
   }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function RegisterPage(props: Props) {
   const params = await props.params;
   let code: string | undefined;

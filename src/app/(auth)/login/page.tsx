@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LoginForm } from "./ui/loginForm";
+import { LoginForm } from "./_components/loginForm";
 import { isRegisterDisabledAction } from "@/actions";
 
 export const metadata: Metadata = {
