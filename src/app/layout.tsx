@@ -1,5 +1,6 @@
 import "@/app/globals.css";
-import Providers from "@/components/Providers";
+import QueryProvider from "@/providers/QueryProvider";
+import { ThemeProvider } from "next-themes";
 
 export default function RootLayout({
   children,
@@ -9,7 +10,9 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning lang="en">
       <body className="bg-gray-50 dark:bg-gray-800">
-        <Providers>{children}</Providers>
+        <ThemeProvider attribute="class" defaultTheme="system">
+          <QueryProvider>{children}</QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
