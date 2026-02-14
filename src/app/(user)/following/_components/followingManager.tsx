@@ -16,7 +16,7 @@ export const FollowingManager = ({
   sessionUserId,
 }: Props) => {
   const { data: followingList } = useQuery({
-    queryKey: ["followingsChannels"],
+    queryKey: ["following", "followingsChannels"],
     queryFn: followingListAction,
     refetchInterval: 30000,
     initialData: followingListInit,

@@ -15,7 +15,7 @@ const fetchLiveFollowingListQuery =
 
 export const LiveFollowing = () => {
   const { data: followingListLive, isLoading } = useQuery({
-    queryKey: ["liveFollowingsChannels"],
+    queryKey: ["following", "liveFollowingsChannels"],
     queryFn: fetchLiveFollowingListQuery,
     refetchInterval: 5000,
   });
