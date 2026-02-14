@@ -11,7 +11,7 @@ import {
 } from "@/interfaces";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, SyntheticEvent, useState } from "react";
 
 interface Props {
   registrationCode?: string;
@@ -43,6 +43,30 @@ export const RegisterForm = ({ registrationCode }: Props) => {
     });
   };
 
+  const validatePassword = (): boolean => {
+    const { password, repeatpassword } = formState;
+
+    if ((password && !repeatpassword) || (!password && repeatpassword)) {
+      return false;
+    }
+
+    if (password !== repeatpassword) {
+      setErrorState((prevState) => ({
+        ...prevState,
+        password: PasswordError.NotEqual,
+      }));
+
+      setButtonDisabled(false);
+      return false;
+    }
+
+    setErrorState((prevState) => {
+      return { ...prevState, password: PasswordError.None };
+    });
+
+    return true;
+  };
+
   return (
     <>
       <div>
@@ -59,7 +83,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
         <div className={"mt-10 sm:mx-auto sm:w-full sm:max-w-sm"}>
           <form
             className={"space-y-6"}
-            onSubmit={async (formEvent: FormEvent<HTMLFormElement>) => {
+            onSubmit={async (formEvent: SyntheticEvent<HTMLFormElement>) => {
               formEvent.preventDefault();
 
               if (buttonDisabled) {
@@ -82,7 +106,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
               const repeatpassword = formData.get("repeatpassword")?.toString();
               const name = formData.get("name")?.toString();
 
-              if (!email || !password || !name) {
+              if (!email || !name || !password || !repeatpassword) {
                 if (!email) {
                   setErrorState((prevState) => ({
                     ...prevState,
@@ -97,6 +121,13 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   }));
                 }
 
+                if (!repeatpassword) {
+                  setErrorState((prevState) => ({
+                    ...prevState,
+                    password: PasswordError.EmptyPasswordRepeat,
+                  }));
+                }
+
                 if (!name) {
                   setErrorState((prevState) => ({
                     ...prevState,
@@ -108,13 +139,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                 return;
               }
 
-              if (password !== repeatpassword) {
-                setErrorState((prevState) => ({
-                  ...prevState,
-                  password: PasswordError.NotEqual,
-                }));
-
-                setButtonDisabled(false);
+              if (!validatePassword()) {
                 return;
               }
 
@@ -245,6 +270,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   id="password"
                   name="password"
                   type="password"
+                  onBlur={validatePassword}
                   pattern=".{8,}"
                   onInvalid={(e) =>
                     (e.target as HTMLObjectElement).setCustomValidity(
@@ -280,6 +306,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   name="repeatpassword"
                   type="password"
                   onChange={handleChange}
+                  onBlur={validatePassword}
                   value={formState.repeatpassword}
                   required
                   className={
@@ -294,7 +321,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                 type="submit"
                 disabled={buttonDisabled}
                 className={
-                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                  "cursor-pointer disabled:cursor-default disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                 }
               >
                 Sign up

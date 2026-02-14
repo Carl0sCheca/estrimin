@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RegisterForm } from "./ui/registerForm";
+import { RegisterForm } from "./_components/registerForm";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { SITE_SETTING } from "@/interfaces";
