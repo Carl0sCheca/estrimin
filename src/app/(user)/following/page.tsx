@@ -34,7 +34,7 @@ export default async function FollowingPage() {
       <Link
         href="/user"
         className={
-          "mt-6 cursor-default flex mx-auto w-40 mb-2 justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+          "mt-6 cursor-pointer flex mx-auto w-40 mb-2 justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
         }
       >
         User

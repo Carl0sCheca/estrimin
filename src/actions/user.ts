@@ -10,9 +10,21 @@ import {
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { PrismaClientKnownRequestError } from "@/generated/internal/prismaNamespace";
 import { headers } from "next/headers";
 import { z } from "zod";
+
+interface PrismaError {
+  meta?: {
+    modelName?: string;
+    driverAdapterError?: {
+      cause?: {
+        constraint?: {
+          fields: Array<string>;
+        };
+      };
+    };
+  };
+}
 
 export const checkValidUsername = async (
   username: string,
@@ -88,16 +100,24 @@ export const updateUser = async (
       data: request,
     });
   } catch (error) {
-    if (error instanceof PrismaClientKnownRequestError) {
+    const prismaError: PrismaError = error as PrismaError;
+
+    if (prismaError) {
       if (
-        error.meta?.modelName === "User" &&
-        (error.meta?.target as Array<string>).at(0) === "name"
+        prismaError.meta?.modelName === "User" &&
+        (
+          prismaError.meta?.driverAdapterError?.cause?.constraint
+            ?.fields as Array<string>
+        ).at(0) === "name"
       ) {
         response.message = "Username already exists";
       }
       if (
-        error.meta?.modelName === "User" &&
-        (error.meta?.target as Array<string>).at(0) === "email"
+        prismaError.meta?.modelName === "User" &&
+        (
+          prismaError.meta?.driverAdapterError?.cause?.constraint
+            ?.fields as Array<string>
+        ).at(0) === "email"
       ) {
         response.message = "Email already exists";
       }
@@ -114,14 +134,26 @@ export const updateUser = async (
 
 export const changePasswordAction = async ({
   newPassword,
+  repeatNewPassword,
   currentPassword,
 }: {
   newPassword: string;
+  repeatNewPassword: string;
   currentPassword: string;
 }): Promise<ChangePasswordResponse> => {
   const response: ChangePasswordResponse = {
     ok: false,
   };
+
+  if (newPassword !== repeatNewPassword) {
+    response.error = "NEWPASSWORD_NOT_EQUAL";
+    return response;
+  }
+
+  if (newPassword === currentPassword) {
+    response.error = "SAME_OLD_PASSWORD";
+    return response;
+  }
 
   const changePassword = await auth.api.changePassword({
     headers: await headers(),

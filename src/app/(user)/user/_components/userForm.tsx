@@ -11,8 +11,7 @@ import {
 import { UserUpdateDataRequest, UserUpdateResponse } from "@/interfaces";
 import { User } from "@/generated/browser";
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useState } from "react";
-import { flushSync } from "react-dom";
+import { ChangeEvent, SyntheticEvent, useState } from "react";
 
 enum FormNameError {
   None = "",
@@ -29,6 +28,8 @@ enum FormPasswordError {
   None = "",
   WrongPassword = "Wrong current password",
   InsufficientChars = "Password must be at least 8 chars",
+  NotSamePassword = "Passwords are not the same",
+  SamePassword = "Use a different password",
   Unexpected = "Unexpected error",
 }
 
@@ -47,6 +48,7 @@ export const UserForm = ({ userInit }: Props) => {
   const [formPasswordState, setFormPasswordState] = useState({
     password: "",
     newpassword: "",
+    repeatnewpassword: "",
   });
 
   const [button, setButton] = useState(false);
@@ -71,6 +73,35 @@ export const UserForm = ({ userInit }: Props) => {
     });
   };
 
+  const validatePassword = (): boolean => {
+    const { newpassword, repeatnewpassword } = formPasswordState;
+
+    if (
+      (!newpassword && repeatnewpassword) ||
+      (newpassword && !repeatnewpassword)
+    ) {
+      return false;
+    }
+
+    if (newpassword !== repeatnewpassword) {
+      setErrorState((prevState) => ({
+        ...prevState,
+        password: FormPasswordError.NotSamePassword,
+      }));
+
+      return false;
+    }
+
+    setErrorState((prevState) => {
+      return {
+        ...prevState,
+        password: FormPasswordError.None,
+      };
+    });
+
+    return true;
+  };
+
   const { alertNotification, showAlert } = useAlertNotification();
 
   return (
@@ -79,12 +110,12 @@ export const UserForm = ({ userInit }: Props) => {
       <div>
         <div className={"sm:mx-auto sm:w-full sm:max-w-sm"}>
           <Logo />
-          <div className="flex justify-center">
+          <div className="flex justify-center mt-2">
             <LogoutButton user={user} />
           </div>
           <h2
             className={
-              "mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"
+              "mt-4 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-gray-100"
             }
           >
             Channel:{" "}
@@ -97,7 +128,7 @@ export const UserForm = ({ userInit }: Props) => {
           <Link
             href="/following"
             className={
-              "cursor-default flex mt-4 mx-auto w-1/4 mb-2 justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+              "cursor-pointer flex mt-4 mx-auto w-1/4 mb-2 justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
             }
           >
             Following
@@ -122,7 +153,7 @@ export const UserForm = ({ userInit }: Props) => {
           <div>
             <form
               className="space-y-6"
-              onSubmit={async (formEvent: FormEvent<HTMLFormElement>) => {
+              onSubmit={async (formEvent: SyntheticEvent<HTMLFormElement>) => {
                 formEvent.preventDefault();
 
                 setButton(true);
@@ -177,7 +208,10 @@ export const UserForm = ({ userInit }: Props) => {
                     });
                   }
 
-                  showAlert("Failed to save changes", true);
+                  showAlert(
+                    `Failed to save changes: ${updateUserResponse.message}`,
+                    true,
+                  );
                 } else {
                   const updatedUser = {
                     ...user,
@@ -233,6 +267,11 @@ export const UserForm = ({ userInit }: Props) => {
                   >
                     Username
                   </label>
+                  <div className={"text-sm"}>
+                    <span className={"font-semibold text-red-500"}>
+                      {errorState.name.toString()}
+                    </span>
+                  </div>
                 </div>
                 <div className={"mt-2"}>
                   <input
@@ -252,7 +291,7 @@ export const UserForm = ({ userInit }: Props) => {
                 type="submit"
                 disabled={button}
                 className={
-                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                  "cursor-pointer disabled:cursor-default disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                 }
               >
                 Save
@@ -262,12 +301,10 @@ export const UserForm = ({ userInit }: Props) => {
           <div className={"mt-6"}>
             <form
               className="space-y-6"
-              onSubmit={async (event: React.FormEvent<HTMLFormElement>) => {
+              onSubmit={async (event: SyntheticEvent<HTMLFormElement>) => {
                 event?.preventDefault();
 
-                flushSync(() => {
-                  setButton(true);
-                });
+                setButton(true);
 
                 const formData = new FormData(event.currentTarget);
 
@@ -275,27 +312,56 @@ export const UserForm = ({ userInit }: Props) => {
                   formData.get("password")?.toString() ?? "";
                 const newPassword =
                   formData.get("newpassword")?.toString() ?? "";
+                const repeatNewPassword =
+                  formData.get("repeatnewpassword")?.toString() ?? "";
+
+                if (!validatePassword()) {
+                  setButton(false);
+
+                  return;
+                }
 
                 const { ok, error } = await changePasswordAction({
                   newPassword,
-                  currentPassword: currentPassword,
+                  repeatNewPassword,
+                  currentPassword,
                 });
 
                 if (!ok) {
                   if (error === "INVALID_PASSWORD") {
-                    setErrorState({
-                      ...errorState,
-                      password: FormPasswordError.WrongPassword,
+                    setErrorState((prevState) => {
+                      return {
+                        ...prevState,
+                        password: FormPasswordError.WrongPassword,
+                      };
+                    });
+                  } else if (error === "NEWPASSWORD_NOT_EQUAL") {
+                    setErrorState((prevState) => {
+                      return {
+                        ...prevState,
+                        password: FormPasswordError.NotSamePassword,
+                      };
+                    });
+                  } else if (error === "SAME_OLD_PASSWORD") {
+                    setErrorState((prevState) => {
+                      return {
+                        ...prevState,
+                        password: FormPasswordError.SamePassword,
+                      };
                     });
                   } else if (error === "PASSWORD_TOO_SHORT") {
-                    setErrorState({
-                      ...errorState,
-                      password: FormPasswordError.InsufficientChars,
+                    setErrorState((prevState) => {
+                      return {
+                        ...prevState,
+                        password: FormPasswordError.InsufficientChars,
+                      };
                     });
                   } else {
-                    setErrorState({
-                      ...errorState,
-                      password: FormPasswordError.Unexpected,
+                    setErrorState((prevState) => {
+                      return {
+                        ...prevState,
+                        password: FormPasswordError.Unexpected,
+                      };
                     });
                   }
 
@@ -304,7 +370,11 @@ export const UserForm = ({ userInit }: Props) => {
                     true,
                   );
                 } else {
-                  setFormPasswordState({ password: "", newpassword: "" });
+                  setFormPasswordState({
+                    password: "",
+                    newpassword: "",
+                    repeatnewpassword: "",
+                  });
                   setErrorState((prevState) => {
                     return { ...prevState, password: FormPasswordError.None };
                   });
@@ -347,7 +417,7 @@ export const UserForm = ({ userInit }: Props) => {
                     }
                     value={formPasswordState.password}
                     onChange={handleChangePassword}
-                    autoComplete="current-password"
+                    autoComplete="password"
                     required
                     className={
                       "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
@@ -374,6 +444,7 @@ export const UserForm = ({ userInit }: Props) => {
                     pattern=".{8,}"
                     value={formPasswordState.newpassword}
                     onChange={handleChangePassword}
+                    onBlur={validatePassword}
                     onInvalid={(e) =>
                       (e.target as HTMLObjectElement).setCustomValidity(
                         "Must contain 8 or more characters",
@@ -382,7 +453,41 @@ export const UserForm = ({ userInit }: Props) => {
                     onInput={(e) =>
                       (e.target as HTMLObjectElement).setCustomValidity("")
                     }
-                    autoComplete="new-password"
+                    required
+                    className={
+                      "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                    }
+                  />
+                </div>
+              </div>
+              <div>
+                <div className={"flex items-center justify-between"}>
+                  <label
+                    htmlFor="repeatnewpassword"
+                    className={
+                      "block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
+                    }
+                  >
+                    Repeat new password
+                  </label>
+                </div>
+                <div className={"mt-2"}>
+                  <input
+                    id="repeatnewpassword"
+                    name="repeatnewpassword"
+                    type="password"
+                    pattern=".{8,}"
+                    value={formPasswordState.repeatnewpassword}
+                    onChange={handleChangePassword}
+                    onBlur={validatePassword}
+                    onInvalid={(e) =>
+                      (e.target as HTMLObjectElement).setCustomValidity(
+                        "Must contain 8 or more characters",
+                      )
+                    }
+                    onInput={(e) =>
+                      (e.target as HTMLObjectElement).setCustomValidity("")
+                    }
                     required
                     className={
                       "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
@@ -394,7 +499,7 @@ export const UserForm = ({ userInit }: Props) => {
                 type="submit"
                 disabled={button}
                 className={
-                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                  "cursor-pointer disabled:cursor-default disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                 }
               >
                 Change password

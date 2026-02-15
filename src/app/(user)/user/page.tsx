@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { User } from "@/generated/client";
 import { auth } from "@/lib/auth";
-import { UserForm } from "./ui/userForm";
+import { UserForm } from "./_components/userForm";
 
 export const metadata: Metadata = {
   title: "User",
