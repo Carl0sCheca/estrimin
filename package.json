@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
+    "test": "vitest",
     "generate": "npx prisma generate",
     "build": "next build",
     "start": "next start",
@@ -18,12 +19,12 @@
     "buildandstart:scheduler": "npm run build:scheduler && npm run start:scheduler"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.893.0",
-    "@prisma/adapter-pg": "^7.3.0",
-    "@prisma/client": "^7.3.0",
+    "@aws-sdk/client-s3": "^3.990.0",
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "7.4.0",
     "@tanstack/react-query": "^5.90.21",
     "better-auth": "^1.4.18",
-    "dotenv": "^17.2.4",
+    "dotenv": "^17.3.1",
     "ffmpeg-stream": "^1.0.1",
     "mp4box": "^2.3.0",
     "next": "16.1.6",
@@ -50,15 +51,18 @@
     "eslint": "^9.39.2",
     "eslint-config-next": "16.1.6",
     "postcss": "^8.5.6",
-    "prisma": "^7.3.0",
+    "prisma": "^7.4.0",
     "tailwindcss": "^4.1.18",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "typescript-eslint": "^8.55.0",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
   },
   "overrides": {
     "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3"
-  }
+  },
+  "packageManager": "pnpm@10.29.3+sha512.498e1fb4cca5aa06c1dcf2611e6fafc50972ffe7189998c409e90de74566444298ffe43e6cd2acdc775ba1aa7cc5e092a8b7054c811ba8c5770f84693d33d2dc"
 }
