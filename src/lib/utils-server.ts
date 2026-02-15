@@ -203,3 +203,7 @@ export const getAllUrlSegment = async (
     return undefined;
   }
 };
+
+export const getFileNameFromPath = async (path: string) => {
+  return path.split("/").at(-1);
+};

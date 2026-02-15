@@ -4,7 +4,7 @@ import nodePath from "path";
 import prisma from "@/lib/prisma";
 import { SITE_SETTING, USER_SETTING } from "@/interfaces";
 import { StartAllScheduledJobAction } from "@/actions";
-import { getDateFromFileName } from "@/lib/utils-server";
+import { getDateFromFileName, getFileNameFromPath } from "@/lib/utils-server";
 import { RecordingQueueState, RecordingVisibility } from "@/generated/client";
 
 interface Params {
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     path = userPath.at(-1) || "";
   }
 
-  const segmentPath = `recordings/${path}/${segment.split("/").pop()}`;
+  const segmentPath = `recordings/${path}/${getFileNameFromPath(segment)}`;
 
   if (process.env.DEBUG) {
     console.log(

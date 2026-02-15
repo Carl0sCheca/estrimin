@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { getLastUrlSegment, getUrlSegment, hasPathname } from "./utils-server";
+import {
+  getFileNameFromPath,
+  getLastUrlSegment,
+  getUrlSegment,
+  hasPathname,
+} from "./utils-server";
 
 describe("hasPathname", () => {
   test("should return true for valid pathnames (including trailing slashes)", async () => {
@@ -47,5 +52,28 @@ describe("getLastUrlSegment", () => {
     expect(await getLastUrlSegment("http://test.domain/api/estrimin")).toBe(
       "estrimin",
     );
+  });
+
+  describe("getFileNameFromPath", () => {
+    test("should return the file name from a valid path", async () => {
+      expect(await getFileNameFromPath("/root/projects/file.txt")).toBe(
+        "file.txt",
+      );
+      expect(await getFileNameFromPath("/home/user/document.pdf")).toBe(
+        "document.pdf",
+      );
+    });
+
+    test("should return the file name without trailing slashes", async () => {
+      expect(await getFileNameFromPath("/root/projects/file.txt/")).toBe("");
+    });
+
+    test("should return undefined for root path", async () => {
+      expect(await getFileNameFromPath("/")).toBe("");
+    });
+
+    test("should return the file name for single segment", async () => {
+      expect(await getFileNameFromPath("file.txt")).toBe("file.txt");
+    });
   });
 });
