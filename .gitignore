@@ -41,3 +41,6 @@ mediamtx.yml
 /videos
 dist
 /src/generated
+
+# dev
+/traefik-config

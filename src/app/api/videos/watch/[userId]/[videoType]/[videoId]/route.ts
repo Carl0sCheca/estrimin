@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 import { RecordingVisibility } from "@/generated/client";
 import { getSafePath, validateParameters } from "@/lib/utils-api";
 import s3Client from "@/lib/s3-client";
-import { checkIfFileExists } from "../../../../../../../../scheduler/src/S3Service";
+import { checkIfFileExists } from "@scheduler/S3Service";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 interface Params {

@@ -8,7 +8,7 @@ import {
   ListObjectsV2Command,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import s3Client from "../../src/lib/s3-client";
+import s3Client from "@/lib/s3-client";
 
 import * as fs from "fs";
 import { promisify } from "util";

@@ -1,9 +1,6 @@
 import fs from "fs";
 import path from "path";
-import {
-  getDurationMP4,
-  getDateFromFileName,
-} from "../../src/lib/utils-server";
+import { getDurationMP4, getDateFromFileName } from "@/lib/utils-server";
 import { exec } from "child_process";
 import { promisify } from "util";
 import {
@@ -13,7 +10,7 @@ import {
   uploadFile,
 } from "./S3Service";
 
-import prisma from "../../src/lib/prisma";
+import prisma from "@/lib/prisma";
 
 const execAsync = promisify(exec);
 

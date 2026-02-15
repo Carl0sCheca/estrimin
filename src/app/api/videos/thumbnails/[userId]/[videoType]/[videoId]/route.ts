@@ -3,10 +3,7 @@ import { join } from "path";
 import { readFileSync, existsSync } from "fs";
 import { getSafePath, validateParameters } from "@/lib/utils-api";
 import s3Client from "@/lib/s3-client";
-import {
-  checkIfFileExists,
-  getFileBuffer,
-} from "../../../../../../../../scheduler/src/S3Service";
+import { checkIfFileExists, getFileBuffer } from "@scheduler/S3Service";
 
 interface Params {
   params: Promise<{

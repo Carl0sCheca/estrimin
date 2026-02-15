@@ -190,10 +190,15 @@ export const getLastUrlSegment = async (urlString: string) =>
 export const getUrlSegment = async (
   index: number,
   urlString: string,
-): Promise<string | undefined> => {
+): Promise<string | undefined> =>
+  (await getAllUrlSegment(urlString))?.at(index);
+
+export const getAllUrlSegment = async (
+  urlString: string,
+): Promise<string[] | undefined> => {
   try {
     const url = new URL(urlString);
-    return url.pathname.split("/").filter(Boolean).at(index);
+    return url.pathname.split("/").filter(Boolean);
   } catch {
     return undefined;
   }
