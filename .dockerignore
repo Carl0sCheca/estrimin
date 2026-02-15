@@ -6,4 +6,4 @@ videos
 dist
 docker-compose-dev.yml
 mediamtx.yml
-/src/generated/**
+/src/generated
