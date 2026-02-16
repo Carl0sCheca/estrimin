@@ -18,13 +18,8 @@ export async function GET(req: NextRequest, { params }: Params) {
   const segment = req.nextUrl.searchParams.get("segment") || "";
   const duration = Number(req.nextUrl.searchParams.get("duration")) || 0;
 
-  let path;
-
-  if (typeof userPath === "string") {
-    path = userPath;
-  } else {
-    path = userPath.at(-1) || "";
-  }
+  const path =
+    typeof userPath === "string" ? userPath : (userPath.at(-1) ?? "");
 
   const segmentPath = `recordings/${path}/${await getFileNameFromPath(segment)}`;
 
