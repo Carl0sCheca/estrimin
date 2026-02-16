@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     path = userPath.at(-1) || "";
   }
 
-  const segmentPath = `recordings/${path}/${getFileNameFromPath(segment)}`;
+  const segmentPath = `recordings/${path}/${await getFileNameFromPath(segment)}`;
 
   if (process.env.DEBUG) {
     console.log(

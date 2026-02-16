@@ -16,6 +16,10 @@ describe("hasPathname", () => {
     expect(await hasPathname("http://test.domain/")).toBe(false);
     expect(await hasPathname("http://test.domain")).toBe(false);
   });
+
+  test("should return false for empty path", async () => {
+    expect(await hasPathname("")).toBe(false);
+  });
 });
 
 describe("getUrlSegment", () => {
