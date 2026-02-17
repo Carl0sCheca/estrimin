@@ -30,7 +30,8 @@ ALTER TABLE "recordingQueue" DROP COLUMN "error",
 ADD COLUMN     "errorMessage" TEXT,
 ADD COLUMN     "errorState" "RecordingQueueState",
 ADD COLUMN     "mergingWithId" INTEGER,
-ADD COLUMN     "segmentsIndex" INTEGER[];
+ADD COLUMN     "segmentsIndex" INTEGER[],
+ALTER COLUMN "status" SET DEFAULT 'RECORDING';
 
 -- AlterTable
 ALTER TABLE "userSetting" DROP CONSTRAINT "userSetting_pkey",

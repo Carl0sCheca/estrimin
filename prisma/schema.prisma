@@ -192,7 +192,7 @@ enum RecordingQueueState {
 
 model RecordingQueue {
   id            Int                  @id @default(autoincrement())
-  status        RecordingQueueState  @default(PENDING)
+  status        RecordingQueueState  @default(RECORDING)
   fileName      String
   duration      Float
   userId        String
