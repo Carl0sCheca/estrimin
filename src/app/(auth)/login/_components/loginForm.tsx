@@ -3,12 +3,17 @@
 import { Logo } from "@/components";
 import { signIn } from "@/lib/auth-client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChangeEvent, useState } from "react";
+import { useActionState } from "react";
 
-enum LoginError {
-  None = "",
+interface FormState {
+  loginState?: LoginState;
+  email?: string;
+  password?: string;
+}
+
+enum LoginState {
   Invalid = "Email or password are not correct",
+  Success = "",
 }
 
 interface Props {
@@ -16,44 +21,32 @@ interface Props {
 }
 
 export const LoginForm = ({ isDisabled }: Props) => {
-  const [formState, setFormState] = useState({
-    email: "",
-    password: "",
-  });
+  const loginAction = async (
+    _prevState: FormState,
+    formData: FormData,
+  ): Promise<FormState> => {
+    const email = formData.get("email")?.toString();
+    const password = formData.get("password")?.toString();
 
-  const [errorState, setErrorState] = useState(LoginError.None);
+    if (!email || !password) {
+      return {};
+    }
 
-  const [button, setButton] = useState(false);
-
-  const router = useRouter();
-
-  const loginAction = async (email: string, password: string) => {
-    await signIn.email(
-      {
-        email,
-        password,
-      },
-      {
-        onRequest: () => {
-          setButton(true);
-        },
-        onSuccess: () => {
-          router.push("/");
-        },
-        onError: () => {
-          setButton(false);
-          setErrorState(LoginError.Invalid);
-        },
-      },
-    );
-  };
-
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setFormState({
-      ...formState,
-      [event.target.name]: event.target.value,
+    const result = await signIn.email({
+      email,
+      password,
+      rememberMe: true,
+      callbackURL: "/",
     });
+
+    if (result.error) {
+      return { loginState: LoginState.Invalid, email };
+    } else {
+      return { loginState: LoginState.Success, email, password };
+    }
   };
+
+  const [state, formAction, isPending] = useActionState(loginAction, {});
 
   return (
     <>
@@ -69,21 +62,7 @@ export const LoginForm = ({ isDisabled }: Props) => {
           </h2>
         </div>
         <div className={"mt-10 sm:mx-auto sm:w-full sm:max-w-sm"}>
-          <form
-            className={"space-y-6"}
-            action={async (formData: FormData) => {
-              setErrorState(LoginError.None);
-
-              const email = formData.get("email")?.toString();
-              const password = formData.get("password")?.toString();
-
-              if (!email || !password) {
-                return;
-              }
-
-              await loginAction(email, password);
-            }}
-          >
+          <form className={"space-y-6"} action={formAction}>
             <div>
               <div className={"flex items-center justify-between"}>
                 <label
@@ -96,7 +75,8 @@ export const LoginForm = ({ isDisabled }: Props) => {
                 </label>
                 <div className={"text-sm"}>
                   <span className={"font-semibold text-red-500"}>
-                    {errorState.toString()}
+                    {state.loginState === LoginState.Invalid &&
+                      state.loginState}
                   </span>
                 </div>
               </div>
@@ -106,8 +86,7 @@ export const LoginForm = ({ isDisabled }: Props) => {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  onChange={handleChange}
-                  value={formState.email}
+                  defaultValue={state.email}
                   required
                   className={
                     "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
@@ -131,6 +110,7 @@ export const LoginForm = ({ isDisabled }: Props) => {
                 <input
                   id="password"
                   name="password"
+                  defaultValue={state.password}
                   type="password"
                   pattern=".{8,}"
                   onInvalid={(e) =>
@@ -141,8 +121,6 @@ export const LoginForm = ({ isDisabled }: Props) => {
                   onInput={(e) =>
                     (e.target as HTMLObjectElement).setCustomValidity("")
                   }
-                  onChange={handleChange}
-                  value={formState.password}
                   autoComplete="current-password"
                   required
                   className={
@@ -155,7 +133,7 @@ export const LoginForm = ({ isDisabled }: Props) => {
             <div>
               <button
                 type="submit"
-                disabled={button}
+                disabled={isPending || state.loginState === LoginState.Success}
                 className={
                   "cursor-pointer disabled:cursor-default disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                 }
