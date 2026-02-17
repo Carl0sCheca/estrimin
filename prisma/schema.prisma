@@ -114,6 +114,8 @@ model Channel {
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   channelAllowList   ChannelAllowList[] @relation("ChannelUsers")
   RecordingsSaved    RecordingSaved[]
+  isOnline           Boolean            @default(false)
+  lastOnline         DateTime?
 
   @@map("channel")
 }
@@ -162,23 +164,26 @@ model SiteSetting {
 }
 
 model UserSetting {
-  key   String @id
+  key   String
   value Json
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([key, userId])
+  @@id([userId, key])
   @@map("userSetting")
 }
 
 enum RecordingQueueState {
+  RECORDING
   UPLOADING
   UPLOADED
   PENDING
   ENCODING
+  ENCODED_UPLOADING
   ENCODED
   MERGING
+  MERGING_UPLOADING
   MERGED
   COMPLETED
   FAILED
@@ -186,21 +191,28 @@ enum RecordingQueueState {
 }
 
 model RecordingQueue {
-  id             Int                 @id @default(autoincrement())
-  status         RecordingQueueState @default(PENDING)
-  fileName       String
-  duration       Float
-  userId         String
-  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt      DateTime            @default(now())
-  startedAt      DateTime?
-  finishedAt     DateTime?
-  attempts       Int                 @default(0)
-  error          String?
+  id            Int                  @id @default(autoincrement())
+  status        RecordingQueueState  @default(PENDING)
+  fileName      String
+  duration      Float
+  userId        String
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime             @default(now())
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  attempts      Int                  @default(0)
+  errorMessage  String?
+  errorState    RecordingQueueState?
+  visibility    RecordingVisibility  @default(PUBLIC)
+  segmentsIndex Int[]
+
   firstSegmentId Int?
-  firstSegment   RecordingQueue?     @relation("SegmentRelation", fields: [firstSegmentId], references: [id])
-  segments       RecordingQueue[]    @relation("SegmentRelation")
-  visibility     RecordingVisibility @default(PUBLIC)
+  firstSegment   RecordingQueue?  @relation("SegmentRelation", fields: [firstSegmentId], references: [id])
+  segments       RecordingQueue[] @relation("SegmentRelation")
+
+  mergingWithId Int?            @unique
+  mergingWith   RecordingQueue? @relation("MergingRelation", fields: [mergingWithId], references: [id])
+  mergedFrom    RecordingQueue? @relation("MergingRelation")
 
   @@index([status])
   @@index([userId])

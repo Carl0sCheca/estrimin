@@ -48,7 +48,12 @@ export async function GET(req: NextRequest, { params }: Params) {
     recordingShouldBeDeleted = !(
       ((
         await prisma.userSetting.findUnique({
-          where: { key: USER_SETTING.STORE_PAST_STREAMS, userId: path },
+          where: {
+            userId_key: {
+              key: USER_SETTING.STORE_PAST_STREAMS,
+              userId: path,
+            },
+          },
         })
       )?.value as boolean) ?? false
     );

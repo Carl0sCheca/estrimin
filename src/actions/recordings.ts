@@ -465,8 +465,10 @@ export const changeDefaultRecordingVisibilityAction = async (
   try {
     await prisma.userSetting.upsert({
       where: {
-        key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
-        userId,
+        userId_key: {
+          key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
+          userId,
+        },
       },
       update: { value },
       create: {
@@ -555,7 +557,7 @@ export const storePastStreamsAction = async (
 
   try {
     await prisma.userSetting.upsert({
-      where: { key: USER_SETTING.STORE_PAST_STREAMS, userId },
+      where: { userId_key: { key: USER_SETTING.STORE_PAST_STREAMS, userId } },
       update: { value },
       create: { key: USER_SETTING.STORE_PAST_STREAMS, userId, value },
     });
