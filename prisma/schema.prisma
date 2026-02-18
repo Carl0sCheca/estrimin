@@ -214,6 +214,7 @@ model RecordingQueue {
   mergingWith   RecordingQueue? @relation("MergingRelation", fields: [mergingWithId], references: [id])
   mergedFrom    RecordingQueue? @relation("MergingRelation")
 
+  @@index([userId, fileName])
   @@index([status])
   @@index([userId])
   @@map("recordingQueue")

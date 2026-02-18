@@ -40,5 +40,8 @@ ADD CONSTRAINT "userSetting_pkey" PRIMARY KEY ("userId", "key");
 -- CreateIndex
 CREATE UNIQUE INDEX "recordingQueue_mergingWithId_key" ON "recordingQueue"("mergingWithId");
 
+-- CreateIndex
+CREATE INDEX "recordingQueue_userId_fileName_idx" ON "recordingQueue"("userId", "fileName");
+
 -- AddForeignKey
 ALTER TABLE "recordingQueue" ADD CONSTRAINT "recordingQueue_mergingWithId_fkey" FOREIGN KEY ("mergingWithId") REFERENCES "recordingQueue"("id") ON DELETE SET NULL ON UPDATE CASCADE;
