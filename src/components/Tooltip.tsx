@@ -6,6 +6,12 @@ export interface MouseEnterEventOptions {
   defaultPosition?: "top" | "bottom";
   followCursor?: boolean;
   extraGapY?: number;
+  effect?: Effect;
+}
+
+export enum Effect {
+  None,
+  Pulse,
 }
 
 type Position = {
@@ -33,6 +39,8 @@ type Element = {
   position?: Position;
   followCursor: boolean;
   options: MouseEnterEventOptions;
+  effect: Effect;
+  actualEffect: Effect;
 };
 
 interface TooltipProps {
@@ -137,6 +145,7 @@ export const useTooltip = () => {
       defaultPosition = "top",
       followCursor = false,
       extraGapY = 3,
+      effect = Effect.None,
     }: MouseEnterEventOptions = {},
   ) => {
     const element = event.currentTarget as HTMLElement;
@@ -161,6 +170,8 @@ export const useTooltip = () => {
           tooltipRef: createRef<HTMLSpanElement>(),
           followCursor,
           options: { defaultPosition, followCursor, extraGapY },
+          actualEffect: Effect.None,
+          effect,
         };
 
         const visibilityTimeout = setTimeout(() => {
@@ -318,6 +329,25 @@ export const useTooltip = () => {
   }, [elements]);
 
   useEffect(() => {
+    const handleMouseClick = () => {
+      setElements((prev) =>
+        prev.map((el) =>
+          el.visible ? { ...el, actualEffect: Effect.Pulse } : el,
+        ),
+      );
+
+      setTimeout(() => {
+        setElements((prev) =>
+          prev.map((el) => ({ ...el, actualEffect: Effect.None })),
+        );
+      }, 200);
+    };
+
+    window.addEventListener("click", handleMouseClick);
+    return () => window.removeEventListener("click", handleMouseClick);
+  }, []);
+
+  useEffect(() => {
     const currentTimeoutsMap = timeoutsMap.current;
 
     return () => {
@@ -338,14 +368,29 @@ export const Tooltip = ({ elements }: TooltipProps) => {
   return (
     <>
       {elements.map((element) => {
+        const isHidden = !element.visible;
+        const isPulsing = element.actualEffect === Effect.Pulse;
+
         return (
           <span
             key={element.id}
-            className="select-none z-40 pointer-events-none text-center p-2 bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 min-w-20 rounded-md absolute transition-opacity duration-500 ease-out"
+            className={`
+              absolute select-none z-40 pointer-events-none text-center p-2 
+              bg-gray-800 dark:bg-gray-600 px-1 text-sm text-gray-100 
+              min-w-20 rounded-md
+              transition duration-200 ease-in-out
+
+              ${isHidden ? "opacity-0" : "opacity-100"}
+
+              ${
+                isPulsing && element.effect === Effect.Pulse
+                  ? "scale-125 bg-gray-700 brightness-125"
+                  : "scale-100"
+              }
+            `}
             style={{
               left: `${element.position?.x || 0}px`,
               top: `${element.position?.y || 0}px`,
-              opacity: `${element.visible ? 1 : 0}`,
             }}
             ref={element.tooltipRef}
           >

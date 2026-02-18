@@ -4,7 +4,7 @@ import { createChannel } from "@/actions";
 import { useState } from "react";
 import { VscDebugRestart } from "react-icons/vsc";
 import { UserChannel } from "./channelSettingsForm";
-import { MouseEnterEventOptions } from "@/components";
+import { Effect, MouseEnterEventOptions } from "@/components";
 import { HiClipboardCopy } from "react-icons/hi";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
@@ -134,6 +134,7 @@ export const StreamKey = ({
                       defaultPosition: "bottom",
                       followCursor: true,
                       extraGapY: 20,
+                      effect: Effect.Pulse,
                     })
                   }
                   onMouseMove={(e) => tooltipMouseMove(e)}
