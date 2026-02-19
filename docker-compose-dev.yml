@@ -9,7 +9,7 @@ services:
   #     - "3000:3000"
 
   db:
-    image: pgautoupgrade/pgautoupgrade:17.7-alpine3.23
+    image: pgautoupgrade/pgautoupgrade:18.2-alpine3.23
     restart: always
     shm_size: 128mb
     ports:
@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       TZ: Europe/Madrid
     volumes:
-      - db-dev-estrimin:/var/lib/postgresql/data
+      - db-dev-estrimin:/var/lib/postgresql
     networks:
       - default
   mediamtx:
@@ -29,13 +29,13 @@ services:
       context: .
       dockerfile: mediamtx.Dockerfile
       args:
-        - MEDIAMTX_VERSION=v1.15.3
+        - MEDIAMTX_VERSION=v1.16.1
     environment:
       - MTX_WEBRTCADDITIONALHOSTS=${MTX_WEBRTCADDITIONALHOSTS}
       - TZ=Europe/Madrid
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro # https://github.com/bluenviron/mediamtx/blob/main/mediamtx.yml
-      - ./videos/recordings:/recordings/
+      - ./videos:/videos/
     ports:
       - "9997:9997"
       - "8889:8889"
