@@ -23,7 +23,7 @@ import {
   getLastUrlSegment,
 } from "@/lib/utils-server";
 import s3Client from "@/lib/s3-client";
-import { deleteFile, moveFile } from "@scheduler/S3Service";
+import { deleteFile, moveFile } from "@scheduler/services/s3.service";
 
 export const getNonSavedRecordingsList = async (
   sessionId: string,

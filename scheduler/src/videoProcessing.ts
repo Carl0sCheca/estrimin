@@ -8,7 +8,7 @@ import {
   downloadFile,
   listRecordingFilesS3,
   uploadFile,
-} from "./S3Service";
+} from "./services/s3.service";
 
 import prisma from "@/lib/prisma";
 
