@@ -10,11 +10,6 @@ datasource db {
   extensions = [citext]
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
 enum ChannelVisibility {
   ALL
   REGISTERED_USERS
@@ -23,11 +18,32 @@ enum ChannelVisibility {
   UNLISTED
 }
 
+enum RecordingQueueState {
+  RECORDING
+  UPLOADING
+  UPLOADED
+  PENDING
+  ENCODING
+  ENCODED_UPLOADING
+  ENCODED
+  MERGING
+  MERGING_UPLOADING
+  MERGED
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
 enum RecordingVisibility {
   PUBLIC
   ALLOWLIST
   UNLISTED
   PRIVATE
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 model User {
@@ -114,10 +130,24 @@ model Channel {
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   channelAllowList   ChannelAllowList[] @relation("ChannelUsers")
   RecordingsSaved    RecordingSaved[]
-  isOnline           Boolean            @default(false)
-  lastOnline         DateTime?
+
+  channelStatus ChannelStatus?
 
   @@map("channel")
+}
+
+model ChannelStatus {
+  channelId Int     @id
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  userId String @unique
+
+  isOnline       Boolean   @default(false)
+  lastOnline     DateTime? @updatedAt
+  firstSegmentId Int?
+  segmentCount   Int       @default(0)
+
+  @@map("channelStatus")
 }
 
 model ChannelAllowList {
@@ -174,22 +204,6 @@ model UserSetting {
   @@map("userSetting")
 }
 
-enum RecordingQueueState {
-  RECORDING
-  UPLOADING
-  UPLOADED
-  PENDING
-  ENCODING
-  ENCODED_UPLOADING
-  ENCODED
-  MERGING
-  MERGING_UPLOADING
-  MERGED
-  COMPLETED
-  FAILED
-  EXPIRED
-}
-
 model RecordingQueue {
   id            Int                  @id @default(autoincrement())
   status        RecordingQueueState  @default(RECORDING)
@@ -214,7 +228,7 @@ model RecordingQueue {
   mergingWith   RecordingQueue? @relation("MergingRelation", fields: [mergingWithId], references: [id])
   mergedFrom    RecordingQueue? @relation("MergingRelation")
 
-  @@index([userId, fileName])
+  @@unique([userId, fileName])
   @@index([status])
   @@index([userId])
   @@map("recordingQueue")

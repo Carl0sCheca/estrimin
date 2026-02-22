@@ -14,10 +14,20 @@ export async function GET(_req: NextRequest, { params }: Params) {
     typeof userPath === "string" ? userPath : (userPath.at(-1) ?? "");
 
   try {
-    await prisma.channel.update({
-      data: {
+    await prisma.channelStatus.upsert({
+      create: {
+        channel: { connect: { userId } },
+        userId,
         isOnline: true,
         lastOnline: new Date(),
+        firstSegmentId: null,
+        segmentCount: 0,
+      },
+      update: {
+        isOnline: true,
+        lastOnline: new Date(),
+        firstSegmentId: null,
+        segmentCount: 0,
       },
       where: {
         userId,

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import nodePath from "path";
+import { rmSync } from "fs";
+import { join as pathJoin } from "path";
 import prisma from "@/lib/prisma";
-import { SITE_SETTING, USER_SETTING } from "@/interfaces";
 import { StartAllScheduledJobAction } from "@/actions";
-import { getDateFromFileName, getFileNameFromPath } from "@/lib/utils-server";
-import { RecordingQueueState, RecordingVisibility } from "@/generated/client";
+import { getFileNameFromPath } from "@/lib/utils-server";
+import { RecordingQueueState } from "@/generated/client";
 
 interface Params {
   params: Promise<{
@@ -18,130 +17,128 @@ export async function GET(req: NextRequest, { params }: Params) {
   const segment = req.nextUrl.searchParams.get("segment") || "";
   const duration = Number(req.nextUrl.searchParams.get("duration")) || 0;
 
-  const path =
+  const userId =
     typeof userPath === "string" ? userPath : (userPath.at(-1) ?? "");
 
-  const segmentPath = `recordings/${path}/${await getFileNameFromPath(segment)}`;
+  const segmentPath = pathJoin(
+    "recordings",
+    userId,
+    (await getFileNameFromPath(segment)) || "",
+  );
+
+  const videoPath = pathJoin(process.env.RECORDINGS_PATH || "", segmentPath);
+
+  const fileName = videoPath.split("/").pop() || videoPath;
 
   if (process.env.DEBUG) {
     console.log(
       "GET /api/videos/segmentComplete:",
       await params,
-      path,
+      userId,
       segmentPath,
       req,
     );
   }
 
-  const fileDate = await getDateFromFileName(
-    segmentPath.split("/").pop()?.replace(".mp4", "") || "",
-  );
-
-  let recordingShouldBeDeleted =
-    ((
-      await prisma.siteSetting.findFirst({
-        where: { key: SITE_SETTING.DISABLE_RECORDINGS },
-      })
-    )?.value as boolean) ?? false;
-
-  if (!recordingShouldBeDeleted) {
-    recordingShouldBeDeleted = !(
-      ((
-        await prisma.userSetting.findUnique({
-          where: {
-            userId_key: {
-              key: USER_SETTING.STORE_PAST_STREAMS,
-              userId: path,
-            },
-          },
-        })
-      )?.value as boolean) ?? false
-    );
-  }
-
-  const videoPath = nodePath.join(
-    process.env.RECORDINGS_PATH || "",
-    segmentPath,
-  );
-
-  const fileSize = fs.statSync(videoPath);
-
-  if (fileSize.size < 5000 || recordingShouldBeDeleted) {
-    try {
-      fs.rmSync(videoPath);
-    } catch (error) {
-      console.error("onSegmentComplete: error removing file", error);
-    }
-
-    return NextResponse.json({ ok: 0, path, segment, duration });
-  }
-
-  const lastRecording = await prisma.recordingQueue.findFirst({
+  const existingRecordingEntry = await prisma.recordingQueue.findFirst({
     where: {
-      userId: path,
-    },
-    orderBy: {
-      createdAt: "desc",
+      userId,
+      fileName,
     },
   });
 
-  let firstSegmentId: number | null = null;
-
-  if (lastRecording) {
-    const threshold = 2000;
-
-    const expectedEndTime =
-      lastRecording.createdAt.getTime() + lastRecording.duration * 1000;
-
-    const minDate = new Date(expectedEndTime - threshold);
-    const maxDate = new Date(expectedEndTime + threshold);
-
-    if (fileDate >= minDate && fileDate <= maxDate) {
-      firstSegmentId = lastRecording.firstSegmentId;
+  if (duration < 0.5) {
+    try {
+      rmSync(videoPath);
+    } catch (error) {
+      console.error("segmentCreate: error removing file", error);
     }
-  }
 
-  try {
-    const userSetting = await prisma.userSetting.findFirst({
-      where: {
-        key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
-        userId: path,
-      },
-    });
-
-    const defaultVisibility =
-      (userSetting?.value as RecordingVisibility) ??
-      RecordingVisibility.PRIVATE;
-
-    const createdRecording = await prisma.recordingQueue.create({
-      data: {
-        fileName: videoPath.split("/").pop() || videoPath,
-        userId: path,
-        duration,
-        createdAt: fileDate,
-        firstSegmentId,
-        visibility: defaultVisibility,
-        status: process.env.S3_BUCKET_ENDPOINT
-          ? RecordingQueueState.UPLOADING
-          : RecordingQueueState.PENDING,
-      },
-    });
-
-    if (!firstSegmentId) {
-      await prisma.recordingQueue.update({
+    if (existingRecordingEntry) {
+      await prisma.recordingQueue.delete({
         where: {
-          id: createdRecording.id,
+          userId_fileName: {
+            userId,
+            fileName,
+          },
         },
+      });
+    } else {
+      await prisma.recordingQueue.create({
         data: {
-          firstSegmentId: createdRecording.id,
+          fileName,
+          userId,
+          duration: 0,
+          status: RecordingQueueState.FAILED,
+          errorState: RecordingQueueState.FAILED,
         },
       });
     }
-  } catch (error) {
-    console.error("Error segmentComplete:", error);
+
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const channelStatus = await prisma.channelStatus.findFirst({
+    where: { userId },
+  });
+
+  if (!channelStatus) {
+    console.error(`segmentCreate: channelStatus not found userId: ${userId}`);
+    return new NextResponse(null, { status: 500 });
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const recording = await tx.recordingQueue.update({
+        where: {
+          userId_fileName: {
+            fileName,
+            userId,
+          },
+        },
+        data: {
+          duration,
+          finishedAt: new Date(),
+          status: RecordingQueueState.UPLOADING,
+          firstSegmentId: channelStatus.firstSegmentId,
+        },
+      });
+
+      if (!channelStatus.firstSegmentId) {
+        await tx.channelStatus.update({
+          where: {
+            userId,
+          },
+          data: {
+            firstSegmentId: recording.id,
+            segmentCount: { increment: 1 },
+          },
+        });
+
+        return await tx.recordingQueue.update({
+          where: { id: recording.id },
+          data: { firstSegmentId: recording.id },
+        });
+      } else {
+        await tx.channelStatus.update({
+          where: {
+            userId,
+          },
+          data: {
+            segmentCount: { increment: 1 },
+          },
+        });
+      }
+
+      return recording;
+    });
+  } catch {
+    console.error(
+      `segmentComplete: Error while updating recordingQueue ${userId}/${fileName}`,
+    );
   }
 
   StartAllScheduledJobAction();
 
-  return NextResponse.json({ ok: 0, path, segment, duration });
+  return NextResponse.json({ ok: 0, userId, segment, duration });
 }

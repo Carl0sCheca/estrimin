@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     typeof userPath === "string" ? userPath : (userPath.at(-1) ?? "");
 
   try {
-    await prisma.channel.update({
+    await prisma.channelStatus.update({
       data: {
         isOnline: false,
         lastOnline: new Date(),
