@@ -1,16 +1,19 @@
-FROM node:24.13.0-alpine3.23
+FROM node:25.6.1-alpine3.23
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN npm install -g pnpm@10.30.1
 
-RUN apk add openssl
-RUN apk add openssl-dev
-RUN apk add openssl-libs-static
-RUN apk add curl
-RUN apk add ffmpeg
+RUN apk add --no-cache \
+    openssl \
+    openssl-dev \
+    openssl-libs-static \
+    curl \
+    ffmpeg
 
-RUN npm install
+COPY package.json pnpm-lock.yaml ./
+
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
@@ -18,4 +21,4 @@ EXPOSE 3000
 
 ENV HOSTNAME="0.0.0.0"
 
-ENTRYPOINT ["npm", "run", "buildandstart"]
+ENTRYPOINT ["pnpm", "run", "buildandstart"]
