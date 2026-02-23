@@ -17,7 +17,7 @@ import {
 
 import {
   JOB_RECORDING_QUEUE,
-  JOB_RECORDING_TIMEOUT_QUEUE,
+  JOB_EXPIRED_RECORDINGS_QUEUE,
   JOB_UPLOADING_QUEUE,
   queueJob,
   queueJobTimeout,
@@ -30,8 +30,8 @@ const initShcheduler = async () => {
   try {
     scheduler.stopById(JOB_RECORDING_QUEUE);
     scheduler.removeById(JOB_RECORDING_QUEUE);
-    scheduler.stopById(JOB_RECORDING_TIMEOUT_QUEUE);
-    scheduler.removeById(JOB_RECORDING_TIMEOUT_QUEUE);
+    scheduler.stopById(JOB_EXPIRED_RECORDINGS_QUEUE);
+    scheduler.removeById(JOB_EXPIRED_RECORDINGS_QUEUE);
     scheduler.stopById(JOB_UPLOADING_QUEUE);
     scheduler.removeById(JOB_UPLOADING_QUEUE);
   } catch {}
