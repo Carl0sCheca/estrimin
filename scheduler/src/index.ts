@@ -20,7 +20,7 @@ import {
   JOB_EXPIRED_RECORDINGS_QUEUE,
   JOB_UPLOADING_QUEUE,
   queueJob,
-  queueJobTimeout,
+  queueJobExpired,
   queueUploadingJob,
 } from "./jobs";
 
@@ -37,7 +37,7 @@ const initShcheduler = async () => {
   } catch {}
 
   scheduler.addSimpleIntervalJob(queueJob);
-  scheduler.addSimpleIntervalJob(queueJobTimeout);
+  scheduler.addSimpleIntervalJob(queueJobExpired);
   scheduler.addSimpleIntervalJob(queueUploadingJob);
 };
 
