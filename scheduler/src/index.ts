@@ -16,29 +16,38 @@ import {
 } from "./commands";
 
 import {
-  JOB_RECORDING_QUEUE,
   JOB_EXPIRED_RECORDINGS_QUEUE,
+  JOB_RECORDING_QUEUE_TIMEOUT,
+  JOB_RECORDING_QUEUE,
   JOB_UPLOADING_QUEUE,
   queueJob,
   queueJobExpired,
+  queueJobTimeout,
   queueUploadingJob,
 } from "./jobs";
 
 const initShcheduler = async () => {
   if (!scheduler) return;
 
+  const queues = [
+    JOB_RECORDING_QUEUE,
+    JOB_EXPIRED_RECORDINGS_QUEUE,
+    JOB_UPLOADING_QUEUE,
+    JOB_RECORDING_QUEUE_TIMEOUT,
+  ];
+
+  const jobs = [queueJob, queueJobExpired, queueUploadingJob, queueJobTimeout];
+
   try {
-    scheduler.stopById(JOB_RECORDING_QUEUE);
-    scheduler.removeById(JOB_RECORDING_QUEUE);
-    scheduler.stopById(JOB_EXPIRED_RECORDINGS_QUEUE);
-    scheduler.removeById(JOB_EXPIRED_RECORDINGS_QUEUE);
-    scheduler.stopById(JOB_UPLOADING_QUEUE);
-    scheduler.removeById(JOB_UPLOADING_QUEUE);
+    queues.forEach((queue) => {
+      scheduler.stopById(queue);
+      scheduler.removeById(queue);
+    });
   } catch {}
 
-  scheduler.addSimpleIntervalJob(queueJob);
-  scheduler.addSimpleIntervalJob(queueJobExpired);
-  scheduler.addSimpleIntervalJob(queueUploadingJob);
+  jobs.forEach((job) => {
+    scheduler.addSimpleIntervalJob(job);
+  });
 };
 
 const messagesFromEstrimin = async () => {

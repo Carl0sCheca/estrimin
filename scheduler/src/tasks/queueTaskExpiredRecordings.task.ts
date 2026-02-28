@@ -34,11 +34,7 @@ export const queueTaskExpiredRecordings = async () => {
           lt: new Date(Date.now() - 48 * 60 * 60 * 1000), // 48 hours
         },
         status: {
-          notIn: [
-            RecordingQueueState.FAILED,
-            RecordingQueueState.EXPIRED,
-            RecordingQueueState.COMPLETED,
-          ],
+          notIn: [RecordingQueueState.FAILED, RecordingQueueState.EXPIRED],
         },
       },
     },
