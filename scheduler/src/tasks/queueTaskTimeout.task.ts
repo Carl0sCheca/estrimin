@@ -11,7 +11,7 @@ const markUploadingRecordingsAsFailed = async (): Promise<RecordingQueue[]> => {
   const recordingsUploading: Array<RecordingQueue> = await prisma.$queryRaw`
     UPDATE "recordingQueue"
     SET 
-      "errorState" = ${RecordingQueueState.RECORDED},
+      "errorState" = ${RecordingQueueState.UPLOADING},
       "status" = ${RecordingQueueState.FAILED},
       "attempts" = "attempts" + 1,
       "finishedAt" = NOW()

@@ -11,7 +11,7 @@ export const queueTaskRetryFailedRecordings = async () => {
   await prisma.$queryRaw`
     UPDATE "recordingQueue"
     SET
-      "status" = "errorState",
+      "status" = "previousState",
       "errorState" = null,
       "startedAt" = NOW()
     WHERE
