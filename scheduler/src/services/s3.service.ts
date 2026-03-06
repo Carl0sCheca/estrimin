@@ -20,7 +20,7 @@ export const uploadFile = async (
   key: string,
   filePath: string,
   contentType: string,
-): Promise<string | null> => {
+): Promise<boolean> => {
   try {
     const fileStream = fs.createReadStream(filePath);
 
@@ -33,11 +33,10 @@ export const uploadFile = async (
 
     await s3Client?.send(command);
 
-    const fileUrl = `s3://${key}`;
-    return fileUrl;
+    return true;
   } catch (err) {
     console.error("Error uploading file from S3:", err);
-    return null;
+    return false;
   }
 };
 
@@ -84,7 +83,20 @@ export const getFileBuffer = async (
 
 export const deleteFile = async (...keys: string[]): Promise<void> => {
   try {
-    const objects = keys.map((key) => {
+    const existingKeys = await Promise.all(
+      keys.map(async (key) => {
+        const exists = await checkIfFileExists(key);
+        return exists ? key : null;
+      }),
+    );
+
+    const validKeys = existingKeys.filter((key) => key !== null);
+
+    if (validKeys.length === 0) {
+      return;
+    }
+
+    const objects = validKeys.map((key) => {
       return { Key: key };
     });
 

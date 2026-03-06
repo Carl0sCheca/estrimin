@@ -19,10 +19,12 @@ import {
   JOB_EXPIRED_RECORDINGS_QUEUE,
   JOB_RECORDING_QUEUE_TIMEOUT,
   JOB_RECORDING_QUEUE,
+  JOB_RETRY_FAILED_QUEUE,
   JOB_UPLOADING_QUEUE,
   queueJob,
   queueJobExpired,
   queueJobTimeout,
+  queueRetryFailedJob,
   queueUploadingJob,
 } from "./jobs";
 
@@ -30,13 +32,20 @@ const initShcheduler = async () => {
   if (!scheduler) return;
 
   const queues = [
-    JOB_RECORDING_QUEUE,
     JOB_EXPIRED_RECORDINGS_QUEUE,
-    JOB_UPLOADING_QUEUE,
     JOB_RECORDING_QUEUE_TIMEOUT,
+    JOB_RECORDING_QUEUE,
+    JOB_RETRY_FAILED_QUEUE,
+    JOB_UPLOADING_QUEUE,
   ];
 
-  const jobs = [queueJob, queueJobExpired, queueUploadingJob, queueJobTimeout];
+  const jobs = [
+    queueJob,
+    queueJobExpired,
+    queueUploadingJob,
+    queueJobTimeout,
+    queueRetryFailedJob,
+  ];
 
   try {
     queues.forEach((queue) => {
