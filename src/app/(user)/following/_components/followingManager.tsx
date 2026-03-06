@@ -28,8 +28,6 @@ export const FollowingManager = ({
     mutationFn: async (id: string) => {
       const response = await UserUnFollowAction(sessionUserId, id);
 
-      console.log(response);
-
       if (!response.ok) {
         throw new Error("Failed to unfollow user");
       }
