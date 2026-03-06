@@ -100,6 +100,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           duration,
           finishedAt: new Date(),
           status: RecordingQueueState.RECORDED,
+          previousState: RecordingQueueState.RECORDING,
           firstSegmentId: channelStatus.firstSegmentId,
         },
       });
