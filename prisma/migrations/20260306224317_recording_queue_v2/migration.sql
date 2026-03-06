@@ -28,6 +28,7 @@ ALTER TABLE "recordingQueue" DROP COLUMN "error",
 ADD COLUMN     "errorMessage" TEXT,
 ADD COLUMN     "errorState" "RecordingQueueState",
 ADD COLUMN     "mergingWithId" INTEGER,
+ADD COLUMN     "previousState" "RecordingQueueState",
 ADD COLUMN     "segmentsIndex" INTEGER[],
 ALTER COLUMN "status" SET DEFAULT 'RECORDING';
 

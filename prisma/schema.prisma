@@ -218,6 +218,7 @@ model RecordingQueue {
   attempts      Int                  @default(0)
   errorMessage  String?
   errorState    RecordingQueueState?
+  previousState RecordingQueueState?
   visibility    RecordingVisibility  @default(PUBLIC)
   segmentsIndex Int[]
 
