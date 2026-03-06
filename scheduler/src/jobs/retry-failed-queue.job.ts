@@ -1,5 +1,5 @@
 import { AsyncTask, SimpleIntervalJob } from "toad-scheduler";
-import { queueTaskRetryFailedRecordings } from "@scheduler/tasks/queueTaskRetryFailedRecordings.tasks";
+import { queueTaskRetryFailedRecordings } from "@scheduler/tasks/queue-retry-failed-recordings.tasks";
 
 export const JOB_RETRY_FAILED_QUEUE = "JOB_RETRY_FAILED_QUEUE";
 
