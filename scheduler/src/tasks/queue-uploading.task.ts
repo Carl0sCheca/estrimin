@@ -74,7 +74,7 @@ export const queueTaskUploading = async () => {
       continue;
     } else {
       const fileUpload = await uploadFile(
-        join("recordings", recording.userId, basename(recording.fileName)),
+        `recordings/${recording.userId}/${basename(recording.fileName)}`,
         join(
           process.env.RECORDINGS_PATH || "",
           "recordings",
