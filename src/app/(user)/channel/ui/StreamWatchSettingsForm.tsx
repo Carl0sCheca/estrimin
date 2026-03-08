@@ -213,7 +213,7 @@ export const StreamWatchSettingsForm = ({
                   disabled={isAddUserPending}
                   onMouseEnter={(e) => tooltipMouseEnter(e, "Add user")}
                   onMouseLeave={tooltipMouseLeave}
-                  className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                  className="cursor-pointer flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                 >
                   <div className={"relative flex text-center justify-center"}>
                     <div className="flex align-middle justify-center items-center text-base">
@@ -302,7 +302,7 @@ export const StreamWatchSettingsForm = ({
                     onMouseEnter={(e) => tooltipMouseEnter(e, "Save")}
                     onMouseLeave={tooltipMouseLeave}
                     disabled={isSetPasswordPending}
-                    className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                    className="cursor-pointer flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
                   >
                     <div className={"relative flex text-center justify-center"}>
                       <div className="flex align-middle justify-center items-center text-base">

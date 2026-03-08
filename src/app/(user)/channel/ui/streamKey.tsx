@@ -72,7 +72,7 @@ export const StreamKey = ({
               tooltipMouseEnter(e, !tokenVisible ? "Hide token" : "Show token");
               setTokenVisible(!tokenVisible);
             }}
-            className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+            className="cursor-pointer flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
           >
             <div className={"relative flex text-center justify-center"}>
               {tokenVisible ? <FaEyeSlash /> : <FaEye />}
@@ -85,7 +85,7 @@ export const StreamKey = ({
               await navigator.clipboard.writeText(token);
               showAlert("Token copied to clipboard");
             }}
-            className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+            className="cursor-pointer flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
           >
             <div className={"relative flex text-center justify-center"}>
               <HiClipboardCopy />
@@ -101,7 +101,7 @@ export const StreamKey = ({
                 setToken(tokenResponse.data);
               }
             }}
-            className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+            className="cursor-pointer flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
           >
             <div className={"relative flex text-center justify-center"}>
               <VscDebugRestart />
