@@ -2,7 +2,8 @@ import { RecordingQueue } from "@/generated/client";
 import { RecordingQueueState } from "@/generated/enums";
 import { SITE_SETTING } from "@/interfaces";
 import prisma from "@/lib/prisma";
-import { JOB_UPLOADING_QUEUE } from "@scheduler/jobs";
+import { JOB_RECORDING_QUEUE, JOB_UPLOADING_QUEUE } from "@scheduler/jobs";
+import { scheduler } from "@scheduler/scheduler";
 import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
 import { uploadFile } from "@scheduler/services/s3.service";
 import { rmSync } from "fs";
@@ -70,8 +71,6 @@ export const queueTaskUploading = async () => {
           errorMessage: null,
         },
       });
-
-      continue;
     } else {
       const fileUpload = await uploadFile(
         `recordings/${recording.userId}/${basename(recording.fileName)}`,
@@ -114,8 +113,11 @@ export const queueTaskUploading = async () => {
             "queueTaskUploading: Error deleting local file: ",
             error,
           );
+          return;
         }
       }
     }
+
+    scheduler.startById(JOB_RECORDING_QUEUE);
   }
 };
