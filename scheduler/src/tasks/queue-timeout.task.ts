@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { JOB_RECORDING_QUEUE_TIMEOUT } from "@scheduler/jobs";
 import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
 import { deleteFile } from "@scheduler/services/s3.service";
+import { rmSync } from "node:fs";
 import { join } from "node:path";
 
 const markUploadingRecordingsAsFailed = async (): Promise<
@@ -73,12 +74,36 @@ const markMergingRecordingsAsFailed = async (): Promise<
   return recordingsEncoding;
 };
 
-const cleanupS3Files = async (
+const cleanupFiles = async (
   recordings: Array<RecordingQueue>,
 ): Promise<void> => {
   if (recordings.length === 0) {
     return;
   }
+
+  recordings.forEach((recording) => {
+    try {
+      rmSync(
+        join(
+          process.env.RECORDINGS_PATH || "",
+          "recordings",
+          recording.userId,
+          recording.fileName.replace("s3://", ""),
+        ),
+      );
+    } catch {}
+
+    try {
+      rmSync(
+        join(
+          process.env.RECORDINGS_PATH || "",
+          "recordings",
+          recording.userId,
+          recording.fileName.replace("s3://", "").replace(".mp4", ".webp"),
+        ),
+      );
+    } catch {}
+  });
 
   await deleteFile(
     ...recordings.map((recording) =>
@@ -112,7 +137,7 @@ export const queueTaskTimeout = async () => {
   const recordingsMerging = await markMergingRecordingsAsFailed();
 
   if (isUsingS3Bucket) {
-    await cleanupS3Files([
+    await cleanupFiles([
       ...recordingsUploading,
       ...recordingsEncoding,
       ...recordingsMerging,
