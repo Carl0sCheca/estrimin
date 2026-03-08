@@ -1,4 +1,4 @@
-import { describe, expect, test, vi, beforeEach } from "vitest";
+import { describe, expect, test, vi, beforeEach, type Mock } from "vitest";
 import { ToadScheduler, JobStatus } from "toad-scheduler";
 import { Reply } from "zeromq";
 import {
@@ -57,8 +57,8 @@ describe("Scheduler Commands", () => {
         job2: "2026-03-08T11:00:00.000Z",
       };
 
-      (mockScheduler.getAllJobs as any).mockReturnValue(mockJobs);
-      (prisma.siteSetting.findFirst as any).mockResolvedValue({
+      (mockScheduler.getAllJobs as Mock).mockReturnValue(mockJobs);
+      (prisma.siteSetting.findFirst as Mock).mockResolvedValue({
         value: mockQueueDates,
       });
 
@@ -70,7 +70,9 @@ describe("Scheduler Commands", () => {
         expect.stringContaining("job1"),
       );
 
-      const sentData = JSON.parse((mockSocket.send as any).mock.calls[0][0]);
+      const sentData = JSON.parse(
+        (mockSocket.send as Mock).mock.calls[0][0] as string,
+      );
       expect(sentData).toHaveLength(2);
       expect(sentData[0]).toMatchObject({
         id: "job1",
@@ -85,8 +87,8 @@ describe("Scheduler Commands", () => {
     });
 
     test("should handle empty jobs list", async () => {
-      (mockScheduler.getAllJobs as any).mockReturnValue([]);
-      (prisma.siteSetting.findFirst as any).mockResolvedValue(null);
+      (mockScheduler.getAllJobs as Mock).mockReturnValue([]);
+      (prisma.siteSetting.findFirst as Mock).mockResolvedValue(null);
 
       await listCommand(mockSocket, mockScheduler);
 
@@ -102,12 +104,14 @@ describe("Scheduler Commands", () => {
         },
       ];
 
-      (mockScheduler.getAllJobs as any).mockReturnValue(mockJobs);
-      (prisma.siteSetting.findFirst as any).mockResolvedValue(null);
+      (mockScheduler.getAllJobs as Mock).mockReturnValue(mockJobs);
+      (prisma.siteSetting.findFirst as Mock).mockResolvedValue(null);
 
       await listCommand(mockSocket, mockScheduler);
 
-      const sentData = JSON.parse((mockSocket.send as any).mock.calls[0][0]);
+      const sentData = JSON.parse(
+        (mockSocket.send as Mock).mock.calls[0][0] as string,
+      );
       expect(sentData[0].lastExecution).toBeUndefined();
     });
   });
@@ -145,7 +149,7 @@ describe("Scheduler Commands", () => {
         { id: "job3", getStatus: vi.fn() },
       ];
 
-      (mockScheduler.getAllJobs as any).mockReturnValue(mockJobs);
+      (mockScheduler.getAllJobs as Mock).mockReturnValue(mockJobs);
 
       await startAllCommand(mockSocket, mockScheduler);
 
@@ -158,7 +162,7 @@ describe("Scheduler Commands", () => {
     });
 
     test("should handle empty jobs list", async () => {
-      (mockScheduler.getAllJobs as any).mockReturnValue([]);
+      (mockScheduler.getAllJobs as Mock).mockReturnValue([]);
 
       await startAllCommand(mockSocket, mockScheduler);
 
@@ -173,7 +177,7 @@ describe("Scheduler Commands", () => {
         { id: "job3", getStatus: vi.fn() },
       ];
 
-      (mockScheduler.getAllJobs as any).mockReturnValue(mockJobs);
+      (mockScheduler.getAllJobs as Mock).mockReturnValue(mockJobs);
 
       await startAllCommand(mockSocket, mockScheduler);
 
