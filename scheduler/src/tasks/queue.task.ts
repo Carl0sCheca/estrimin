@@ -164,7 +164,17 @@ const encodingRecordings = async () => {
 const mergingRecordings = async () => {
   while (true) {
     const pairData = await prisma.$transaction(async (tx) => {
-      const records = await tx.$queryRaw`
+      interface MergingQuery {
+        id1: number;
+        index1: Array<number>;
+        file1: string;
+        id2: number;
+        index2: Array<number>;
+        file2: string;
+        userId: string;
+      }
+
+      const records: Array<MergingQuery> = await tx.$queryRaw`
         SELECT 
           r1.id as "id1", r1."segmentsIndex" as "index1", r1."fileName" as "file1",
           r2.id as "id2", r2."segmentsIndex" as "index2", r2."fileName" as "file2",
@@ -181,18 +191,9 @@ const mergingRecordings = async () => {
         FOR UPDATE OF r1, r2 SKIP LOCKED
       `;
 
-      if (!records || (records as Array<{}>).length === 0) return null;
+      if (!records || records.length === 0) return null;
 
-      interface MergingQuery {
-        id1: number;
-        index1: Array<number>;
-        file1: string;
-        id2: number;
-        index2: Array<number>;
-        file2: string;
-        userId: string;
-      }
-      const row: MergingQuery = (records as Array<MergingQuery>)[0];
+      const row: MergingQuery = records[0];
 
       await tx.recordingQueue.updateMany({
         where: { id: { in: [row.id1, row.id2] } },

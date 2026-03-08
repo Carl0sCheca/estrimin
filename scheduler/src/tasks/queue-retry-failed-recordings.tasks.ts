@@ -49,7 +49,9 @@ export const queueTaskRetryFailedRecordings = async () => {
     SET
       "status" = "previousState",
       "errorState" = null,
-      "startedAt" = NOW()
+      "startedAt" = NOW(),
+      "hostname" = null,
+      "workerPid" = null,
     WHERE
       "status" = ${RecordingQueueState.FAILED}
       AND "attempts" < 3
