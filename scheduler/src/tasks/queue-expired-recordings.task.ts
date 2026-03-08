@@ -3,6 +3,8 @@ import { SITE_SETTING } from "@/interfaces";
 import prisma from "@/lib/prisma";
 import { JOB_EXPIRED_RECORDINGS_QUEUE } from "@scheduler/jobs";
 import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
+import { rmSync } from "fs";
+import { join } from "path";
 
 export const queueTaskExpiredRecordings = async () => {
   if (
@@ -27,14 +29,14 @@ export const queueTaskExpiredRecordings = async () => {
     },
   });
 
-  const expiredRecordings = await prisma.recordingQueue.updateMany({
+  const expiredRecordings = await prisma.recordingQueue.updateManyAndReturn({
     where: {
       AND: {
         createdAt: {
           lt: new Date(Date.now() - 48 * 60 * 60 * 1000), // 48 hours
         },
         status: {
-          notIn: [RecordingQueueState.FAILED, RecordingQueueState.EXPIRED],
+          notIn: [RecordingQueueState.EXPIRED],
         },
       },
     },
@@ -47,7 +49,20 @@ export const queueTaskExpiredRecordings = async () => {
     console.info(`Deleted ${deletedRecordings.count} expired recordings`);
   }
 
-  if (expiredRecordings.count > 0) {
-    console.info(`Expired ${expiredRecordings.count} recordings`);
+  if (expiredRecordings.length > 0) {
+    console.info(`Expired ${expiredRecordings.length} recordings`);
+
+    try {
+      expiredRecordings.forEach((recording) => {
+        rmSync(
+          join(
+            process.env.RECORDINGS_PATH || "",
+            "recordings",
+            recording.userId,
+            recording.fileName.replace(".mp4", ".webp"),
+          ),
+        );
+      });
+    } catch {}
   }
 };
