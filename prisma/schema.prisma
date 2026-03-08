@@ -230,9 +230,13 @@ model RecordingQueue {
   mergingWith   RecordingQueue? @relation("MergingRelation", fields: [mergingWithId], references: [id])
   mergedFrom    RecordingQueue? @relation("MergingRelation")
 
+  hostname  String?
+  workerPid Int?
+
   @@unique([userId, fileName])
   @@index([status])
   @@index([userId])
+  @@index([hostname, workerPid])
   @@map("recordingQueue")
 }
 

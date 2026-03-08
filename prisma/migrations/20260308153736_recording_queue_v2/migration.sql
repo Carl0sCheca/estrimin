@@ -27,9 +27,11 @@ DROP INDEX "userSetting_key_userId_idx";
 ALTER TABLE "recordingQueue" DROP COLUMN "error",
 ADD COLUMN     "errorMessage" TEXT,
 ADD COLUMN     "errorState" "RecordingQueueState",
+ADD COLUMN     "hostname" TEXT,
 ADD COLUMN     "mergingWithId" INTEGER,
 ADD COLUMN     "previousState" "RecordingQueueState",
 ADD COLUMN     "segmentsIndex" INTEGER[],
+ADD COLUMN     "workerPid" INTEGER,
 ALTER COLUMN "status" SET DEFAULT 'RECORDING';
 
 -- AlterTable
@@ -53,6 +55,9 @@ CREATE UNIQUE INDEX "channelStatus_userId_key" ON "channelStatus"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "recordingQueue_mergingWithId_key" ON "recordingQueue"("mergingWithId");
+
+-- CreateIndex
+CREATE INDEX "recordingQueue_hostname_workerPid_idx" ON "recordingQueue"("hostname", "workerPid");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "recordingQueue_userId_fileName_key" ON "recordingQueue"("userId", "fileName");
