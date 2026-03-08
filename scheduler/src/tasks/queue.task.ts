@@ -256,11 +256,32 @@ const mergingRecordings = async () => {
       await mergeVideos(firstLocalPath, secondLocalPath);
 
       if (isUsingS3) {
+        await prisma.recordingQueue.update({
+          where: {
+            id: sortedSegments[0].id,
+          },
+          data: {
+            status: RecordingQueueState.MERGING_UPLOADING,
+            startedAt: new Date(),
+          },
+        });
+
+        await prisma.recordingQueue.update({
+          where: {
+            id: sortedSegments[1].id,
+          },
+          data: {
+            status: RecordingQueueState.MERGING_UPLOADING,
+            startedAt: new Date(),
+          },
+        });
+
         await uploadFile(
           `recordings/${userId}/${firstFileName}`,
           firstLocalPath,
           "video/mp4",
         );
+
         await uploadFile(
           `recordings/${userId}/${firstFileName.replace(".mp4", ".webp")}`,
           firstLocalPath.replace(".mp4", ".webp"),
