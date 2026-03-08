@@ -278,11 +278,11 @@ export const GetAllFailedQueueItems =
 
     try {
       const items = await prisma.recordingQueue.findMany({
-        where: { status: "FAILED" },
+        where: { status: RecordingQueueState.FAILED },
         select: {
           finishedAt: true,
           fileName: true,
-          error: true,
+          errorState: true,
           id: true,
         },
       });
@@ -292,7 +292,7 @@ export const GetAllFailedQueueItems =
           id: item.id,
           fileName: item.fileName,
           date: item.finishedAt ?? undefined,
-          error: item.error ?? undefined,
+          error: item.errorState ?? undefined,
         };
       });
     } catch {
