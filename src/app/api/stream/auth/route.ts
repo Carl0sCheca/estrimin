@@ -222,7 +222,11 @@ export async function POST(req: NextRequest) {
   }
 
   const userChannel = await prisma.channel.findFirst({
-    select: { user: { select: { name: true } }, token: true, disabled: true },
+    select: {
+      user: { select: { name: true, id: true } },
+      token: true,
+      disabled: true,
+    },
     where: { user: { id: stream }, token },
   });
 
@@ -241,25 +245,36 @@ export async function POST(req: NextRequest) {
   }
 
   if (process.env.NTFY_ENABLED === "true") {
-    const user: string = process.env.NTFY_USER || "";
-    const password: string = process.env.NTFY_PASSWORD || "";
-
-    const auth = Buffer.from(user + ":" + password).toString("base64");
-
-    const response = await fetch(
-      `${process.env.NTFY_URL}/${process.env.NTFY_TOPIC}`,
-      {
-        method: "POST",
-        body: `🔴 ${userChannel.user.name} is streaming`,
-        headers: {
-          Click: `${process.env.BASE_URL}/${userChannel.user.name}`,
-          Authorization: `Basic ${auth}`,
-        },
+    const channelStatus = await prisma.channelStatus.findUnique({
+      where: {
+        userId: userChannel.user.id,
       },
-    );
+    });
 
-    if (!response.ok) {
-      console.error("Error while trying to send the notification");
+    if (
+      channelStatus?.lastOnline &&
+      new Date().getTime() - channelStatus.lastOnline.getTime() > 10 * 60 * 1000
+    ) {
+      const user: string = process.env.NTFY_USER || "";
+      const password: string = process.env.NTFY_PASSWORD || "";
+
+      const auth = Buffer.from(user + ":" + password).toString("base64");
+
+      const response = await fetch(
+        `${process.env.NTFY_URL}/${process.env.NTFY_TOPIC}`,
+        {
+          method: "POST",
+          body: `🔴 ${userChannel.user.name} is streaming`,
+          headers: {
+            Click: `${process.env.BASE_URL}/${userChannel.user.name}`,
+            Authorization: `Basic ${auth}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        console.error("Error while trying to send the notification");
+      }
     }
   }
 
