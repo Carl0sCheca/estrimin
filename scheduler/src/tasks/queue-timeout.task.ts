@@ -7,7 +7,9 @@ import { updateLastExecutionFromSettings } from "@scheduler/services/execution-t
 import { deleteFile } from "@scheduler/services/s3.service";
 import { join } from "node:path";
 
-const markUploadingRecordingsAsFailed = async (): Promise<RecordingQueue[]> => {
+const markUploadingRecordingsAsFailed = async (): Promise<
+  Array<RecordingQueue>
+> => {
   const recordingsUploading: Array<RecordingQueue> = await prisma.$queryRaw`
     UPDATE "recordingQueue"
     SET 
@@ -25,7 +27,49 @@ const markUploadingRecordingsAsFailed = async (): Promise<RecordingQueue[]> => {
   return recordingsUploading;
 };
 
-const cleanupS3Files = async (recordings: RecordingQueue[]): Promise<void> => {
+const markEncodingRecordingsAsFailed = async (): Promise<
+  Array<RecordingQueue>
+> => {
+  const recordingsEncoding: Array<RecordingQueue> = await prisma.$queryRaw`
+    UPDATE "recordingQueue"
+    SET 
+      "errorState" = ${RecordingQueueState.ENCODING},
+      "status" = ${RecordingQueueState.FAILED},
+      "attempts" = "attempts" + 1,
+      "finishedAt" = NOW()
+    WHERE
+      "status" IN (${RecordingQueueState.ENCODING}, ${RecordingQueueState.ENCODED_UPLOADING})
+      AND "startedAt" < NOW() - INTERVAL '15 minutes'
+      AND "attempts" < 3
+    RETURNING *;
+  `;
+
+  return recordingsEncoding;
+};
+
+const markMergingRecordingsAsFailed = async (): Promise<
+  Array<RecordingQueue>
+> => {
+  const recordingsEncoding: Array<RecordingQueue> = await prisma.$queryRaw`
+    UPDATE "recordingQueue"
+    SET 
+      "errorState" = ${RecordingQueueState.MERGING},
+      "status" = ${RecordingQueueState.FAILED},
+      "attempts" = "attempts" + 1,
+      "finishedAt" = NOW()
+    WHERE
+      "status" IN (${RecordingQueueState.MERGING}, ${RecordingQueueState.MERGING_UPLOADING})
+      AND "startedAt" < NOW() - INTERVAL '15 minutes'
+      AND "attempts" < 3
+    RETURNING *;
+  `;
+
+  return recordingsEncoding;
+};
+
+const cleanupS3Files = async (
+  recordings: Array<RecordingQueue>,
+): Promise<void> => {
   if (recordings.length === 0) {
     return;
   }
@@ -53,11 +97,19 @@ export const queueTaskTimeout = async () => {
 
   await updateLastExecutionFromSettings(JOB_RECORDING_QUEUE_TIMEOUT);
 
-  const recordingsUploading = await markUploadingRecordingsAsFailed();
-
   const isUsingS3Bucket = process.env.S3_BUCKET_ENDPOINT;
 
+  const recordingsUploading = await markUploadingRecordingsAsFailed();
+
+  const recordingsEncoding = await markEncodingRecordingsAsFailed();
+
+  const recordingsMerging = await markMergingRecordingsAsFailed();
+
   if (isUsingS3Bucket) {
-    await cleanupS3Files(recordingsUploading);
+    await cleanupS3Files([
+      ...recordingsUploading,
+      ...recordingsEncoding,
+      ...recordingsMerging,
+    ]);
   }
 };
