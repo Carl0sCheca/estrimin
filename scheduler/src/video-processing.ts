@@ -1,5 +1,7 @@
-import { exec } from "child_process";
-import { renameSync, rmSync, writeFileSync } from "fs";
+import prisma from "@/lib/prisma";
+import { exec, spawn } from "child_process";
+import { existsSync, renameSync, rmSync, writeFileSync } from "fs";
+import { hostname } from "os";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -81,75 +83,83 @@ export const getVideoMetadata = async (filePath: string) => {
 export const reencodeWithOriginalSettings = async (
   inputFile: string,
   outputFile: string,
+  recordingId: number,
 ) => {
-  try {
-    const { width, height, bitrate } = await getVideoMetadata(inputFile);
-    const reencodeCommand = [
-      "ffmpeg",
-      "-y",
-      "-i",
-      inputFile,
-      "-c:v",
-      "libx264",
-      "-preset",
-      "fast",
-      "-b:v",
-      `${bitrate}k`,
-      "-maxrate",
-      `${bitrate}k`,
-      "-minrate",
-      `${bitrate}k`,
-      "-bufsize",
-      `${bitrate}k`,
-      "-nal-hrd",
-      "cbr",
-      "-vf",
-      `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
-      "-movflags",
-      "+faststart",
-      "-c:a",
-      "copy",
-      "-f",
-      "mp4",
-      outputFile,
-    ].join(" ");
+  const { width, height, bitrate } = await getVideoMetadata(inputFile);
 
-    await execAsync(reencodeCommand);
+  const reencodeCommand = [
+    "-y",
+    "-i",
+    inputFile,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "fast",
+    "-b:v",
+    `${bitrate}k`,
+    "-maxrate",
+    `${bitrate}k`,
+    "-minrate",
+    `${bitrate}k`,
+    "-bufsize",
+    `${bitrate}k`,
+    "-nal-hrd",
+    "cbr",
+    "-vf",
+    `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
+    "-movflags",
+    "+faststart",
+    "-c:a",
+    "copy",
+    "-f",
+    "mp4",
+    outputFile,
+  ];
 
-    try {
-      const validationCommand = `ffmpeg -v error -xerror -i ${outputFile} -f null -`;
-      const { stderr } = await execAsync(validationCommand);
+  const ffmpegProcess = spawn("ffmpeg", reencodeCommand);
+  const pid = ffmpegProcess.pid;
 
-      if (stderr) {
-        throw new Error("Reencoding failed (ffmpeg detected errors)");
+  await prisma.recordingQueue.update({
+    where: { id: recordingId },
+    data: {
+      workerPid: pid,
+      hostname: hostname(),
+    },
+  });
+
+  return new Promise((resolve, reject) => {
+    ffmpegProcess.on("error", (err) => reject(err));
+
+    ffmpegProcess.on("close", async (code) => {
+      if (code !== 0) {
+        return reject(new Error(`FFmpeg failed code: ${code}`));
       }
-    } catch (e) {
-      if (isStdError(e)) {
-        throw new Error("Reencoding failed validation");
-      } else {
-        throw e;
+
+      try {
+        const validationCommand = `ffmpeg -v error -xerror -i ${outputFile} -f null -`;
+        await execAsync(validationCommand);
+        resolve(true);
+      } catch (e) {
+        reject(
+          new Error("Reencoding failed validation: " + (e as Error).message),
+        );
       }
-    }
-  } catch (error) {
-    console.error("Error while reencoding:", error);
-    throw error;
-  }
+    });
+  });
 };
 
 export const mergeVideos = async (
-  previousVideo: string,
-  currentVideo: string,
+  previousVideo: readonly [string, number],
+  currentVideo: readonly [string, number],
 ): Promise<void> => {
+  const listFileName = `${previousVideo[0]}_list.txt`;
+  const outputFile = `${previousVideo[0]}.merged.mp4`;
+
   try {
-    const outputFile = `${previousVideo}.merged.mp4`;
-
-    const listFileName = `${previousVideo}_list.txt`;
-    const listContent = `file '${previousVideo}'\nfile '${currentVideo}'`;
-
+    const listContent = `file '${previousVideo[0]}'\nfile '${currentVideo[0]}'`;
     writeFileSync(listFileName, listContent);
 
     const mergeCommand = [
-      "ffmpeg",
       "-y",
       "-f",
       "concat",
@@ -164,17 +174,47 @@ export const mergeVideos = async (
       "-f",
       "mp4",
       outputFile,
-    ].join(" ");
+    ];
 
-    await execAsync(mergeCommand);
+    const ffmpegProcess = spawn("ffmpeg", mergeCommand);
+    const pid = ffmpegProcess.pid;
 
-    rmSync(previousVideo);
-    rmSync(currentVideo);
-    rmSync(listFileName);
-    renameSync(outputFile, previousVideo);
+    await prisma.recordingQueue.update({
+      where: { id: currentVideo[1] },
+      data: {
+        workerPid: pid,
+        hostname: hostname(),
+      },
+    });
 
-    await generateThumbnail(previousVideo);
+    await prisma.recordingQueue.update({
+      where: { id: previousVideo[1] },
+      data: {
+        workerPid: pid,
+        hostname: hostname(),
+      },
+    });
+
+    await new Promise((resolve, reject) => {
+      ffmpegProcess.on("error", (err) => reject(err));
+
+      ffmpegProcess.on("close", (code) => {
+        if (code === 0) resolve(true);
+        else reject(new Error(`FFmpeg merge failed with code: ${code}`));
+      });
+    });
+
+    if (existsSync(previousVideo[0])) rmSync(previousVideo[0]);
+    if (existsSync(currentVideo[0])) rmSync(currentVideo[0]);
+    if (existsSync(listFileName)) rmSync(listFileName);
+
+    renameSync(outputFile, previousVideo[0]);
+
+    await generateThumbnail(previousVideo[0]);
   } catch (error) {
+    if (existsSync(outputFile)) rmSync(outputFile);
+    if (existsSync(listFileName)) rmSync(listFileName);
+
     console.error("Error merging videos:", error);
     throw error;
   }

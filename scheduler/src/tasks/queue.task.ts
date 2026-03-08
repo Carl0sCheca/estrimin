@@ -85,6 +85,7 @@ const encodingRecordings = async () => {
       await reencodeWithOriginalSettings(
         localFile,
         localFile.replace(".mp4", ".encoded.mp4"),
+        recording.id,
       );
 
       rmSync(localFile);
@@ -128,6 +129,8 @@ const encodingRecordings = async () => {
             previousState: RecordingQueueState.PENDING,
             attempts: 0,
             errorState: null,
+            hostname: null,
+            workerPid: null,
           },
         });
       } else {
@@ -141,6 +144,8 @@ const encodingRecordings = async () => {
             previousState: RecordingQueueState.PENDING,
             attempts: 0,
             errorState: null,
+            hostname: null,
+            workerPid: null,
           },
         });
       }
@@ -253,7 +258,10 @@ const mergingRecordings = async () => {
         );
       }
 
-      await mergeVideos(firstLocalPath, secondLocalPath);
+      await mergeVideos(
+        [firstLocalPath, sortedSegments[0].id],
+        [secondLocalPath, sortedSegments[1].id],
+      );
 
       if (isUsingS3) {
         await prisma.recordingQueue.update({
@@ -308,6 +316,8 @@ const mergingRecordings = async () => {
           attempts: 0,
           errorMessage: null,
           errorState: null,
+          hostname: null,
+          workerPid: null,
         },
       });
 
@@ -322,6 +332,8 @@ const mergingRecordings = async () => {
           attempts: 0,
           errorMessage: null,
           errorState: null,
+          hostname: null,
+          workerPid: null,
         },
       });
 
