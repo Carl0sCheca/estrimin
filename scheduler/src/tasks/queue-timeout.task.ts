@@ -10,6 +10,8 @@ import { join } from "node:path";
 const markUploadingRecordingsAsFailed = async (): Promise<
   Array<RecordingQueue>
 > => {
+  const timeoutDate = new Date(Date.now() - 15 * 60 * 1000);
+
   const recordingsUploading: Array<RecordingQueue> = await prisma.$queryRaw`
     UPDATE "recordingQueue"
     SET 
@@ -19,7 +21,7 @@ const markUploadingRecordingsAsFailed = async (): Promise<
       "finishedAt" = NOW()
     WHERE 
       "status" = ${RecordingQueueState.UPLOADING}
-      AND "startedAt" < NOW() - INTERVAL '15 minutes'
+      AND "startedAt" < ${timeoutDate}
       AND "attempts" < 3
     RETURNING *;
   `;
@@ -30,6 +32,8 @@ const markUploadingRecordingsAsFailed = async (): Promise<
 const markEncodingRecordingsAsFailed = async (): Promise<
   Array<RecordingQueue>
 > => {
+  const timeoutDate = new Date(Date.now() - 15 * 60 * 1000);
+
   const recordingsEncoding: Array<RecordingQueue> = await prisma.$queryRaw`
     UPDATE "recordingQueue"
     SET 
@@ -39,7 +43,7 @@ const markEncodingRecordingsAsFailed = async (): Promise<
       "finishedAt" = NOW()
     WHERE
       "status" IN (${RecordingQueueState.ENCODING}, ${RecordingQueueState.ENCODED_UPLOADING})
-      AND "startedAt" < NOW() - INTERVAL '15 minutes'
+      AND "startedAt" < ${timeoutDate}
       AND "attempts" < 3
     RETURNING *;
   `;
@@ -50,6 +54,8 @@ const markEncodingRecordingsAsFailed = async (): Promise<
 const markMergingRecordingsAsFailed = async (): Promise<
   Array<RecordingQueue>
 > => {
+  const timeoutDate = new Date(Date.now() - 15 * 60 * 1000);
+
   const recordingsEncoding: Array<RecordingQueue> = await prisma.$queryRaw`
     UPDATE "recordingQueue"
     SET 
@@ -59,7 +65,7 @@ const markMergingRecordingsAsFailed = async (): Promise<
       "finishedAt" = NOW()
     WHERE
       "status" IN (${RecordingQueueState.MERGING}, ${RecordingQueueState.MERGING_UPLOADING})
-      AND "startedAt" < NOW() - INTERVAL '15 minutes'
+      AND "startedAt" < ${timeoutDate}
       AND "attempts" < 3
     RETURNING *;
   `;
