@@ -21,7 +21,7 @@ import {
   SetPasswordResponse,
   UpdateVisibilityStatusRequest,
 } from "@/interfaces";
-import { ChangeEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, useActionState, useState } from "react";
 import { UserChannel } from "./channelSettingsForm";
 import { MouseEnterEventOptions } from "@/components";
 import { ChannelVisibility } from "@/generated/enums";
@@ -39,6 +39,22 @@ interface Props {
   channelUrl: string;
 }
 
+interface AddUserFormState {
+  username: string;
+}
+
+interface SetPasswordFormState {
+  password: string;
+}
+
+const initialAddUserFormState: AddUserFormState = {
+  username: "",
+};
+
+const initialSetPasswordFormState: SetPasswordFormState = {
+  password: "",
+};
+
 export const StreamWatchSettingsForm = ({
   userChannel,
   showAlert,
@@ -51,24 +67,81 @@ export const StreamWatchSettingsForm = ({
     userChannel.visibility,
   );
 
-  const [visibilityPassword, setVisibilityPassword] = useState(
-    userChannel.visibilityPassword || "",
-  );
-
-  const [buttonsState, setButtonsState] = useState({
-    changePassword: false,
-    addUserAllowlist: false,
-  });
-
-  const [addUserAllowlist, setAddUserAllowlist] = useState("");
   const [allowListUsers, setAllowListUsers] = useState<Array<AllowListUser>>(
     userChannel.channelAllowList,
   );
 
+  const addUserAction = async (
+    _prevState: AddUserFormState,
+    formData: FormData,
+  ): Promise<AddUserFormState> => {
+    const username = formData.get("username")?.toString() ?? "";
+
+    if (username.toLowerCase() === userChannel.user.name.toLowerCase()) {
+      showAlert(`You cannot add yourself to the list`, true);
+      return { username: "" };
+    }
+
+    const addUserRequestBody: AddUserAllowlistRequest = {
+      channelId: userChannel.id,
+      username,
+      requestedBy: userChannel.user.name,
+    };
+
+    const addUserResponse: AddUserAllowlistResponse =
+      await addUserAllowlistAction(addUserRequestBody);
+
+    if (addUserResponse.ok) {
+      setAllowListUsers([...allowListUsers, addUserResponse.data!]);
+
+      showAlert(
+        `User ${addUserResponse.data?.user.name} added to the allowlist`,
+      );
+
+      return { username: "" };
+    } else {
+      showAlert(addUserResponse.message || "An error has occurred", true);
+      return { username };
+    }
+  };
+
+  const setPasswordAction = async (
+    _prevState: SetPasswordFormState,
+    formData: FormData,
+  ): Promise<SetPasswordFormState> => {
+    const password = formData.get("password")?.toString() ?? "";
+
+    const request: SetPasswordRequest = {
+      channelId: userChannel.id,
+      password,
+    };
+
+    const setPasswordResponse: SetPasswordResponse =
+      await setPasswordChannelAction(request);
+
+    if (setPasswordResponse.ok) {
+      showAlert("Password has been set");
+      return { password };
+    }
+
+    return { password };
+  };
+
+  const [addUserState, addUserFormAction, isAddUserPending] = useActionState(
+    addUserAction,
+    initialAddUserFormState,
+  );
+
+  const [setPasswordState, setPasswordFormAction, isSetPasswordPending] =
+    useActionState(setPasswordAction, {
+      ...initialSetPasswordFormState,
+      password: userChannel.visibilityPassword || "",
+    });
+
   const isOverflowX = (element: HTMLElement) =>
     element.offsetWidth < element.scrollWidth;
 
-  const handleMouseOver = (event: MouseEvent) => {
+  const handleMouseOver = (event: React.MouseEvent) => {
     const element = event.target as HTMLElement;
     if (!element) return;
 
@@ -124,68 +197,20 @@ export const StreamWatchSettingsForm = ({
           </div>
           <div className={"mt-2"}>
             <div className="flex">
-              <form
-                className="flex w-full"
-                action={async () => {
-                  setButtonsState({
-                    ...buttonsState,
-                    addUserAllowlist: true,
-                  });
-
-                  if (
-                    addUserAllowlist.toLowerCase() ===
-                    userChannel.user.name.toLowerCase()
-                  ) {
-                    showAlert(`You cannot add yourself to the list`, true);
-
-                    setAddUserAllowlist("");
-                  } else {
-                    const addUserRequestBody: AddUserAllowlistRequest = {
-                      channelId: userChannel.id,
-                      username: addUserAllowlist,
-                      requestedBy: userChannel.user.name,
-                    };
-
-                    const addUserResponse: AddUserAllowlistResponse =
-                      await addUserAllowlistAction(addUserRequestBody);
-
-                    if (addUserResponse.ok) {
-                      setAllowListUsers([
-                        ...allowListUsers,
-                        addUserResponse.data!,
-                      ]);
-
-                      showAlert(
-                        `User ${addUserResponse.data?.user.name} added to the allowlist`,
-                      );
-
-                      setAddUserAllowlist("");
-                    } else {
-                      showAlert(
-                        addUserResponse.message || "An error has occurred",
-                        true,
-                      );
-                    }
-                  }
-
-                  setButtonsState({
-                    ...buttonsState,
-                    addUserAllowlist: false,
-                  });
-                }}
-              >
+              <form className="flex w-full" action={addUserFormAction}>
                 <input
                   type="text"
-                  value={addUserAllowlist}
+                  name="username"
+                  defaultValue={addUserState.username}
                   required
-                  onChange={(e) => setAddUserAllowlist(e.target.value)}
                   className={
                     "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   }
                 />
 
                 <button
-                  disabled={buttonsState.addUserAllowlist}
+                  type="submit"
+                  disabled={isAddUserPending}
                   onMouseEnter={(e) => tooltipMouseEnter(e, "Add user")}
                   onMouseLeave={tooltipMouseLeave}
                   className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
@@ -261,51 +286,31 @@ export const StreamWatchSettingsForm = ({
             </div>
             <div className={"mt-2"}>
               <div className="flex">
-                <input
-                  id="changeuserrole"
-                  name="changeuserrole"
-                  type="text"
-                  value={visibilityPassword}
-                  onChange={(e) => setVisibilityPassword(e.target.value)}
-                  className={
-                    "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
-                  }
-                />
-
-                <button
-                  onMouseEnter={(e) => tooltipMouseEnter(e, "Save")}
-                  onMouseLeave={tooltipMouseLeave}
-                  onClick={async () => {
-                    setButtonsState({
-                      ...buttonsState,
-                      changePassword: true,
-                    });
-
-                    const request: SetPasswordRequest = {
-                      channelId: userChannel.id,
-                      password: visibilityPassword,
-                    };
-
-                    const setPasswordResponse: SetPasswordResponse =
-                      await setPasswordChannelAction(request);
-
-                    if (setPasswordResponse.ok) {
-                      showAlert("Password has been set");
+                <form className="flex w-full" action={setPasswordFormAction}>
+                  <input
+                    id="watchPassword"
+                    name="password"
+                    type="text"
+                    defaultValue={setPasswordState.password}
+                    className={
+                      "w-4/5 rounded-l-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     }
-                    setButtonsState({
-                      ...buttonsState,
-                      changePassword: false,
-                    });
-                  }}
-                  disabled={buttonsState.changePassword}
-                  className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
-                >
-                  <div className={"relative flex text-center justify-center"}>
-                    <div className="flex align-middle justify-center items-center text-base">
-                      <RiSave3Fill />
+                  />
+
+                  <button
+                    type="submit"
+                    onMouseEnter={(e) => tooltipMouseEnter(e, "Save")}
+                    onMouseLeave={tooltipMouseLeave}
+                    disabled={isSetPasswordPending}
+                    className="flex justify-center items-center p-2 w-1/5 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+                  >
+                    <div className={"relative flex text-center justify-center"}>
+                      <div className="flex align-middle justify-center items-center text-base">
+                        <RiSave3Fill />
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </form>
               </div>
             </div>
           </div>
@@ -320,8 +325,8 @@ export const StreamWatchSettingsForm = ({
                 <div
                   className="text-primary-600 cursor-pointer h-12 overflow-x-auto whitespace-nowrap"
                   onClick={() => {
-                    if (visibilityPassword) {
-                      const url = `${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${visibilityPassword}`;
+                    if (setPasswordState.password) {
+                      const url = `${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${setPasswordState.password}`;
 
                       navigator.clipboard.writeText(url);
                     }
@@ -339,7 +344,7 @@ export const StreamWatchSettingsForm = ({
                     onMouseMove={(e) => tooltipMouseMove(e)}
                     onMouseLeave={tooltipMouseLeave}
                   >
-                    {`${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${visibilityPassword}`}
+                    {`${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${setPasswordState.password}`}
                   </div>
                 </div>
               </div>
