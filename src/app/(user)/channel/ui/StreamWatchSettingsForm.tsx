@@ -23,7 +23,7 @@ import {
 } from "@/interfaces";
 import { ChangeEvent, useActionState, useState } from "react";
 import { UserChannel } from "./channelSettingsForm";
-import { MouseEnterEventOptions } from "@/components";
+import { Effect, MouseEnterEventOptions } from "@/components";
 import { ChannelVisibility } from "@/generated/enums";
 
 interface Props {
@@ -323,7 +323,7 @@ export const StreamWatchSettingsForm = ({
               Channel URL:
               <div className="flex w-full">
                 <div
-                  className="text-primary-600 cursor-pointer h-12 overflow-x-auto whitespace-nowrap"
+                  className="text-primary-600 cursor-pointer h-8 overflow-x-auto whitespace-nowrap"
                   onClick={() => {
                     if (setPasswordState.password) {
                       const url = `${channelUrl}/${userChannel.user.name.toLowerCase()}?password=${setPasswordState.password}`;
@@ -339,6 +339,7 @@ export const StreamWatchSettingsForm = ({
                         defaultPosition: "bottom",
                         followCursor: true,
                         extraGapY: 20,
+                        effect: Effect.Pulse,
                       })
                     }
                     onMouseMove={(e) => tooltipMouseMove(e)}
