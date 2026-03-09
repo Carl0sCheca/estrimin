@@ -317,7 +317,7 @@ export const StreamWatchSettingsForm = ({
           <div className={"items-center justify-between"}>
             <label
               className={
-                "algo mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
+                "mt-2 block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100"
               }
             >
               Channel URL:
