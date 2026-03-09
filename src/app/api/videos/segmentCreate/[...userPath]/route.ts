@@ -77,20 +77,21 @@ export async function GET(req: NextRequest, { params }: Params) {
     where: { userId },
   });
 
-  const defaultVisibility = await prisma.userSetting
-    .findFirst({
+  const defaultVisibilityValue = (
+    await prisma.userSetting.findFirst({
       select: { value: true },
       where: {
         key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
         userId,
       },
     })
-    .catch(() => RecordingVisibility.PRIVATE)
-    .then(
-      (defaultVisibility) =>
-        (defaultVisibility as RecordingVisibility) ??
-        RecordingVisibility.PRIVATE,
-    );
+  )?.value;
+
+  const defaultVisibility = Object.values(RecordingVisibility).includes(
+    defaultVisibilityValue as RecordingVisibility,
+  )
+    ? (defaultVisibilityValue as RecordingVisibility)
+    : RecordingVisibility.PRIVATE;
 
   try {
     await prisma.recordingQueue.create({
