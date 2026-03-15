@@ -1,6 +1,6 @@
 import { RecordingVisibility } from "@/generated/enums";
 
-type RecordingType = "COMPLETED" | "PROCESSING" | "LIVE" | "SAVED";
+export type RecordingType = "COMPLETED" | "PROCESSING" | "LIVE" | "SAVED";
 
 export interface Recording {
   start: Date;
@@ -16,10 +16,10 @@ export interface Recording {
 export interface RecordingData {
   start: Date;
   duration: number;
-  fileName: string;
   status: RecordingType;
   visibility: RecordingVisibility;
   firstSegmentId?: number;
+  largerSegmentId?: number;
 }
 
 export interface RecordingApiResponse {

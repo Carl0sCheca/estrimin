@@ -3,7 +3,7 @@ import path from "path";
 import { createReadStream, existsSync, statSync } from "fs";
 import prisma from "@/lib/prisma";
 import { RecordingVisibility } from "@/generated/client";
-import { getSafePath, validateParameters } from "@/lib/utils-api";
+import { validateParameters } from "@/lib/utils-api";
 import s3Client from "@/lib/s3-client";
 import { checkIfFileExists } from "@scheduler/services/s3.service";
 import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
@@ -28,58 +28,61 @@ const isRecordingVisible = async (
 
   const isUsingS3Bucket = s3Client !== null;
 
+  let recording;
+  let recordingPath;
+
   try {
-    let visibility;
-
     if (videoType === "n") {
-      let safePath;
+      recording = await prisma.recordingQueue
+        .findUnique({
+          where: { id: +videoId, userId },
+        })
+        .catch(() => null);
 
-      if (isUsingS3Bucket) {
-        const existsFileInS3 = await checkIfFileExists(
-          `${
-            videoType === "n" ? "recordings" : "recordings_saved"
-          }/${userId}/${videoId}.mp4`,
-        );
-
-        if (existsFileInS3) {
-          safePath = `${
-            videoType === "n" ? "recordings" : "recordings_saved"
-          }/${userId}/${videoId}.mp4`;
-        } else {
-          safePath = null;
-        }
-      } else {
-        safePath = getSafePath(userId, `${videoId}.mp4`, videoType);
+      if (!recording) {
+        return 404;
       }
 
-      if (!safePath) return 404;
-
-      visibility = (
-        await prisma.recordingQueue.findFirst({
-          where: {
-            fileName: `s3://${safePath.split("/").pop()}`,
-          },
-        })
-      )?.visibility;
+      recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings/${userId}/${recording.fileName.replace("s3://", "")}`;
     } else {
-      visibility = (
-        await prisma.recordingSaved.findFirst({
-          where: {
-            id: videoId,
-          },
+      recording = await prisma.recordingSaved
+        .findUnique({
+          where: { id: videoId },
         })
-      )?.visibility;
+        .catch(() => null);
+
+      if (!recording) {
+        return 404;
+      }
+
+      recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings_saved/${userId}/${recording.id}.mp4`;
+    }
+
+    if (isUsingS3Bucket) {
+      const existsFileInS3 = await checkIfFileExists(recordingPath);
+
+      if (!existsFileInS3) {
+        return 404;
+      }
+    } else {
+      try {
+        if (!existsSync(recordingPath)) {
+          return 404;
+        }
+      } catch {
+        return 404;
+      }
     }
 
     if (
-      visibility === RecordingVisibility.PRIVATE &&
+      recording.visibility === RecordingVisibility.PRIVATE &&
       (await prisma.session.findFirst({ where: { id: session } }))?.userId !==
         userId
     ) {
       return 404;
     }
 
-    if (visibility === RecordingVisibility.ALLOWLIST) {
+    if (recording.visibility === RecordingVisibility.ALLOWLIST) {
       const user = await prisma.session.findFirst({ where: { id: session } });
       const channel = await prisma.channel.findFirst({ where: { userId } });
 
@@ -102,23 +105,6 @@ const isRecordingVisible = async (
     }
   } catch {
     return 500;
-  }
-
-  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, videoType);
-  if (!safeVideoPath) {
-    return 404;
-  }
-
-  if (isUsingS3Bucket) {
-    return 200;
-  }
-
-  try {
-    if (!existsSync(safeVideoPath)) {
-      return 404;
-    }
-  } catch {
-    return 404;
   }
 
   return 200;
@@ -161,27 +147,45 @@ export async function GET(req: NextRequest, { params }: Params) {
     return new NextResponse(null, { status: canViewRecording });
   }
 
-  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, videoType);
-  if (!safeVideoPath) {
-    return new NextResponse(null, { status: 404 });
-  }
-
   const isUsingS3Bucket = s3Client !== null;
+
+  let recording;
+  let recordingPath;
+
+  if (videoType === "n") {
+    recording = await prisma.recordingQueue.findUnique({
+      where: {
+        id: +videoId,
+        userId,
+      },
+    });
+
+    if (!recording) {
+      return new NextResponse(null, { status: 404 });
+    }
+    recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings/${userId}/${recording?.fileName.replace("s3://", "")}`;
+  } else {
+    recording = await prisma.recordingSaved.findUnique({
+      where: {
+        id: videoId,
+      },
+    });
+
+    if (!recording) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings_saved/${userId}/${recording?.id}.mp4`;
+  }
 
   if (isUsingS3Bucket) {
     try {
       const range = req.headers.get("range");
 
-      const key = `${
-        videoType !== "n" ? "recordings_saved" : "recordings"
-      }/${userId}/${videoId}.mp4`;
-
       const head = await s3Client?.send(
         new HeadObjectCommand({
           Bucket: process.env.S3_BUCKET_RECORDINGS,
-          Key: `${
-            videoType === "n" ? "recordings" : "recordings_saved"
-          }/${userId}/${videoId}.mp4`,
+          Key: recordingPath,
         }),
       );
 
@@ -192,7 +196,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         "Content-Type": contentType,
         "Accept-Ranges": "bytes",
         "Cache-Control": "no-cache",
-        "Content-Disposition": `inline; filename="${key}"`,
+        "Content-Disposition": `inline; filename="${recordingPath}"`,
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
       });
@@ -211,7 +215,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
         const command = new GetObjectCommand({
           Bucket: process.env.S3_BUCKET_RECORDINGS,
-          Key: key,
+          Key: recordingPath,
           Range: `bytes=${start}-${end}`,
         });
 
@@ -229,7 +233,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
       const command = new GetObjectCommand({
         Bucket: process.env.S3_BUCKET_RECORDINGS,
-        Key: key,
+        Key: recordingPath,
       });
 
       const s3Response = await s3Client?.send(command);
@@ -247,7 +251,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
   } else {
     try {
-      const stat = statSync(safeVideoPath);
+      const stat = statSync(recordingPath);
       const fileSize = stat.size;
       const range = req.headers.get("range");
 
@@ -256,7 +260,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         "Accept-Ranges": "bytes",
         "Cache-Control": "no-cache",
         "Content-Disposition": `inline; filename="${path.basename(
-          safeVideoPath,
+          recordingPath,
         )}"`,
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
@@ -277,7 +281,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         headers.set("Content-Range", `bytes ${start}-${end}/${fileSize}`);
         headers.set("Content-Length", chunksize.toString());
 
-        const videoStream = createReadStream(safeVideoPath, { start, end });
+        const videoStream = createReadStream(recordingPath, { start, end });
         const response = new Response(
           videoStream as unknown as ReadableStream,
           {
@@ -289,7 +293,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         return response;
       } else {
         headers.set("Content-Length", fileSize.toString());
-        const videoStream = createReadStream(safeVideoPath);
+        const videoStream = createReadStream(recordingPath);
         const response = new Response(
           videoStream as unknown as ReadableStream,
           {
