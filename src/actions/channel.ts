@@ -212,15 +212,6 @@ export const getChannelRecordingsAction = async (
           ? [RecordingVisibility.PUBLIC, RecordingVisibility.ALLOWLIST]
           : [RecordingVisibility.PUBLIC];
 
-    // const entriesDb = await prisma.recordingQueue.findMany({
-    //   where: {
-    //     createdAt: {
-    //       gt: new Date(Date.now() - 48 * 60 * 60 * 1000),
-    //     },
-    //     userId: channel.user.id,
-    //   },
-    // });
-
     const groupedRecordings = await prisma.recordingQueue.groupBy({
       by: [
         "userId",
