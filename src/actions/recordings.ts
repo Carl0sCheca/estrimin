@@ -84,6 +84,7 @@ export const getNonSavedRecordingsList = async (
       {} as Record<number, typeof groupedRecordings>,
     ),
   );
+
   const groupByFirstSegment: Array<{
     firstSegmentId: number | undefined;
     status: RecordingType;
