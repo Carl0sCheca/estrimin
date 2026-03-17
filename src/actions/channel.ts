@@ -197,7 +197,7 @@ export const getChannelRecordingsAction = async (
     });
 
     const userAllowed =
-      session?.user.id &&
+      !!session?.user.id &&
       !!(await prisma.channelAllowList.findFirst({
         where: {
           userId: session.user.id,
@@ -212,33 +212,21 @@ export const getChannelRecordingsAction = async (
           ? [RecordingVisibility.PUBLIC, RecordingVisibility.ALLOWLIST]
           : [RecordingVisibility.PUBLIC];
 
-    const groupedRecordings = await prisma.recordingQueue.groupBy({
-      by: [
-        "userId",
-        "firstSegmentId",
-        "status",
-        "id",
-        "createdAt",
-        "duration",
-        "segmentsIndex",
-        "visibility",
-        "fileName",
-      ],
+    const queueRecordings = await prisma.recordingQueue.findMany({
       where: {
         createdAt: {
           gt: new Date(Date.now() - 48 * 60 * 60 * 1000),
         },
         userId: channel.user.id,
       },
-      _count: { _all: true },
     });
 
     const nestedRecordings = Object.values(
-      groupedRecordings.reduce(
+      queueRecordings.reduce(
         (acc, curr) => {
           const key = curr.firstSegmentId;
 
-          if (!key) {
+          if (key === null) {
             return acc;
           }
 
@@ -250,7 +238,7 @@ export const getChannelRecordingsAction = async (
 
           return acc;
         },
-        {} as Record<number, typeof groupedRecordings>,
+        {} as Record<number, typeof queueRecordings>,
       ),
     );
 
@@ -322,31 +310,28 @@ export const getChannelRecordingsAction = async (
       ];
     });
 
-    response.recordings = groupByFirstSegment.flatMap(
-      (recording): RecordingDto | [] => {
-        if (visibilitiesAllowed.includes(recording.visibility)) {
-          return {
-            date: recording.start,
-            duration: secondsToHMS(recording.duration),
-            status: recording.status,
-            title: formatDate(recording.start, true),
-            visibility: recording.visibility,
-            url: `/videos/${channel.user.name}/${encodeURIComponent(
-              btoa(
-                JSON.stringify({
-                  i: recording.fileName?.replace(".mp4", ""),
-                  t: "n",
-                }),
-              ),
-            )}`,
-            thumbnail: `/api/videos/thumbnails/${
-              channel.user.id
-            }/n/${recording.largerSegmentId}`,
-          };
-        }
-        return [];
-      },
-    );
+    response.recordings = groupByFirstSegment
+      .filter((recording) => visibilitiesAllowed.includes(recording.visibility))
+      .map(
+        (recording): RecordingDto => ({
+          date: recording.start,
+          duration: secondsToHMS(recording.duration),
+          status: recording.status,
+          title: formatDate(recording.start, true),
+          visibility: recording.visibility,
+          url: `/videos/${channel.user.name}/${encodeURIComponent(
+            btoa(
+              JSON.stringify({
+                i: recording.fileName?.replace(".mp4", ""),
+                t: "n",
+              }),
+            ),
+          )}`,
+          thumbnail: `/api/videos/thumbnails/${
+            channel.user.id
+          }/n/${recording.largerSegmentId}`,
+        }),
+      );
 
     const savedRecordings = await prisma.recordingSaved.findMany({
       where: {
@@ -361,28 +346,24 @@ export const getChannelRecordingsAction = async (
 
     response.recordings = [
       ...response.recordings,
-      ...savedRecordings.flatMap((recording): RecordingDto | [] => {
-        if (visibilitiesAllowed.includes(recording.visibility)) {
-          return {
-            date: recording.createdAt,
-            duration: secondsToHMS(recording.duration),
-            status: "SAVED",
-            title: recording.title || formatDate(recording.createdAt, true),
-            visibility: recording.visibility,
-            url: `/videos/${channel.user.name}/${encodeURIComponent(
-              btoa(
-                JSON.stringify({
-                  i: recording.id,
-                  t: "s",
-                }),
-              ),
-            )}`,
-            thumbnail: `/api/videos/thumbnails/${channel.user.id}/s/${recording.id}`,
-          };
-        }
-
-        return [];
-      }),
+      ...savedRecordings.map(
+        (recording): RecordingDto => ({
+          date: recording.createdAt,
+          duration: secondsToHMS(recording.duration),
+          status: "SAVED",
+          title: recording.title || formatDate(recording.createdAt, true),
+          visibility: recording.visibility,
+          url: `/videos/${channel.user.name}/${encodeURIComponent(
+            btoa(
+              JSON.stringify({
+                i: recording.id,
+                t: "s",
+              }),
+            ),
+          )}`,
+          thumbnail: `/api/videos/thumbnails/${channel.user.id}/s/${recording.id}`,
+        }),
+      ),
     ];
 
     response.recordings = response.recordings.sort(
