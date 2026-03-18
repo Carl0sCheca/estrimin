@@ -9,7 +9,7 @@ services:
   #     - "3000:3000"
 
   db:
-    image: pgautoupgrade/pgautoupgrade:18.2-alpine3.23
+    image: pgautoupgrade/pgautoupgrade:18.3-alpine3.23
     restart: always
     shm_size: 128mb
     ports:
@@ -29,7 +29,7 @@ services:
       context: .
       dockerfile: mediamtx.Dockerfile
       args:
-        - MEDIAMTX_VERSION=v1.16.1
+        - MEDIAMTX_VERSION=v1.17.0
     environment:
       - MTX_WEBRTCADDITIONALHOSTS=${MTX_WEBRTCADDITIONALHOSTS}
       - TZ=Europe/Madrid
