@@ -50,9 +50,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (duration < 0.5) {
     try {
       rmSync(videoPath);
-    } catch (error) {
-      console.error("segmentCreate: error removing file", error);
-    }
+    } catch {}
 
     if (existingRecordingEntry) {
       await prisma.recordingQueue.delete({
