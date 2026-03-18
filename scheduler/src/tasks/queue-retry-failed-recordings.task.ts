@@ -10,6 +10,13 @@ export const queueTaskRetryFailedRecordings = async () => {
 
   await updateLastExecutionFromSettings(JOB_RETRY_FAILED_QUEUE);
 
+  await prisma.recordingQueue.deleteMany({
+    where: {
+      status: RecordingQueueState.FAILED,
+      errorState: RecordingQueueState.FAILED,
+    },
+  });
+
   const failedToRetry = await prisma.recordingQueue.findMany({
     where: {
       status: RecordingQueueState.FAILED,
