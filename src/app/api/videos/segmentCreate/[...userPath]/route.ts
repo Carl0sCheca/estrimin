@@ -67,7 +67,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     try {
       rmSync(videoPath);
     } catch (error) {
-      console.error("segmentCreate: error removing file", error);
+      if (process.env.DEBUG) {
+        console.error("segmentCreate: error removing file", error);
+      }
     }
 
     return new NextResponse(null, { status: 204 });
