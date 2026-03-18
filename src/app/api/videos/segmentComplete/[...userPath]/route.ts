@@ -132,9 +132,11 @@ export async function GET(req: NextRequest, { params }: Params) {
       return recording;
     });
   } catch {
-    console.error(
-      `segmentComplete: Error while updating recordingQueue ${userId}/${fileName}`,
-    );
+    if (process.env.DEBUG) {
+      console.error(
+        `segmentComplete: Error while updating recordingQueue ${userId}/${fileName}`,
+      );
+    }
   }
 
   StartAllScheduledJobAction();
