@@ -19,7 +19,7 @@ interface Props {
 
 export const Videos = ({ channel, recordingsListInit }: Props) => {
   const { data: recordingsList } = useQuery({
-    queryKey: ["following", "followingsChannels"],
+    queryKey: ["channel", "recordings"],
     queryFn: () => getChannelRecordingsAction(channel),
     refetchInterval: 30000,
     initialData: recordingsListInit,
