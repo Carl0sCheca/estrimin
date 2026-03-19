@@ -11,8 +11,7 @@ import {
   StopScheduledJobAction,
 } from "@/actions";
 import { Collapsible, MouseEnterEventOptions, Toggle } from "@/components";
-import { Job } from "@/interfaces/actions/scheduler";
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FaCircle, FaPause, FaPlay, FaStop } from "react-icons/fa";
 
 interface Props {
@@ -27,17 +26,11 @@ interface Props {
 }
 
 export const QueueJobs = ({ tooltip }: Props) => {
-  const [jobs, setJobs] = useState<Array<Job>>([]);
-  const [errorJob, setErrorJob] = useState(false);
-  const [pendingRecordings, setPendingRecordings] = useState(0);
-  const [completedRecordings, setCompletedRecordings] = useState(0);
-  const [failedRecordings, setFailedRecordings] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const [disabledQueueJobs, setDisabledQueueJobs] = useState(false);
-
-  const getData = async () => {
-    try {
+  const { data: queueData } = useQuery({
+    queryKey: ["admin", "queue", "jobs"],
+    queryFn: async () => {
       const [requestJobs, recordingQueue, queueSiteSetting] = await Promise.all(
         [
           GetAllTasksSchedulerAction(),
@@ -46,67 +39,104 @@ export const QueueJobs = ({ tooltip }: Props) => {
         ],
       );
 
-      if (requestJobs.ok) {
-        setErrorJob(false);
-        setJobs(requestJobs.tasks);
+      return {
+        jobs: requestJobs.ok ? requestJobs.tasks : [],
+        errorJob: !requestJobs.ok,
+        pendingRecordings: recordingQueue.ok
+          ? (recordingQueue.pending ?? 0)
+          : 0,
+        completedRecordings: recordingQueue.ok
+          ? (recordingQueue.completed ?? 0)
+          : 0,
+        failedRecordings: recordingQueue.ok ? (recordingQueue.failed ?? 0) : 0,
+        disabledQueueJobs: queueSiteSetting.ok,
+      };
+    },
+    refetchInterval: 30000,
+  });
+
+  const toggleJobMutation = useMutation({
+    mutationFn: async (data: { jobId: string; isRunning: boolean }) => {
+      if (data.isRunning) {
+        await StopScheduledJobAction(data.jobId);
       } else {
-        setErrorJob(true);
+        await StartScheduledJobAction(data.jobId);
       }
+    },
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: ["admin", "queue", "jobs"] });
 
-      if (recordingQueue.ok) {
-        setPendingRecordings(recordingQueue.pending ?? 0);
-        setCompletedRecordings(recordingQueue.completed ?? 0);
-        setFailedRecordings(recordingQueue.failed ?? 0);
+      const previousData = queryClient.getQueryData(["admin", "queue", "jobs"]);
+
+      queryClient.setQueryData(
+        ["admin", "queue", "jobs"],
+        (old: typeof queueData) => {
+          if (!old) return old;
+
+          return {
+            ...old,
+            jobs: old.jobs.map((job) =>
+              job.id === data.jobId
+                ? {
+                    ...job,
+                    status: data.isRunning ? "stopped" : "running",
+                    isRunning: !data.isRunning,
+                  }
+                : job,
+            ),
+          };
+        },
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _data, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ["admin", "queue", "jobs"],
+          context.previousData,
+        );
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "queue", "jobs"] });
+    },
+  });
 
-      setDisabledQueueJobs(queueSiteSetting.ok);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
-
-  useEffect(() => {
-    getData();
-    const intervalId = setInterval(getData, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const handleStartAll = async () => {
-    setLoading(true);
-    try {
+  const startAllMutation = useMutation({
+    mutationFn: async () => {
       await StartAllScheduledJobAction();
-      await getData();
-    } catch (error) {
-      console.error("Error starting all jobs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "queue", "jobs"] });
+    },
+  });
 
-  const handleStopAll = async () => {
-    setLoading(true);
-    try {
+  const stopAllMutation = useMutation({
+    mutationFn: async () => {
       await StopAllScheduledJobAction();
-      await getData();
-    } catch (error) {
-      console.error("Error stopping all jobs:", error);
-    } finally {
-      setLoading(false);
-    }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "queue", "jobs"] });
+    },
+  });
+
+  const handleToggleJob = (jobId: string, isRunning: boolean) => {
+    toggleJobMutation.mutate({ jobId, isRunning });
   };
 
-  const handleToggleJob = async (jobId: string, isRunning: boolean) => {
-    try {
-      if (isRunning) {
-        await StopScheduledJobAction(jobId);
-      } else {
-        await StartScheduledJobAction(jobId);
-      }
-      await getData();
-    } catch (error) {
-      console.error("Error toggling job:", error);
-    }
+  const handleStartAll = () => {
+    startAllMutation.mutate();
   };
+
+  const handleStopAll = () => {
+    stopAllMutation.mutate();
+  };
+
+  const isLoading =
+    startAllMutation.isPending ||
+    stopAllMutation.isPending ||
+    toggleJobMutation.isPending;
 
   return (
     <>
@@ -115,14 +145,17 @@ export const QueueJobs = ({ tooltip }: Props) => {
           <div className="flex justify-center">
             <Toggle
               onChange={async () => {
-                const response =
-                  await SetQueueSiteSettingsAction(!disabledQueueJobs);
+                const response = await SetQueueSiteSettingsAction(
+                  !(queueData?.disabledQueueJobs ?? false),
+                );
 
                 if (response.ok) {
-                  setDisabledQueueJobs(!disabledQueueJobs);
+                  queryClient.invalidateQueries({
+                    queryKey: ["admin", "queue", "jobs"],
+                  });
                 }
               }}
-              checked={disabledQueueJobs}
+              checked={queueData?.disabledQueueJobs ?? false}
             >
               Disable queue jobs
             </Toggle>
@@ -131,21 +164,21 @@ export const QueueJobs = ({ tooltip }: Props) => {
           <div className="flex gap-4 justify-center">
             <button
               onClick={handleStartAll}
-              disabled={loading || disabledQueueJobs}
+              disabled={isLoading || (queueData?.disabledQueueJobs ?? false)}
               className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaPlay className="w-4 h-4" />
-              <span>{loading ? "Starting..." : "Start All Jobs"}</span>
+              <span>{isLoading ? "Starting..." : "Start All Jobs"}</span>
             </button>
 
             <button
               onClick={handleStopAll}
-              disabled={loading}
+              disabled={isLoading}
               className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaStop className="w-4 h-4" />
               <span className="mr-4">
-                {loading ? "Stopping..." : "Stop All Jobs"}
+                {isLoading ? "Stopping..." : "Stop All Jobs"}
               </span>
             </button>
           </div>
@@ -154,21 +187,21 @@ export const QueueJobs = ({ tooltip }: Props) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary-600">
-                  {completedRecordings}
+                  {queueData?.completedRecordings ?? 0}
                 </div>
                 <div className="text-gray-600">Completed</div>
               </div>
 
               <div className="text-center">
                 <div className="text-2xl font-bold text-yellow-600">
-                  {pendingRecordings}
+                  {queueData?.pendingRecordings ?? 0}
                 </div>
                 <div className="text-gray-600">Pending</div>
               </div>
 
               <div className="text-center">
                 <div className="text-2xl font-bold text-red-600">
-                  {failedRecordings}
+                  {queueData?.failedRecordings ?? 0}
                 </div>
                 <div className="text-gray-600">Failed</div>
               </div>
@@ -178,13 +211,15 @@ export const QueueJobs = ({ tooltip }: Props) => {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Total progress:</span>
                 <span className="font-medium">
-                  {completedRecordings + pendingRecordings + failedRecordings >
+                  {(queueData?.completedRecordings ?? 0) +
+                    (queueData?.pendingRecordings ?? 0) +
+                    (queueData?.failedRecordings ?? 0) >
                   0
                     ? Math.round(
-                        (completedRecordings /
-                          (completedRecordings +
-                            pendingRecordings +
-                            failedRecordings)) *
+                        ((queueData?.completedRecordings ?? 0) /
+                          ((queueData?.completedRecordings ?? 0) +
+                            (queueData?.pendingRecordings ?? 0) +
+                            (queueData?.failedRecordings ?? 0))) *
                           100,
                       ) + "%"
                     : "100%"}
@@ -196,14 +231,14 @@ export const QueueJobs = ({ tooltip }: Props) => {
                   className="bg-primary-600 h-2 rounded-full transition-all"
                   style={{
                     width: `${
-                      completedRecordings +
-                        pendingRecordings +
-                        failedRecordings >
+                      (queueData?.completedRecordings ?? 0) +
+                        (queueData?.pendingRecordings ?? 0) +
+                        (queueData?.failedRecordings ?? 0) >
                       0
-                        ? (completedRecordings /
-                            (completedRecordings +
-                              pendingRecordings +
-                              failedRecordings)) *
+                        ? ((queueData?.completedRecordings ?? 0) /
+                            ((queueData?.completedRecordings ?? 0) +
+                              (queueData?.pendingRecordings ?? 0) +
+                              (queueData?.failedRecordings ?? 0))) *
                           100
                         : 100
                     }%`,
@@ -214,13 +249,13 @@ export const QueueJobs = ({ tooltip }: Props) => {
           </div>
 
           <div className="space-y-2">
-            {errorJob && (
+            {queueData?.errorJob && (
               <div className="text-red-500 text-center font-bold">
                 Queue service unavailable
               </div>
             )}
-            {!errorJob &&
-              jobs.map((job) => (
+            {!queueData?.errorJob &&
+              (queueData?.jobs ?? []).map((job) => (
                 <div
                   key={job.id}
                   className="flex items-center gap-4 p-3 bg-white border rounded-lg hover:shadow-md transition-shadow"
@@ -238,8 +273,9 @@ export const QueueJobs = ({ tooltip }: Props) => {
                         handleToggleJob(job.id, job.status === "running")
                       }
                       disabled={
-                        loading ||
-                        (disabledQueueJobs && job.status === "stopped")
+                        isLoading ||
+                        ((queueData?.disabledQueueJobs ?? false) &&
+                          job.status === "stopped")
                       }
                       className={`p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         job.status === "running"
