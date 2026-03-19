@@ -169,11 +169,14 @@ export const GetProcessingStatisticsAction =
 
       response.ok = true;
       response.completed = queueRecordings.filter(
-        (recording) => recording.status === "COMPLETED",
+        (recording) =>
+          recording.status === "COMPLETED" || recording.status === "MERGED",
       ).length;
       response.pending = queueRecordings.filter(
         (recording) =>
-          recording.status !== "COMPLETED" && recording.status !== "FAILED",
+          recording.status !== "COMPLETED" &&
+          recording.status !== "MERGED" &&
+          recording.status !== "FAILED",
       ).length;
       response.failed = queueRecordings.filter(
         (recording) => recording.status === "FAILED",
