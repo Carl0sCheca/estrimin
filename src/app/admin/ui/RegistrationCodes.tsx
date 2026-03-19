@@ -174,7 +174,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
               />
             </div>
             <button
-              className="flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
+              className="cursor-pointer flex justify-center items-center p-2 w-10 bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:text-sm sm:leading-6"
               onMouseEnter={(e) => tooltip.mouseEnter(e, "Generate link")}
               onMouseLeave={tooltip.mouseLeave}
               onClick={async () => {
@@ -198,7 +198,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
             className="flex justify-between my-2 dark:hover:bg-slate-300 dark:bg-slate-500 bg-slate-300 hover:bg-slate-500 rounded-sm"
           >
             <button
-              className="group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
+              className="cursor-pointer group m-2 w-1/2 flex justify-center items-center bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
               onMouseEnter={(e) => {
                 tooltip.mouseEnter(e, "Copy URL");
                 addCurrentTargetToList(e, registrationCode.id);
@@ -252,7 +252,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
               )}
             </button>
             <button
-              className="flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
+              className="cursor-pointer flex m-2 w-1/2 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
               onMouseEnter={(e) => {
                 addCurrentTargetToList(e, registrationCode.id);
                 tooltip.mouseEnter(e, "Delete ");

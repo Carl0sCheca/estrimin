@@ -114,7 +114,7 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
                 (queueData?.disabledQueueJobs ?? false) ||
                 (queueData?.items ?? []).length === 0
               }
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IoReloadCircleSharp size={24} />
               <span>
@@ -172,7 +172,7 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
                       disabled={
                         isLoading || (queueData?.disabledQueueJobs ?? false)
                       }
-                      className="rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 hover:bg-gray-200 text-primary-600"
+                      className="cursor-pointer rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 hover:bg-gray-200 text-primary-600"
                     >
                       <IoReloadCircleSharp size={20} />
                     </button>

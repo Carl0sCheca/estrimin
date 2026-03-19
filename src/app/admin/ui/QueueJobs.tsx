@@ -165,7 +165,7 @@ export const QueueJobs = ({ tooltip }: Props) => {
             <button
               onClick={handleStartAll}
               disabled={isLoading || (queueData?.disabledQueueJobs ?? false)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaPlay className="w-4 h-4" />
               <span>{isLoading ? "Starting..." : "Start All Jobs"}</span>
@@ -174,7 +174,7 @@ export const QueueJobs = ({ tooltip }: Props) => {
             <button
               onClick={handleStopAll}
               disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaStop className="w-4 h-4" />
               <span className="mr-4">
@@ -277,7 +277,7 @@ export const QueueJobs = ({ tooltip }: Props) => {
                         ((queueData?.disabledQueueJobs ?? false) &&
                           job.status === "stopped")
                       }
-                      className={`p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      className={`cursor-pointer p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                         job.status === "running"
                           ? "bg-yellow-100 hover:bg-yellow-200 text-yellow-600"
                           : "bg-gray-100 hover:bg-gray-200 text-primary-600"
