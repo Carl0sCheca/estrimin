@@ -10,7 +10,8 @@ import {
   GenerateRegistrationCodeRequest,
   RegistrationCodeDto,
 } from "@/interfaces";
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useState } from "react";
 import { BiSolidSend } from "react-icons/bi";
 import { FaCheckSquare, FaMinusSquare, FaSquare } from "react-icons/fa";
 import { ImInfinite } from "react-icons/im";
@@ -30,19 +31,18 @@ interface Props {
 }
 
 export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
+  const queryClient = useQueryClient();
+
   const [expiresRegistrationCode, setExpiresRegistrationCode] = useState(false);
   const [expiresDate, setExpiresDate] = useState("");
-
-  const [registrationCodes, setRegistrationCodes] = useState<
-    Array<RegistrationCodeDto>
-  >([]);
 
   const [elementsWithTooltip, setElementsWithTooltip] = useState<
     Array<{ id: string; element: HTMLElement }>
   >([]);
 
-  useEffect(() => {
-    const getRegistrationCodes = async () => {
+  const { data: registrationCodes = [] } = useQuery({
+    queryKey: ["admin", "registration", "codes"],
+    queryFn: async () => {
       const regLinksResponse = await getRegistrationCodesAction();
 
       if (
@@ -50,14 +50,69 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
         !regLinksResponse.ok ||
         !regLinksResponse.registrationCodes
       ) {
+        return [];
+      }
+
+      return regLinksResponse.registrationCodes;
+    },
+    refetchInterval: 120000,
+  });
+
+  const generateMutation = useMutation({
+    mutationFn: async (request: GenerateRegistrationCodeRequest) => {
+      return await generateRegistrationCode(request);
+    },
+    onSuccess: (data) => {
+      if (!data || !data.id) {
         return;
       }
 
-      setRegistrationCodes(regLinksResponse.registrationCodes);
-    };
+      queryClient.setQueryData(
+        ["admin", "registration", "codes"],
+        (oldData: RegistrationCodeDto[]) => [
+          ...(oldData || []),
+          {
+            id: data.id as string,
+            expirationDate: data.expirationDate || null,
+            used: false,
+            createdAt: new Date(),
+            user: null,
+          },
+        ],
+      );
+    },
+  });
 
-    getRegistrationCodes();
-  }, []);
+  const deleteMutation = useMutation({
+    mutationFn: async (codeId: string) => {
+      return await deleteRegistrationCodesAction(codeId);
+    },
+    onSuccess: (deleteResponse, codeId) => {
+      if (!deleteResponse) {
+        return;
+      }
+
+      queryClient.setQueryData(
+        ["admin", "registration", "codes"],
+        (oldData: RegistrationCodeDto[]) =>
+          (oldData || []).filter((code) => code.id !== codeId),
+      );
+
+      const tooltipsToDelete = elementsWithTooltip.filter(
+        (e) => e.id === codeId,
+      );
+
+      tooltipsToDelete.forEach((toDelete) => {
+        tooltip.mouseLeave({
+          currentTarget: toDelete.element,
+        } as React.MouseEvent<HTMLElement>);
+      });
+
+      setElementsWithTooltip((prevState) =>
+        prevState.filter((e) => e.id !== codeId),
+      );
+    },
+  });
 
   const addCurrentTargetToList = (e: React.MouseEvent, id: string) => {
     const currentTarget = e.currentTarget;
@@ -104,7 +159,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
                 />
                 <div className="pr-2 select-none">Expires?</div>
                 <div
-                  className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
+                  className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:inset-s-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600`}
                 ></div>
               </label>
               <input
@@ -128,24 +183,7 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
                   request.expirationDate = new Date(expiresDate);
                 }
 
-                const registrationCodeResponse =
-                  await generateRegistrationCode(request);
-
-                if (!registrationCodeResponse || !registrationCodeResponse.id) {
-                  return;
-                }
-
-                setRegistrationCodes((prevRegistrationCodes) => [
-                  ...prevRegistrationCodes,
-                  {
-                    id: registrationCodeResponse.id as string,
-                    expirationDate:
-                      registrationCodeResponse.expirationDate || null,
-                    used: false,
-                    createdAt: new Date(),
-                    user: null,
-                  },
-                ]);
+                generateMutation.mutate(request);
               }}
             >
               <div className="py-1.5 text-lg">
@@ -220,35 +258,8 @@ export const RegistrationCodes = ({ tooltip, baseUrl }: Props) => {
                 tooltip.mouseEnter(e, "Delete ");
               }}
               onMouseLeave={tooltip.mouseLeave}
-              onClick={async (e) => {
-                const deleteResponse = await deleteRegistrationCodesAction(
-                  registrationCode.id,
-                );
-
-                if (!deleteResponse) {
-                  return;
-                }
-
-                setRegistrationCodes((prevRegistrationCodes) =>
-                  prevRegistrationCodes.filter(
-                    (code) => code.id !== registrationCode.id,
-                  ),
-                );
-
-                const tooltipsToDelete = elementsWithTooltip.filter(
-                  (e) => e.id === registrationCode.id,
-                );
-
-                tooltipsToDelete.forEach((toDelete) => {
-                  tooltip.mouseLeave({
-                    ...e,
-                    currentTarget: toDelete.element,
-                  });
-                });
-
-                setElementsWithTooltip((prevState) =>
-                  prevState.filter((e) => e.id !== registrationCode.id),
-                );
+              onClick={async () => {
+                deleteMutation.mutate(registrationCode.id);
               }}
             >
               <IoTrashBin />
