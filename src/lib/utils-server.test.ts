@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  getAllPathUrl,
   getFileNameFromPath,
   getLastUrlSegment,
   getUrlSegment,
@@ -79,5 +80,41 @@ describe("getLastUrlSegment", () => {
     test("should return the file name for single segment", async () => {
       expect(await getFileNameFromPath("file.txt")).toBe("file.txt");
     });
+  });
+});
+
+describe("getAllPathUrl", () => {
+  test("should return the path with trailing slash", async () => {
+    expect(await getAllPathUrl("http://test.domain/")).toBe("/");
+  });
+
+  test("should return the pathname without trailing slash", async () => {
+    expect(await getAllPathUrl("http://test.domain/api/estrimin")).toBe(
+      "/api/estrimin",
+    );
+  });
+
+  test("should return the pathname with single segment and trailing slash", async () => {
+    expect(await getAllPathUrl("http://test.domain/path/")).toBe("/path/");
+  });
+
+  test("should return the pathname with single segment without trailing slash", async () => {
+    expect(await getAllPathUrl("http://test.domain/path")).toBe("/path");
+  });
+
+  test("should return the pathname with multiple segments and trailing slash", async () => {
+    expect(await getAllPathUrl("http://test.domain/path/path2/")).toBe(
+      "/path/path2/",
+    );
+  });
+
+  test("should return the pathname with multiple segments without trailing slash", async () => {
+    expect(await getAllPathUrl("http://test.domain/path/path2")).toBe(
+      "/path/path2",
+    );
+  });
+
+  test("should return undefined for invalid URL", async () => {
+    expect(await getAllPathUrl("not-a-valid-url")).toBe(undefined);
   });
 });

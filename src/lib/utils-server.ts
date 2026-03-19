@@ -193,9 +193,20 @@ export const getUrlSegment = async (
 ): Promise<string | undefined> =>
   (await getAllUrlSegment(urlString))?.at(index);
 
+export const getAllPathUrl = async (
+  urlString: string,
+): Promise<string | undefined> => {
+  try {
+    const url = new URL(urlString);
+    return url.pathname;
+  } catch {
+    return undefined;
+  }
+};
+
 export const getAllUrlSegment = async (
   urlString: string,
-): Promise<string[] | undefined> => {
+): Promise<Array<string> | undefined> => {
   try {
     const url = new URL(urlString);
     return url.pathname.split("/").filter(Boolean);
