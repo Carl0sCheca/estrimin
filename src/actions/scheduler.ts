@@ -238,8 +238,10 @@ export const RetryAllFailedQueueItems = async () => {
       UPDATE "recordingQueue"
       SET 
         "attempts" = 0,
-        "status" = "error"::"RecordingQueueState",
-        "error" = NULL
+        "status" = "previousState",
+        "startedAt" = NOW(),
+        "hostname" = null,
+        "workerPid" = null
       WHERE "status" = ${RecordingQueueState.FAILED}
     `;
   } catch (e) {
@@ -253,8 +255,10 @@ export const RetryFailedQueueItem = async (id: number) => {
       UPDATE "recordingQueue"
       SET 
         "attempts" = 0,
-        "status" = "error"::"RecordingQueueState",
-        "error" = NULL
+        "status" = "previousState",
+        "startedAt" = NOW(),
+        "hostname" = null,
+        "workerPid" = null
       WHERE "status" = ${RecordingQueueState.FAILED}
       AND "id" = ${id}
     `;
@@ -287,15 +291,17 @@ export const GetAllFailedQueueItems =
           fileName: true,
           errorState: true,
           id: true,
+          user: { select: { name: true } },
         },
       });
 
       response.items = items.map((item) => {
         return {
           id: item.id,
-          fileName: item.fileName,
+          fileName: item.fileName.replace("s3://", ""),
           date: item.finishedAt ?? undefined,
           error: item.errorState ?? undefined,
+          userName: item.user.name,
         };
       });
     } catch {

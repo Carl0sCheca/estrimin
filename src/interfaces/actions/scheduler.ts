@@ -24,6 +24,7 @@ export interface Job {
 export interface FailedItems {
   id: number;
   fileName: string;
+  userName: string;
   error?: string;
   date?: Date;
 }
