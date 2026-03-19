@@ -1,5 +1,6 @@
 "use server";
 
+import { ChannelVisibility } from "@/generated/enums";
 import {
   ChangePasswordResponse,
   SITE_SETTING,
@@ -7,6 +8,7 @@ import {
   UserUpdateDataRequest,
   UserUpdateResponse,
   UserFollowingListResponse,
+  UserFollowingLiveChannelItem,
 } from "@/interfaces";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -182,6 +184,22 @@ export const changePasswordAction = async ({
   return response;
 };
 
+const ALLOWED_VISIBILITIES = [
+  ChannelVisibility.ALL,
+  ChannelVisibility.ALLOWLIST,
+  ChannelVisibility.REGISTERED_USERS,
+] as const;
+
+const PUBLIC_VISIBILITIES = [
+  ChannelVisibility.ALL,
+  ChannelVisibility.REGISTERED_USERS,
+] as const;
+
+const isVisibilityAllowed = (
+  visibility: ChannelVisibility,
+  visibilities: readonly ChannelVisibility[],
+): boolean => visibilities.includes(visibility);
+
 export const liveFollowingListAction =
   async (): Promise<LiveUserFollowingResponse> => {
     const response: LiveUserFollowingResponse = {
@@ -193,68 +211,126 @@ export const liveFollowingListAction =
       headers: await headers(),
     });
 
+    if (!session?.user?.id) {
+      return response;
+    }
+
     try {
       const followingList = (
         await prisma.userFollows.findMany({
           where: {
-            userId: session?.user.id,
+            userId: session.user.id,
           },
           select: {
-            followed: { select: { name: true } },
+            followed: { select: { name: true, id: true } },
           },
         })
-      ).map((following) => following.followed.name);
+      ).map((following) => following.followed);
 
-      const request = await fetch(
+      const streamRequest = await fetch(
         `${process.env.STREAM_API_URL}/v3/paths/list`,
         {
           method: "GET",
         },
       );
 
-      if (request.ok) {
-        const responseApi = await request.json();
-
-        if (responseApi) {
-          response.following = responseApi.items.map(
-            (i: {
-              name: string;
-              ready: boolean;
-              readyTime: Date;
-              readers: [];
-            }) => {
-              return {
-                id: i.name.split("/").pop(),
-                ready: i.ready,
-                readyTime: i.readyTime,
-                viewers: i.readers.length,
-              };
-            },
-          );
-
-          response.following = await Promise.all(
-            response.following.map(async (item) => {
-              return {
-                ...item,
-                id:
-                  (
-                    await prisma.user.findUnique({
-                      where: { id: item.id },
-                      select: { name: true },
-                    })
-                  )?.name || "Failed to get name",
-              };
-            }),
-          );
-
-          response.following = response.following.filter((following) =>
-            followingList.includes(following.id),
-          );
-
-          response.ok = true;
-        }
+      if (!streamRequest.ok) {
+        return response;
       }
-    } catch {}
+
+      const streamData = await streamRequest.json();
+      if (!streamData?.items) {
+        return response;
+      }
+
+      const liveChannels = streamData.items.map(
+        (item: {
+          name: string;
+          ready: boolean;
+          readyTime: Date;
+          readers: [];
+        }) => ({
+          id: item.name.split("/").pop(),
+          ready: item.ready,
+          readyTime: item.readyTime,
+          viewers: item.readers.length,
+        }),
+      ) as Array<UserFollowingLiveChannelItem>;
+
+      const allChannels = await prisma.channel.findMany({
+        select: {
+          userId: true,
+          user: { select: { name: true } },
+          visibility: true,
+        },
+        where: {
+          userId: {
+            in: followingList.map((fl) => fl.id),
+          },
+        },
+      });
+
+      const channelMap = new Map(
+        allChannels.map((ch) => [
+          ch.userId,
+          { name: ch.user.name, visibility: ch.visibility },
+        ]),
+      );
+
+      const allowList = await prisma.channelAllowList.findMany({
+        select: {
+          Channel: {
+            select: {
+              userId: true,
+              user: { select: { name: true } },
+              visibility: true,
+            },
+          },
+        },
+        where: {
+          userId: session.user.id,
+          Channel: {
+            userId: {
+              in: followingList.map((fl) => fl.id),
+            },
+          },
+        },
+      });
+
+      const allowlistMap = new Map(
+        allowList
+          .filter((item) =>
+            isVisibilityAllowed(item.Channel.visibility, ALLOWED_VISIBILITIES),
+          )
+          .map((item) => [item.Channel.userId, item.Channel.user.name]),
+      );
+
+      const filteredElements = liveChannels
+        .map((channel) => {
+          const allowlistName = allowlistMap.get(channel.id);
+          if (allowlistName) {
+            return { ...channel, id: allowlistName };
+          }
+
+          const channelInfo = channelMap.get(channel.id);
+          if (
+            channelInfo &&
+            isVisibilityAllowed(channelInfo.visibility, PUBLIC_VISIBILITIES)
+          ) {
+            return { ...channel, id: channelInfo.name };
+          }
+
+          return null;
+        })
+        .filter((item): item is UserFollowingLiveChannelItem => item !== null);
+
+      response.following = filteredElements;
+      response.ok = true;
+    } catch (error) {
+      if (process.env.DEBUG) {
+        console.error("Error in liveFollowingListAction:", error);
+      }
+    }
 
     return response;
   };
