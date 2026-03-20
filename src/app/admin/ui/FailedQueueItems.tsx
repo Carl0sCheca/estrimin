@@ -24,22 +24,21 @@ interface Props {
 export const FailedQueueItems = ({ tooltip }: Props) => {
   const queryClient = useQueryClient();
 
-  const { data: queueData } = useQuery({
-    queryKey: ["admin", "queue", "failed"],
-    queryFn: async () => {
-      const [requestFailedItems, queueSiteSetting] = await Promise.all([
-        GetAllFailedQueueItems(),
-        GetQueueSiteSettingsAction(),
-      ]);
-
-      return {
-        items: requestFailedItems.ok ? requestFailedItems.items : [],
-        errorItem: !requestFailedItems.ok,
-        disabledQueueJobs: queueSiteSetting.ok,
-      };
-    },
+  const { data: failedItemsData, isLoading: isLoadingItems } = useQuery({
+    queryKey: ["admin", "queue", "failed", "items"],
+    queryFn: GetAllFailedQueueItems,
     refetchInterval: 30000,
   });
+
+  const { data: queueSettingsData, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ["admin", "queue", "failed", "settings"],
+    queryFn: GetQueueSiteSettingsAction,
+    refetchInterval: 30000,
+  });
+
+  const items = failedItemsData?.ok ? failedItemsData.items : [];
+  const errorItem = !!failedItemsData && !failedItemsData.ok;
+  const disabledQueueJobs = queueSettingsData?.ok ?? false;
 
   const retryItemMutation = useMutation({
     mutationFn: async (queueId: number) => {
@@ -47,18 +46,19 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
     },
     onMutate: async (queueId) => {
       await queryClient.cancelQueries({
-        queryKey: ["admin", "queue", "failed"],
+        queryKey: ["admin", "queue", "failed", "items"],
       });
 
       const previousData = queryClient.getQueryData([
         "admin",
         "queue",
         "failed",
+        "items",
       ]);
 
       queryClient.setQueryData(
-        ["admin", "queue", "failed"],
-        (old: typeof queueData) => {
+        ["admin", "queue", "failed", "items"],
+        (old: typeof failedItemsData) => {
           if (!old) return old;
 
           return {
@@ -73,13 +73,15 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
     onError: (_err, _queueId, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(
-          ["admin", "queue", "failed"],
+          ["admin", "queue", "failed", "items"],
           context.previousData,
         );
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "queue", "failed"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "queue", "failed", "items"],
+      });
     },
   });
 
@@ -88,7 +90,9 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
       await RetryAllFailedQueueItems();
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "queue", "failed"] });
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "queue", "failed", "items"],
+      });
     },
   });
 
@@ -100,7 +104,8 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
     retryItemMutation.mutate(queueId);
   };
 
-  const isLoading = retryAllMutation.isPending || retryItemMutation.isPending;
+  const isQueryLoading = isLoadingItems || isLoadingSettings;
+  const isMutating = retryAllMutation.isPending || retryItemMutation.isPending;
 
   return (
     <>
@@ -110,29 +115,38 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
             <button
               onClick={handleRetryAll}
               disabled={
-                isLoading ||
-                (queueData?.disabledQueueJobs ?? false) ||
-                (queueData?.items ?? []).length === 0
+                isQueryLoading ||
+                isMutating ||
+                disabledQueueJobs ||
+                items.length === 0
               }
               className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IoReloadCircleSharp size={24} />
               <span>
-                {isLoading
-                  ? "Starting..."
-                  : `Retry all failed items (${(queueData?.items ?? []).length})`}
+                {isQueryLoading
+                  ? "Loading..."
+                  : isMutating
+                    ? "Starting..."
+                    : `Retry all failed items (${items.length})`}
               </span>
             </button>
           </div>
 
           <div className="space-y-2">
-            {queueData?.errorItem && (
+            {isQueryLoading && (
+              <div className="text-primary-600 text-center font-bold">
+                Loading failed items...
+              </div>
+            )}
+            {errorItem && (
               <div className="text-red-500 text-center font-bold">
                 Queue service unavailable
               </div>
             )}
-            {!queueData?.errorItem &&
-              (queueData?.items ?? []).map((item) => (
+            {!isQueryLoading &&
+              !errorItem &&
+              items.map((item) => (
                 <div
                   key={item.id}
                   className="flex items-center gap-1 p-3 bg-white border rounded-lg hover:shadow-md transition-shadow"
@@ -170,7 +184,7 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
                       onMouseLeave={tooltip.mouseLeave}
                       onClick={() => handleRetryItem(item.id)}
                       disabled={
-                        isLoading || (queueData?.disabledQueueJobs ?? false)
+                        isQueryLoading || isMutating || disabledQueueJobs
                       }
                       className="cursor-pointer rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 hover:bg-gray-200 text-primary-600"
                     >
