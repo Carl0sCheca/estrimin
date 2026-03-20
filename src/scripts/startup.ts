@@ -10,6 +10,7 @@ import {
   ExpirationStatus,
   PutBucketLifecycleConfigurationCommand,
 } from "@aws-sdk/client-s3";
+import { existsSync, mkdirSync } from "fs";
 
 const main = async () => {
   const isUsingS3 = await hasPathname(process.env.STREAM_URL || "");
@@ -23,10 +24,19 @@ const main = async () => {
     const target = join(recordingPath, urlSegments.join("/"));
 
     try {
+      if (!existsSync(target)) {
+        mkdirSync(target, { recursive: true });
+      }
+    } catch {}
+
+    try {
       await lstat(linkPath);
       await unlink(linkPath);
     } catch {}
-    await symlink(target, linkPath, "dir");
+
+    try {
+      await symlink(target, linkPath, "dir");
+    } catch {}
 
     try {
       await s3Client?.send(
