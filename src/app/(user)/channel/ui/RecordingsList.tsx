@@ -19,7 +19,7 @@ import {
   Spinner,
   Toggle,
 } from "@/components";
-import { Recording } from "@/interfaces";
+import { Recording, USER_SETTING } from "@/interfaces";
 import { formatDate, formatTimeAgo, secondsToHMS } from "@/lib/utils";
 import Link from "next/link";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -32,21 +32,38 @@ import { RiFileVideoLine, RiLiveLine, RiLockFill } from "react-icons/ri";
 import { UserChannel } from "./channelSettingsForm";
 import { IoLink, IoList } from "react-icons/io5";
 import { BiWorld } from "react-icons/bi";
-import { RecordingVisibility, UserSetting } from "@prisma/client";
+import { RecordingVisibility, UserSetting } from "@/generated/browser";
 import { FaCircle, FaRegClock } from "react-icons/fa";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   userChannel: UserChannel;
   tooltipMouseEnter: (
     event: React.MouseEvent<HTMLElement>,
     text: string,
-    options?: MouseEnterEventOptions
+    options?: MouseEnterEventOptions,
   ) => void;
   tooltipMouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   showAlert: (message: string, error?: boolean, duration?: number) => void;
   session: string;
   userSettings: UserSetting[];
 }
+
+const fetchSavedStreams = async (
+  userChannel: UserChannel,
+  session: string,
+): Promise<Array<Recording>> => {
+  const responseRecordingsList = await getRecordingsListAction(
+    userChannel,
+    session,
+  );
+
+  if (responseRecordingsList.ok) {
+    return responseRecordingsList.recordings;
+  }
+
+  return [];
+};
 
 export const RecordingsList = ({
   userChannel,
@@ -56,44 +73,34 @@ export const RecordingsList = ({
   session,
   userSettings,
 }: Props) => {
-  const [recordingList, setRecordingList] = useState<Array<Recording>>([]);
-  const [recordingListIsLoading, setRecordingListIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: recordingList, isLoading: recordingListIsLoading } = useQuery({
+    queryKey: ["channel", "savedStreams"],
+    queryFn: () => fetchSavedStreams(userChannel, session),
+    initialData: [],
+    refetchInterval: 30000,
+  });
+
   const [recordingListIsOpen, setRecordingListIsOpen] = useState(false);
 
   const [savingRecording, setSavingRecording] = useState<Array<string>>([]);
 
   const [visibilityUnsavedRecordings, setVisibilityUnsavedRecordings] =
     useState<RecordingVisibility>(
-      (userSettings.find((e) => e.key === "VISIBILITY_UNSAVED_RECORDINGS")
-        ?.value as RecordingVisibility) || RecordingVisibility.PRIVATE
+      (userSettings.find(
+        (e) => e.key === USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
+      )?.value as RecordingVisibility) || RecordingVisibility.PRIVATE,
     );
 
   const [storePastStreams, setStorePastStreams] = useState<boolean>(
     (userSettings.find((e) => e.key === "STORE_PAST_STREAMS")
-      ?.value as boolean) ?? false
+      ?.value as boolean) ?? false,
   );
 
   const [openMoreOptionsId, setOpenMoreOptionsId] = useState<string | null>(
-    null
+    null,
   );
-
-  useEffect(() => {
-    const getRecordingsList = async () => {
-      setRecordingListIsLoading(true);
-      const responseRecordingsList = await getRecordingsListAction(
-        userChannel,
-        session
-      );
-
-      if (responseRecordingsList.ok) {
-        setRecordingList(responseRecordingsList.recordings);
-      }
-
-      setRecordingListIsLoading(false);
-    };
-
-    getRecordingsList();
-  }, [userChannel, session]);
 
   const [openSelectorId, setOpenSelectorId] = useState<string | null>(null);
 
@@ -118,7 +125,7 @@ export const RecordingsList = ({
           onChange={async () => {
             const response = await storePastStreamsAction(
               !storePastStreams,
-              userChannel.user.id
+              userChannel.user.id,
             );
 
             if (response.ok) {
@@ -146,7 +153,7 @@ export const RecordingsList = ({
 
               const response = await changeDefaultRecordingVisibilityAction(
                 value,
-                userChannel.user.id
+                userChannel.user.id,
               );
 
               if (response.ok) {
@@ -184,21 +191,22 @@ export const RecordingsList = ({
             acceptCallback={async () => {
               const response = await changeRecordingTitle(
                 changeTitleRecordingId,
-                changeTitleString
+                changeTitleString,
               );
 
               if (!response.ok) {
                 showAlert(response.message || "Unexpected error", true);
               } else {
                 showAlert("Title changed");
-                setRecordingList((prevList) => {
-                  return prevList.map((rec) => {
-                    if (rec.id === changeTitleRecordingId) {
-                      return { ...rec, title: changeTitleString };
-                    }
-                    return rec;
-                  });
-                });
+                queryClient.setQueryData(
+                  ["channel", "savedStreams"],
+                  (prev: Recording[]) =>
+                    prev.map((rec) =>
+                      rec.id === changeTitleRecordingId
+                        ? { ...rec, title: changeTitleString }
+                        : rec,
+                    ),
+                );
               }
 
               setChangeTitleModalOpen(false);
@@ -226,7 +234,7 @@ export const RecordingsList = ({
                     onMouseLeave={tooltipMouseLeave}
                     className="flex items-center min-w-0 max-w-full"
                   >
-                    <RiFileVideoLine className="mr-1.5 min-w-4 flex-shrink-0" />
+                    <RiFileVideoLine className="mr-1.5 min-w-4 shrink-0" />
                     <span title={recording.title} className="truncate min-w-0">
                       {recording.title || formatDate(recording.start)}
                     </span>
@@ -235,7 +243,7 @@ export const RecordingsList = ({
                     onMouseEnter={(e) =>
                       tooltipMouseEnter(
                         e,
-                        `Duration: ${secondsToHMS(recording.duration)}`
+                        `Duration: ${secondsToHMS(recording.duration)}`,
                       )
                     }
                     onMouseLeave={tooltipMouseLeave}
@@ -251,7 +259,7 @@ export const RecordingsList = ({
                           e,
                           recording.type === "PROCESSING"
                             ? "Recording is being processed"
-                            : "This recording is live now"
+                            : "This recording is live now",
                         )
                       }
                       onMouseLeave={tooltipMouseLeave}
@@ -275,7 +283,7 @@ export const RecordingsList = ({
                     }
                     onToggle={(id) => {
                       setOpenMoreOptionsId(
-                        openMoreOptionsId === id ? null : id
+                        openMoreOptionsId === id ? null : id,
                       );
                     }}
                     className="flex items-center cursor-pointer mx-auto"
@@ -296,13 +304,13 @@ export const RecordingsList = ({
                         setSavingRecording((prev) =>
                           recording.id && !prev.includes(recording.id)
                             ? [...prev, recording.id]
-                            : prev
+                            : prev,
                         );
 
                         const response = await saveRecordingAction(
                           recording,
                           userChannel,
-                          session
+                          session,
                         );
 
                         if (response.ok && response.recording) {
@@ -310,24 +318,25 @@ export const RecordingsList = ({
                             ...e,
                             currentTarget,
                           });
-                          setRecordingList((list) =>
-                            list.map((r) => {
-                              if (r === recording) {
-                                r = response.recording as Recording;
-                              }
-                              return r;
-                            })
+                          queryClient.setQueryData(
+                            ["channel", "savedStreams"],
+                            (prev: Recording[]) =>
+                              prev.map((r) =>
+                                r === recording
+                                  ? (response.recording as Recording)
+                                  : r,
+                              ),
                           );
                           showAlert("Saved stream");
                         } else {
                           showAlert(
                             response.message || "Unexpected error",
-                            true
+                            true,
                           );
                         }
 
                         setSavingRecording((prev) =>
-                          prev.filter((r) => r !== recording.id)
+                          prev.filter((r) => r !== recording.id),
                         );
                       }}
                       onMouseEnter={(e) =>
@@ -338,7 +347,7 @@ export const RecordingsList = ({
                             : "This stream is saved",
                           {
                             extraGapY: 6,
-                          }
+                          },
                         )
                       }
                       onMouseLeave={tooltipMouseLeave}
@@ -388,19 +397,21 @@ export const RecordingsList = ({
 
                         const response = await deleteRecordingAction(
                           recording,
-                          userChannel
+                          userChannel,
                         );
 
                         if (response.ok) {
-                          setRecordingList((list) =>
-                            list.filter((item) => item !== recording)
+                          queryClient.setQueryData(
+                            ["channel", "savedStreams"],
+                            (prev: Recording[]) =>
+                              prev.filter((item) => item !== recording),
                           );
 
                           tooltipMouseLeave(event);
                         } else {
                           showAlert(
                             response.message || "An error has occurred",
-                            true
+                            true,
                           );
                         }
                       }}
@@ -449,7 +460,7 @@ export const RecordingsList = ({
                       callback={async (_, option) => {
                         const response = await changeRecordingVisibility(
                           recording,
-                          option?.value as RecordingVisibility
+                          option?.value as RecordingVisibility,
                         );
 
                         if (response.ok) {

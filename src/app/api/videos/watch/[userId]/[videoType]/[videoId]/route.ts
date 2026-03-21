@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { createReadStream, existsSync, statSync } from "fs";
 import prisma from "@/lib/prisma";
-import { RecordingVisibility } from "@prisma/client";
-import { getSafePath, validateParameters } from "@/lib/utils-api";
+import { RecordingVisibility } from "@/generated/client";
+import { validateParameters } from "@/lib/utils-api";
+import s3Client from "@/lib/s3-client";
+import { checkIfFileExists } from "@scheduler/services/s3.service";
+import { GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
 interface Params {
   params: Promise<{
@@ -17,45 +20,69 @@ const isRecordingVisible = async (
   userId: string,
   videoId: string,
   videoType: string,
-  session: string
+  session: string,
 ): Promise<number> => {
   if (!validateParameters(userId, videoId, videoType)) {
     return 404;
   }
 
+  const isUsingS3Bucket = s3Client !== null;
+
+  let recording;
+  let recordingPath;
+
   try {
-    let visibility;
-
     if (videoType === "n") {
-      const safePath = getSafePath(userId, `${videoId}.mp4`, videoType);
-      if (!safePath) return 404;
+      recording = await prisma.recordingQueue
+        .findUnique({
+          where: { id: +videoId, userId },
+        })
+        .catch(() => null);
 
-      visibility = (
-        await prisma.recordingQueue.findFirst({
-          where: {
-            fileName: safePath,
-          },
-        })
-      )?.visibility;
+      if (!recording) {
+        return 404;
+      }
+
+      recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings/${userId}/${recording.fileName.replace("s3://", "")}`;
     } else {
-      visibility = (
-        await prisma.recordingSaved.findFirst({
-          where: {
-            id: videoId,
-          },
+      recording = await prisma.recordingSaved
+        .findUnique({
+          where: { id: videoId },
         })
-      )?.visibility;
+        .catch(() => null);
+
+      if (!recording) {
+        return 404;
+      }
+
+      recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings_saved/${userId}/${recording.id}.mp4`;
+    }
+
+    if (isUsingS3Bucket) {
+      const existsFileInS3 = await checkIfFileExists(recordingPath);
+
+      if (!existsFileInS3) {
+        return 404;
+      }
+    } else {
+      try {
+        if (!existsSync(recordingPath)) {
+          return 404;
+        }
+      } catch {
+        return 404;
+      }
     }
 
     if (
-      visibility === RecordingVisibility.PRIVATE &&
+      recording.visibility === RecordingVisibility.PRIVATE &&
       (await prisma.session.findFirst({ where: { id: session } }))?.userId !==
         userId
     ) {
       return 404;
     }
 
-    if (visibility === RecordingVisibility.ALLOWLIST) {
+    if (recording.visibility === RecordingVisibility.ALLOWLIST) {
       const user = await prisma.session.findFirst({ where: { id: session } });
       const channel = await prisma.channel.findFirst({ where: { userId } });
 
@@ -80,19 +107,6 @@ const isRecordingVisible = async (
     return 500;
   }
 
-  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, videoType);
-  if (!safeVideoPath) {
-    return 404;
-  }
-
-  try {
-    if (!existsSync(safeVideoPath)) {
-      return 404;
-    }
-  } catch {
-    return 404;
-  }
-
   return 200;
 };
 
@@ -100,15 +114,11 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { userId, videoId, videoType } = await params;
   const session = req.nextUrl.searchParams.get("session") || "";
 
-  if (!validateParameters(userId, videoId, videoType)) {
-    return NextResponse.json({ ok: false }, { status: 404 });
-  }
-
   const canViewRecording = await isRecordingVisible(
     userId,
     videoId,
     videoType,
-    session
+    session,
   );
 
   if (canViewRecording === 200) {
@@ -130,68 +140,173 @@ export async function GET(req: NextRequest, { params }: Params) {
     userId,
     videoId,
     videoType,
-    session
+    session,
   );
 
   if (canViewRecording !== 200) {
     return new NextResponse(null, { status: canViewRecording });
   }
 
-  const safeVideoPath = getSafePath(userId, `${videoId}.mp4`, videoType);
-  if (!safeVideoPath) {
-    return new NextResponse(null, { status: 404 });
-  }
+  const isUsingS3Bucket = s3Client !== null;
 
-  try {
-    const stat = statSync(safeVideoPath);
-    const fileSize = stat.size;
-    const range = req.headers.get("range");
+  let recording;
+  let recordingPath;
 
-    const headers = new Headers({
-      "Content-Type": "video/mp4",
-      "Accept-Ranges": "bytes",
-      "Cache-Control": "no-cache",
-      "Content-Disposition": `inline; filename="${path.basename(
-        safeVideoPath
-      )}"`,
-      "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "DENY",
+  if (videoType === "n") {
+    recording = await prisma.recordingQueue.findUnique({
+      where: {
+        id: +videoId,
+        userId,
+      },
     });
 
-    if (range) {
-      const parts = range.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    if (!recording) {
+      return new NextResponse(null, { status: 404 });
+    }
+    recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings/${userId}/${recording?.fileName.replace("s3://", "")}`;
+  } else {
+    recording = await prisma.recordingSaved.findUnique({
+      where: {
+        id: videoId,
+      },
+    });
 
-      if (start >= fileSize || end >= fileSize || start < 0 || end < start) {
-        headers.set("Content-Range", `bytes */${fileSize}`);
-        return new NextResponse(null, { status: 416, headers });
-      }
+    if (!recording) {
+      return new NextResponse(null, { status: 404 });
+    }
 
-      const chunksize = end - start + 1;
+    recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings_saved/${userId}/${recording?.id}.mp4`;
+  }
 
-      headers.set("Content-Range", `bytes ${start}-${end}/${fileSize}`);
-      headers.set("Content-Length", chunksize.toString());
+  if (isUsingS3Bucket) {
+    try {
+      const range = req.headers.get("range");
 
-      const videoStream = createReadStream(safeVideoPath, { start, end });
-      const response = new Response(videoStream as unknown as ReadableStream, {
-        status: 206,
-        headers,
+      const head = await s3Client?.send(
+        new HeadObjectCommand({
+          Bucket: process.env.S3_BUCKET_RECORDINGS,
+          Key: recordingPath,
+        }),
+      );
+
+      const fileSize = head?.ContentLength || 0;
+      const contentType = head?.ContentType || "video/mp4";
+
+      const headers = new Headers({
+        "Content-Type": contentType,
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-cache",
+        "Content-Disposition": `inline; filename="${recordingPath}"`,
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
       });
 
-      return response;
-    } else {
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+        if (start >= fileSize || end >= fileSize || start < 0 || end < start) {
+          headers.set("Content-Range", `bytes */${fileSize}`);
+          return new NextResponse(null, { status: 416, headers });
+        }
+
+        const chunkSize = end - start + 1;
+
+        const command = new GetObjectCommand({
+          Bucket: process.env.S3_BUCKET_RECORDINGS,
+          Key: recordingPath,
+          Range: `bytes=${start}-${end}`,
+        });
+
+        const s3Response = await s3Client?.send(command);
+        const bodyStream = s3Response?.Body as ReadableStream;
+
+        headers.set("Content-Range", `bytes ${start}-${end}/${fileSize}`);
+        headers.set("Content-Length", chunkSize.toString());
+
+        return new Response(bodyStream, {
+          status: 206,
+          headers,
+        });
+      }
+
+      const command = new GetObjectCommand({
+        Bucket: process.env.S3_BUCKET_RECORDINGS,
+        Key: recordingPath,
+      });
+
+      const s3Response = await s3Client?.send(command);
+      const bodyStream = s3Response?.Body as ReadableStream;
+
       headers.set("Content-Length", fileSize.toString());
-      const videoStream = createReadStream(safeVideoPath);
-      const response = new Response(videoStream as unknown as ReadableStream, {
+
+      return new Response(bodyStream, {
         status: 200,
         headers,
       });
-
-      return response;
+    } catch (err) {
+      console.error("Error streaming from S3:", err);
+      return new NextResponse(null, { status: 500 });
     }
-  } catch (error) {
-    console.error("Error streaming video:", error);
-    return new NextResponse(null, { status: 500 });
+  } else {
+    try {
+      const stat = statSync(recordingPath);
+      const fileSize = stat.size;
+      const range = req.headers.get("range");
+
+      const headers = new Headers({
+        "Content-Type": "video/mp4",
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-cache",
+        "Content-Disposition": `inline; filename="${path.basename(
+          recordingPath,
+        )}"`,
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+      });
+
+      if (range) {
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+        if (start >= fileSize || end >= fileSize || start < 0 || end < start) {
+          headers.set("Content-Range", `bytes */${fileSize}`);
+          return new NextResponse(null, { status: 416, headers });
+        }
+
+        const chunksize = end - start + 1;
+
+        headers.set("Content-Range", `bytes ${start}-${end}/${fileSize}`);
+        headers.set("Content-Length", chunksize.toString());
+
+        const videoStream = createReadStream(recordingPath, { start, end });
+        const response = new Response(
+          videoStream as unknown as ReadableStream,
+          {
+            status: 206,
+            headers,
+          },
+        );
+
+        return response;
+      } else {
+        headers.set("Content-Length", fileSize.toString());
+        const videoStream = createReadStream(recordingPath);
+        const response = new Response(
+          videoStream as unknown as ReadableStream,
+          {
+            status: 200,
+            headers,
+          },
+        );
+
+        return response;
+      }
+    } catch (error) {
+      console.error("Error streaming video:", error);
+      return new NextResponse(null, { status: 500 });
+    }
   }
 }

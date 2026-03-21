@@ -11,37 +11,157 @@ import {
 } from "@/interfaces";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 interface Props {
   registrationCode?: string;
 }
 
-export const RegisterForm = ({ registrationCode }: Props) => {
-  const [formState, setFormState] = useState({
-    email: "",
-    password: "",
-    repeatpassword: "",
-    name: "",
-  });
+interface FormState {
+  email: string;
+  password: string;
+  repeatpassword: string;
+  name: string;
+  errorState: {
+    email: EmailError;
+    password: PasswordError;
+    name: NameError;
+    registrationCode: RegistrationCodeError;
+  };
+  success: boolean;
+}
 
-  const [errorState, setErrorState] = useState({
+const initialFormState: FormState = {
+  email: "",
+  password: "",
+  repeatpassword: "",
+  name: "",
+  errorState: {
     email: EmailError.None,
     password: PasswordError.None,
     name: NameError.None,
     registrationCode: RegistrationCodeError.None,
-  });
+  },
+  success: false,
+};
 
-  const [buttonDisabled, setButtonDisabled] = useState(false);
-
+export const RegisterForm = ({ registrationCode }: Props) => {
   const router = useRouter();
+  const [livePasswordError, setLivePasswordError] = useState<PasswordError>(
+    PasswordError.None,
+  );
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const repeatPasswordRef = useRef<HTMLInputElement>(null);
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setFormState({
-      ...formState,
-      [event.target.name]: event.target.value,
-    });
+  const registerFormAction = async (
+    _prevState: FormState,
+    formData: FormData,
+  ): Promise<FormState> => {
+    let nextState: FormState = {
+      ...initialFormState,
+      email: formData.get("email")?.toString() ?? "",
+      password: formData.get("password")?.toString() ?? "",
+      repeatpassword: formData.get("repeatpassword")?.toString() ?? "",
+      name: formData.get("name")?.toString() ?? "",
+    };
+
+    if (
+      !nextState.email ||
+      !nextState.name ||
+      !nextState.password ||
+      !nextState.repeatpassword
+    ) {
+      if (!nextState.email) {
+        nextState.errorState.email = EmailError.Empty;
+      }
+
+      if (!nextState.password) {
+        nextState.errorState.password = PasswordError.Empty;
+      }
+
+      if (!nextState.repeatpassword) {
+        nextState.errorState.password = PasswordError.EmptyPasswordRepeat;
+      }
+
+      if (!nextState.name) {
+        nextState.errorState.name = NameError.Empty;
+      }
+
+      return nextState;
+    }
+
+    if (nextState.password !== nextState.repeatpassword) {
+      nextState.errorState.password = PasswordError.NotEqual;
+      return nextState;
+    }
+
+    const response = await registerAction(
+      nextState.email,
+      nextState.password,
+      nextState.name,
+      registrationCode,
+    );
+
+    if (!response.ok) {
+      nextState = {
+        ...nextState,
+        errorState: {
+          email: EmailError.None,
+          password: PasswordError.None,
+          name: NameError.None,
+          registrationCode: RegistrationCodeError.None,
+        },
+      };
+
+      if (response.errorType === ErrorType.Email) {
+        nextState.errorState.email = response.message as EmailError;
+      } else if (response.errorType === ErrorType.Password) {
+        nextState.errorState.password = response.message as PasswordError;
+      } else if (response.errorType === ErrorType.Name) {
+        nextState.errorState.name = response.message as NameError;
+      } else if (response.errorType === ErrorType.RegistrationCode) {
+        nextState.errorState.registrationCode =
+          response.message as RegistrationCodeError;
+      }
+
+      return nextState;
+    }
+
+    return { ...nextState, success: true };
   };
+
+  const [state, formAction, isPending] = useActionState(
+    registerFormAction,
+    initialFormState,
+  );
+
+  const validatePassword = () => {
+    const password = passwordRef.current?.value ?? "";
+    const repeatpassword = repeatPasswordRef.current?.value ?? "";
+
+    if (!password && !repeatpassword) {
+      setLivePasswordError(PasswordError.None);
+      return;
+    }
+
+    if (password && repeatpassword && password !== repeatpassword) {
+      setLivePasswordError(PasswordError.NotEqual);
+    } else {
+      setLivePasswordError(PasswordError.None);
+    }
+  };
+
+  useEffect(() => {
+    if (state.success) {
+      router.replace("/user");
+    }
+  }, [router, state.success]);
+
+  useEffect(() => {
+    if (isPending) {
+      setLivePasswordError(PasswordError.None);
+    }
+  }, [isPending]);
 
   return (
     <>
@@ -57,105 +177,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
           </h2>
         </div>
         <div className={"mt-10 sm:mx-auto sm:w-full sm:max-w-sm"}>
-          <form
-            className={"space-y-6"}
-            onSubmit={async (formEvent: FormEvent<HTMLFormElement>) => {
-              formEvent.preventDefault();
-
-              if (buttonDisabled) {
-                return;
-              }
-
-              setButtonDisabled(true);
-
-              const formData = new FormData(formEvent.currentTarget);
-
-              setErrorState({
-                email: EmailError.None,
-                password: PasswordError.None,
-                name: NameError.None,
-                registrationCode: RegistrationCodeError.None,
-              });
-
-              const email = formData.get("email")?.toString();
-              const password = formData.get("password")?.toString();
-              const repeatpassword = formData.get("repeatpassword")?.toString();
-              const name = formData.get("name")?.toString();
-
-              if (!email || !password || !name) {
-                if (!email) {
-                  setErrorState((prevState) => ({
-                    ...prevState,
-                    email: EmailError.Empty,
-                  }));
-                }
-
-                if (!password) {
-                  setErrorState((prevState) => ({
-                    ...prevState,
-                    password: PasswordError.Empty,
-                  }));
-                }
-
-                if (!name) {
-                  setErrorState((prevState) => ({
-                    ...prevState,
-                    name: NameError.Empty,
-                  }));
-                }
-
-                setButtonDisabled(false);
-                return;
-              }
-
-              if (password !== repeatpassword) {
-                setErrorState((prevState) => ({
-                  ...prevState,
-                  password: PasswordError.NotEqual,
-                }));
-
-                setButtonDisabled(false);
-                return;
-              }
-
-              const response = await registerAction(
-                email,
-                password,
-                name,
-                registrationCode,
-              );
-
-              if (!response.ok) {
-                if (response.errorType === ErrorType.Email) {
-                  setErrorState((prevState) => ({
-                    ...prevState,
-                    email: response.message as EmailError,
-                  }));
-                } else if (response.errorType === ErrorType.Password) {
-                  setErrorState((prevState) => ({
-                    ...prevState,
-                    password: response.message as PasswordError,
-                  }));
-                } else if (response.errorType === ErrorType.Name) {
-                  setErrorState((prevState) => ({
-                    ...prevState,
-                    name: response.message as NameError,
-                  }));
-                } else if (response.errorType === ErrorType.RegistrationCode) {
-                  setErrorState((prevState) => ({
-                    ...prevState,
-                    registrationCode: response.message as RegistrationCodeError,
-                  }));
-                }
-
-                setButtonDisabled(false);
-              }
-
-              if (response.ok) {
-                router.replace("/user");
-              }
-            }}
-          >
+          <form className={"space-y-6"} action={formAction}>
             <div>
               <div className={"flex items-center justify-between"}>
                 <label
@@ -168,11 +190,13 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                 </label>
                 <div className={"text-sm"}>
                   <span className={"font-semibold text-red-500"}>
-                    {errorState.name !== NameError.None &&
-                      errorState.name.toString()}
-                    {errorState.registrationCode !==
-                      RegistrationCodeError.None &&
-                      errorState.registrationCode.toString()}
+                    {!isPending &&
+                      state.errorState.name !== NameError.None &&
+                      state.errorState.name.toString()}
+                    {!isPending &&
+                      state.errorState.registrationCode !==
+                        RegistrationCodeError.None &&
+                      state.errorState.registrationCode.toString()}
                   </span>
                 </div>
               </div>
@@ -183,8 +207,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   type="text"
                   autoComplete="username"
                   required
-                  onChange={handleChange}
-                  value={formState.name}
+                  defaultValue={state.name}
                   className={
                     "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   }
@@ -204,7 +227,9 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                 </label>
                 <div className={"text-sm"}>
                   <span className={"font-semibold text-red-500"}>
-                    {errorState.email}
+                    {!isPending &&
+                      state.errorState.email !== EmailError.None &&
+                      state.errorState.email}
                   </span>
                 </div>
               </div>
@@ -214,8 +239,7 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  onChange={handleChange}
-                  value={formState.email}
+                  defaultValue={state.email}
                   required
                   className={
                     "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
@@ -236,7 +260,12 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                 </label>
                 <div className={"text-sm"}>
                   <span className={"font-semibold text-red-500"}>
-                    {errorState.password}
+                    {livePasswordError !== PasswordError.None
+                      ? livePasswordError
+                      : !isPending &&
+                          state.errorState.password !== PasswordError.None
+                        ? state.errorState.password
+                        : ""}
                   </span>
                 </div>
               </div>
@@ -254,8 +283,9 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   onInput={(e) =>
                     (e.target as HTMLObjectElement).setCustomValidity("")
                   }
-                  onChange={handleChange}
-                  value={formState.password}
+                  onBlur={validatePassword}
+                  defaultValue={state.password}
+                  ref={passwordRef}
                   autoComplete="current-password"
                   required
                   className={
@@ -279,8 +309,9 @@ export const RegisterForm = ({ registrationCode }: Props) => {
                   id="repeatpassword"
                   name="repeatpassword"
                   type="password"
-                  onChange={handleChange}
-                  value={formState.repeatpassword}
+                  onBlur={validatePassword}
+                  defaultValue={state.repeatpassword}
+                  ref={repeatPasswordRef}
                   required
                   className={
                     "block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-xs ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
@@ -292,9 +323,9 @@ export const RegisterForm = ({ registrationCode }: Props) => {
             <div>
               <button
                 type="submit"
-                disabled={buttonDisabled}
+                disabled={isPending || state.success}
                 className={
-                  "disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                  "cursor-pointer disabled:cursor-default disabled:bg-primary-700 flex w-full justify-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-xs hover:bg-primary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
                 }
               >
                 Sign up

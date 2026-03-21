@@ -44,10 +44,12 @@ export default async function RecordingPlayerPage({
     return <NotFound message="Sorry, we can't find that user." goBack={true} />;
   }
 
-  let videoData: VideoBase64;
+  let videoData: VideoBase64 | null = null;
   try {
     videoData = JSON.parse(atob(decodeURIComponent(videoDataJson)));
-  } catch {
+  } catch {}
+
+  if (!videoData) {
     return (
       <NotFound message="Sorry, we can't find that video." goBack={true} />
     );
@@ -55,39 +57,31 @@ export default async function RecordingPlayerPage({
 
   const { i: videoId, t: videoType } = videoData;
 
-  let url = `${process.env.BASE_URL}/api/videos/watch/${channel?.userId}/${videoType}/${videoId}`;
+  let url = `${process.env.BASE_URL}/api/videos/watch/${channel.userId}/${videoType}/${videoId}`;
 
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
-  if ((await searchParams)?.password) {
-    url = `${url}${url.includes("?") ? "&" : "?"}${
-      (await searchParams)?.password
-        ? `password=${(await searchParams)?.password}`
-        : ""
-    }`;
+  const search = await searchParams;
+
+  if (search?.password) {
+    url = `${url}?password=${search.password}`;
   }
 
   if (session) {
-    url = `${url}${url.includes("?") ? "&" : "?"}${
-      session ? `session=${session?.session.id}` : ""
-    }`;
+    url = `${url}${url.includes("?") ? "&" : "?"}session=${session.session.id}`;
   }
 
+  let isVideoAvailable = false;
   try {
-    if (
-      !(
-        await fetch(url, {
-          method: "POST",
-        })
-      ).ok
-    ) {
-      return (
-        <NotFound message="Sorry, we can't find that video." goBack={true} />
-      );
-    }
-  } catch {
+    const response = await fetch(url, {
+      method: "POST",
+    });
+    isVideoAvailable = response.ok;
+  } catch {}
+
+  if (!isVideoAvailable) {
     return (
       <NotFound message="Sorry, we can't find that video." goBack={true} />
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 
 interface Props {
   title?: string;
@@ -17,27 +17,6 @@ export const Collapsible = ({
 }: Props) => {
   const [folded, setFolded] = useState(true);
   const [scroll, setScroll] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    if (folded) {
-      setScroll(false);
-    } else {
-      timeoutRef.current = setTimeout(() => {
-        setScroll(true);
-      }, 300);
-    }
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [folded]);
 
   return (
     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
@@ -50,11 +29,10 @@ export const Collapsible = ({
       <label
         htmlFor="accordion"
         onClick={() => {
-          if (setIsOpen) {
-            setIsOpen(!folded);
-          }
-
-          setFolded(!folded);
+          const nextFolded = !folded;
+          if (nextFolded) setScroll(false);
+          setFolded(nextFolded);
+          if (setIsOpen) setIsOpen(nextFolded);
         }}
         className="select-none flex items-center justify-between p-4 bg-primary-600 text-white cursor-pointer hover:bg-primary-500 transition-colors"
       >
@@ -76,10 +54,18 @@ export const Collapsible = ({
         </svg>
       </label>
       <div
+        onTransitionEnd={() => {
+          if (!folded) {
+            setScroll(true);
+          } else {
+            setScroll(false);
+          }
+        }}
         className={`max-h-0 transition-all duration-300`}
         style={{
           maxHeight: !folded ? (maxHeight ? `${maxHeight}px` : "450px") : "0px",
           overflowY: scroll ? "auto" : "hidden",
+          scrollbarGutter: "stable",
         }}
       >
         <div className="p-4">{children}</div>

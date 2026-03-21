@@ -5,7 +5,7 @@ import {
   AddUserAllowlistResponse,
   CreateChannelResponse,
   GetChannelRecordingsResponse,
-  RecordingData,
+  RecordingType,
   RemoveUserAllowlistRequest,
   RemoveUserAllowlistResponse,
   SetPasswordRequest,
@@ -19,13 +19,12 @@ import { User } from "better-auth";
 import { headers } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
-import { getLastVideoFromLive } from ".";
-import { RecordingQueue, RecordingVisibility } from "@prisma/client";
+import { RecordingQueueState, RecordingVisibility } from "@/generated/client";
 import { RecordingDto } from "@/interfaces/api/channel";
 import { formatDate, secondsToHMS } from "@/lib/utils";
 
 export const createChannel = async (
-  user: User | null = null
+  user: User | null = null,
 ): Promise<CreateChannelResponse> => {
   const response: CreateChannelResponse = {
     ok: false,
@@ -65,7 +64,7 @@ export const createChannel = async (
 };
 
 export const changeWatchStreamsStateAction = async (
-  request: UpdateVisibilityStatusRequest
+  request: UpdateVisibilityStatusRequest,
 ): Promise<UpdateVisibilityStatusResponse> => {
   const response: UpdateVisibilityStatusResponse = { ok: false };
 
@@ -88,7 +87,7 @@ export const changeWatchStreamsStateAction = async (
 };
 
 export const setPasswordChannelAction = async (
-  request: SetPasswordRequest
+  request: SetPasswordRequest,
 ): Promise<SetPasswordResponse> => {
   const response: SetPasswordResponse = { ok: false };
 
@@ -107,7 +106,7 @@ export const setPasswordChannelAction = async (
 };
 
 export const addUserAllowlistAction = async (
-  request: AddUserAllowlistRequest
+  request: AddUserAllowlistRequest,
 ): Promise<AddUserAllowlistResponse> => {
   const response: AddUserAllowlistResponse = { ok: false };
 
@@ -170,7 +169,7 @@ export const addUserAllowlistAction = async (
 };
 
 export const removeUserAllowlistAction = async (
-  request: RemoveUserAllowlistRequest
+  request: RemoveUserAllowlistRequest,
 ): Promise<RemoveUserAllowlistResponse> => {
   const response: RemoveUserAllowlistResponse = {
     ok: false,
@@ -185,7 +184,7 @@ export const removeUserAllowlistAction = async (
 };
 
 export const getChannelRecordingsAction = async (
-  channel: UserChannel
+  channel: UserChannel,
 ): Promise<GetChannelRecordingsResponse> => {
   const response: GetChannelRecordingsResponse = {
     ok: false,
@@ -198,7 +197,7 @@ export const getChannelRecordingsAction = async (
     });
 
     const userAllowed =
-      session?.user.id &&
+      !!session?.user.id &&
       !!(await prisma.channelAllowList.findFirst({
         where: {
           userId: session.user.id,
@@ -210,123 +209,129 @@ export const getChannelRecordingsAction = async (
       session?.user.id === channel.user.id
         ? Object.values(RecordingVisibility)
         : userAllowed
-        ? [RecordingVisibility.PUBLIC, RecordingVisibility.ALLOWLIST]
-        : [RecordingVisibility.PUBLIC];
+          ? [RecordingVisibility.PUBLIC, RecordingVisibility.ALLOWLIST]
+          : [RecordingVisibility.PUBLIC];
 
-    const entriesDb = await prisma.recordingQueue.findMany({
+    const queueRecordings = await prisma.recordingQueue.findMany({
       where: {
         createdAt: {
           gt: new Date(Date.now() - 48 * 60 * 60 * 1000),
         },
+        userId: channel.user.id,
       },
     });
 
-    const groupedBySegment = entriesDb.reduce(
-      (groups: Record<number, RecordingQueue[]>, entry: RecordingQueue) => {
-        const segmentId = entry.firstSegmentId;
+    const nestedRecordings = Object.values(
+      queueRecordings.reduce(
+        (acc, curr) => {
+          const key = curr.firstSegmentId;
 
-        if (!segmentId) {
-          return groups;
-        }
-
-        if (!groups[segmentId]) {
-          groups[segmentId] = [];
-        }
-
-        groups[segmentId].push(entry);
-        return groups;
-      },
-      {}
-    );
-
-    let filteredEntries: Array<RecordingData> = Object.entries(groupedBySegment)
-      .map(([_, entries]): RecordingData | null => {
-        const allCompleted = entries.every(
-          (entry) => entry.status === "COMPLETED"
-        );
-
-        const sortedEntries = entries.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        );
-
-        const totalDuration = entries.reduce((sum, entry) => {
-          return sum + (entry.duration || 0);
-        }, 0);
-
-        if (allCompleted) {
-          const oldestEntry = sortedEntries[0];
-          return {
-            fileName:
-              oldestEntry.fileName.split("/").pop() || oldestEntry.fileName,
-            status: "COMPLETED",
-            start: oldestEntry.createdAt,
-            duration: totalDuration,
-            visibility: oldestEntry.visibility,
-            firstSegmentId: oldestEntry.firstSegmentId ?? undefined,
-          };
-        } else {
-          const validEntry = sortedEntries.find(
-            (entry) => entry.status === "COMPLETED"
-          );
-
-          if (validEntry) {
-            return {
-              fileName:
-                validEntry.fileName.split("/").pop() || validEntry.fileName,
-              status: "PROCESSING",
-              start: validEntry.createdAt,
-              duration: totalDuration,
-              visibility: validEntry.visibility,
-              firstSegmentId: validEntry.firstSegmentId ?? undefined,
-            };
+          if (key === null) {
+            return acc;
           }
-        }
 
-        return null;
-      })
-      .filter((entry): entry is RecordingData => entry !== null);
+          if (!acc[key]) {
+            acc[key] = [];
+          }
 
-    const recording = await getLastVideoFromLive(
-      filteredEntries,
-      channel.user.id
+          acc[key].push(curr);
+
+          return acc;
+        },
+        {} as Record<number, typeof queueRecordings>,
+      ),
     );
 
-    if (recording) {
-      filteredEntries = filteredEntries.map((entry) => {
-        if (entry.fileName.includes(recording)) {
-          return { ...entry, status: "LIVE" };
+    const groupByFirstSegment = nestedRecordings.flatMap((group) => {
+      let hasCompleted = false;
+      let hasRecording = false;
+
+      const visibility = group[0]?.visibility;
+
+      let start = group[0]?.createdAt ?? new Date(0);
+      let duration = 0;
+
+      let largerSegment = undefined;
+      let largerSegmentId = undefined;
+      let firstSegmentId = undefined;
+
+      let fileName = undefined;
+
+      for (const item of group) {
+        if (item.status === RecordingQueueState.COMPLETED) {
+          hasCompleted = true;
+        } else if (item.status === RecordingQueueState.RECORDING) {
+          hasRecording = true;
         }
-        return entry;
-      });
-    }
 
-    const publicRecordings = filteredEntries.filter((entry) =>
-      visibilitiesAllowed.includes(entry.visibility)
-    );
+        duration += item.duration;
 
-    response.recordings = publicRecordings.map((recording) => {
-      const recordingMap: RecordingDto = {
-        date: recording.start,
-        duration: secondsToHMS(recording.duration),
-        status: recording.status,
-        title: formatDate(recording.start, true),
-        visibility: recording.visibility,
-        url: `/videos/${channel.user.name}/${encodeURIComponent(
-          btoa(
-            JSON.stringify({
-              i: recording.fileName.replace(".mp4", ""),
-              t: "n",
-            })
-          )
-        )}`,
-        thumbnail: `/api/videos/thumbnails/${
-          channel.user.id
-        }/n/${recording.fileName.replace(".mp4", "")}`,
-      };
+        firstSegmentId = item.firstSegmentId ?? undefined;
 
-      return recordingMap;
+        if (item.createdAt < start) {
+          start = item.createdAt;
+        }
+
+        const isEncoded =
+          item.status === RecordingQueueState.COMPLETED ||
+          item.status === RecordingQueueState.ENCODED;
+
+        if (
+          isEncoded &&
+          (largerSegment === undefined ||
+            item.segmentsIndex.length > largerSegment)
+        ) {
+          largerSegment = item.segmentsIndex.length;
+          largerSegmentId = item.id;
+          fileName = item.fileName;
+        }
+      }
+
+      if (largerSegmentId === undefined) {
+        return [];
+      }
+
+      const status: RecordingType = hasCompleted
+        ? "COMPLETED"
+        : hasRecording
+          ? "LIVE"
+          : "PROCESSING";
+
+      return [
+        {
+          firstSegmentId,
+          status,
+          start,
+          duration,
+          visibility,
+          fileName,
+          largerSegmentId,
+        },
+      ];
     });
+
+    response.recordings = groupByFirstSegment
+      .filter((recording) => visibilitiesAllowed.includes(recording.visibility))
+      .map(
+        (recording): RecordingDto => ({
+          date: recording.start,
+          duration: secondsToHMS(recording.duration),
+          status: recording.status,
+          title: formatDate(recording.start, true),
+          visibility: recording.visibility,
+          url: `/videos/${channel.user.name}/${encodeURIComponent(
+            btoa(
+              JSON.stringify({
+                i: recording.fileName?.replace(".mp4", ""),
+                t: "n",
+              }),
+            ),
+          )}`,
+          thumbnail: `/api/videos/thumbnails/${
+            channel.user.id
+          }/n/${recording.largerSegmentId}`,
+        }),
+      );
 
     const savedRecordings = await prisma.recordingSaved.findMany({
       where: {
@@ -341,8 +346,8 @@ export const getChannelRecordingsAction = async (
 
     response.recordings = [
       ...response.recordings,
-      ...savedRecordings.map((recording) => {
-        const recordingMap: RecordingDto = {
+      ...savedRecordings.map(
+        (recording): RecordingDto => ({
           date: recording.createdAt,
           duration: secondsToHMS(recording.duration),
           status: "SAVED",
@@ -353,18 +358,16 @@ export const getChannelRecordingsAction = async (
               JSON.stringify({
                 i: recording.id,
                 t: "s",
-              })
-            )
+              }),
+            ),
           )}`,
           thumbnail: `/api/videos/thumbnails/${channel.user.id}/s/${recording.id}`,
-        };
-
-        return recordingMap;
-      }),
+        }),
+      ),
     ];
 
     response.recordings = response.recordings.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
     response.ok = true;
   } catch {}

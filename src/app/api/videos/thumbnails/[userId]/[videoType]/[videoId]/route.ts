@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { join } from "path";
 import { readFileSync, existsSync } from "fs";
-import { getSafePath, validateParameters } from "@/lib/utils-api";
+import { validateParameters } from "@/lib/utils-api";
 import s3Client from "@/lib/s3-client";
 import {
   checkIfFileExists,
   getFileBuffer,
-} from "../../../../../../../../scheduler/src/S3Service";
+} from "@scheduler/services/s3.service";
+import prisma from "@/lib/prisma";
+import { RecordingQueue, RecordingSaved } from "@/generated/client";
 
 interface Params {
   params: Promise<{
@@ -45,9 +47,25 @@ export async function GET(req: NextRequest, { params }: Params) {
       return new NextResponse("Invalid parameters", { status: 400 });
     }
 
-    const safePath = getSafePath(userId, `${videoId}.webp`, videoType);
+    let recording;
 
-    if (!safePath) {
+    if (videoType === "s") {
+      recording = await prisma.recordingSaved.findUnique({
+        where: {
+          id: videoId,
+          channel: { userId },
+        },
+      });
+    } else {
+      recording = await prisma.recordingQueue.findUnique({
+        where: {
+          userId,
+          id: +videoId,
+        },
+      });
+    }
+
+    if (!recording) {
       console.warn(
         `Unsafe or invalid path: userId=${userId}, type=${videoType}, videoId=${videoId}`,
       );
@@ -77,24 +95,38 @@ export async function GET(req: NextRequest, { params }: Params) {
     let imageBuffer;
     let existsThumbnail = false;
 
+    let recordingPath;
+
+    if (videoType === "n") {
+      recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings/${(recording as RecordingQueue).userId}/${(recording as RecordingQueue).fileName}`;
+    } else {
+      const recordingUserId = await prisma.channel.findUnique({
+        where: {
+          userId,
+        },
+        select: { user: true },
+      });
+
+      recordingPath = `${isUsingS3Bucket ? "" : `${process.env.RECORDINGS_PATH}/`}recordings_saved/${recordingUserId?.user.id}/${(recording as RecordingSaved).id}.mp4`;
+    }
+
     if (isUsingS3Bucket) {
       existsThumbnail = await checkIfFileExists(
-        `${
-          videoType === "n" ? "recordings" : "recordings_saved"
-        }/${userId}/${videoId}.webp`,
+        recordingPath.replace("s3://", "").replace(".mp4", ".webp"),
       );
     } else {
-      existsThumbnail = existsSync(safePath);
+      existsThumbnail = existsSync(recordingPath.replace(".mp4", ".webp"));
     }
 
     if (!existsThumbnail) {
-      console.warn(`Image not found: ${safePath}`);
+      console.warn(`Image not found: ${videoId}`);
 
       const defaultImagePath = join(
         process.cwd(),
         "public",
         "nothumbnail.webp",
       );
+
       if (existsSync(defaultImagePath)) {
         const defaultImage = readFileSync(defaultImagePath);
         return new NextResponse(defaultImage, {
@@ -107,19 +139,16 @@ export async function GET(req: NextRequest, { params }: Params) {
           },
         });
       }
+
       return new NextResponse("Image not found", { status: 404 });
     } else {
       if (isUsingS3Bucket) {
         imageBuffer = await getFileBuffer(
-          videoType === "n"
-            ? process.env.S3_BUCKET_RECORDINGS || ""
-            : process.env.S3_BUCKET_RECORDINGS_SAVED || "",
-          `${
-            videoType === "n" ? "recordings" : "recordings_saved"
-          }/${userId}/${videoId}.webp`,
+          process.env.S3_BUCKET_RECORDINGS || "",
+          recordingPath.replace("s3://", "").replace(".mp4", ".webp"),
         );
       } else {
-        imageBuffer = readFileSync(safePath);
+        imageBuffer = readFileSync(recordingPath.replace(".mp4", ".webp"));
       }
     }
 

@@ -10,6 +10,7 @@ export enum PasswordError {
   NotEqual = "Passwords are not the same",
   InsufficientChars = "Password must have at least 8 characters",
   Empty = "Empty password",
+  EmptyPasswordRepeat = "Empty password repeat",
 }
 
 export enum NameError {

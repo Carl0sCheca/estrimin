@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { AdminForm } from "./ui/adminForm";
 import prisma from "@/lib/prisma";
-import { SiteSetting } from "@prisma/client";
+import { SiteSetting } from "@/generated/client";
 
 export const metadata: Metadata = {
   title: "Administration",
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const settings: Array<SiteSetting> = await prisma.siteSetting.findMany();
