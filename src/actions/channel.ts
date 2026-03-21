@@ -322,7 +322,7 @@ export const getChannelRecordingsAction = async (
           url: `/videos/${channel.user.name}/${encodeURIComponent(
             btoa(
               JSON.stringify({
-                i: recording.fileName?.replace(".mp4", ""),
+                i: recording.largerSegmentId,
                 t: "n",
               }),
             ),
