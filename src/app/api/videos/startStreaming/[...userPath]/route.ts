@@ -33,7 +33,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
         userId,
       },
     });
-  } catch {}
+  } catch (error) {
+    console.error("Error updating channelStatus:", error);
+  }
 
   return new NextResponse(null, { status: 204 });
 }
