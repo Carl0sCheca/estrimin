@@ -36,7 +36,8 @@ COPY . .
 # Generate Prisma types with dummy DATABASE_URL (not used, just for generation)
 RUN DATABASE_URL="postgresql://dummy:dummy@localhost/dummy" pnpm prisma generate
 
-RUN pnpm run build
+RUN pnpm build
+RUN pnpm build:scheduler
 
 
 FROM node:25.8.1-alpine3.23 AS runner
@@ -63,6 +64,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/src ./src
 COPY --from=builder --chown=nodejs:nodejs /app/scheduler ./scheduler
 COPY --from=builder --chown=nodejs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nodejs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 
 
 USER nodejs
