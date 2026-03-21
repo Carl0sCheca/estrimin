@@ -9,6 +9,7 @@ import {
   GetRecordingsListResponse,
   Recording,
   RecordingData,
+  RecordingType,
   SaveRecordingResponse,
   USER_SETTING,
 } from "@/interfaces";
@@ -16,14 +17,9 @@ import prisma from "@/lib/prisma";
 import { UserChannel } from "@/app/(user)/channel/ui/channelSettingsForm";
 import fs from "fs";
 import path from "path";
-import { RecordingQueue, RecordingVisibility } from "@/generated/client";
-import {
-  dateToFilename,
-  getDateFromFileName,
-  getLastPathname,
-} from "@/lib/utils-server";
+import { RecordingQueueState, RecordingVisibility } from "@/generated/client";
 import s3Client from "@/lib/s3-client";
-import { deleteFile, moveFile } from "../../scheduler/src/S3Service";
+import { deleteFile, moveFile } from "@scheduler/services/s3.service";
 
 export const getNonSavedRecordingsList = async (
   sessionId: string,
@@ -51,100 +47,116 @@ export const getNonSavedRecordingsList = async (
     return response;
   }
 
-  if (
-    !fs.existsSync(
-      path.join(process.env.RECORDINGS_PATH || "", "recordings", userId),
-    )
-  ) {
-    response.ok = true;
-    return response;
-  }
-
-  const entriesDb = await prisma.recordingQueue.findMany({
+  const groupedRecordings = await prisma.recordingQueue.groupBy({
+    by: [
+      "userId",
+      "firstSegmentId",
+      "status",
+      "id",
+      "createdAt",
+      "duration",
+      "segmentsIndex",
+      "visibility",
+    ],
     where: {
-      createdAt: {
-        gt: new Date(Date.now() - 48 * 60 * 60 * 1000),
-      },
+      userId,
     },
+    _count: { _all: true },
   });
 
-  const groupedBySegment = entriesDb.reduce(
-    (groups: Record<number, RecordingQueue[]>, entry: RecordingQueue) => {
-      const segmentId = entry.firstSegmentId;
+  const nestedRecordings = Object.values(
+    groupedRecordings.reduce(
+      (acc, curr) => {
+        const key = curr.firstSegmentId;
 
-      if (!segmentId) {
-        return groups;
-      }
+        if (!key) {
+          return acc;
+        }
 
-      if (!groups[segmentId]) {
-        groups[segmentId] = [];
-      }
+        if (!acc[key]) {
+          acc[key] = [];
+        }
 
-      groups[segmentId].push(entry);
-      return groups;
-    },
-    {},
+        acc[key].push(curr);
+
+        return acc;
+      },
+      {} as Record<number, typeof groupedRecordings>,
+    ),
   );
 
-  let filteredEntries: Array<RecordingData> = Object.entries(groupedBySegment)
-    .map(([_, entries]): RecordingData | null => {
-      const allCompleted = entries.every(
-        (entry) => entry.status === "COMPLETED",
-      );
+  const groupByFirstSegment: Array<{
+    firstSegmentId: number | undefined;
+    status: RecordingType;
+    start: Date;
+    largerSegmentId: number | undefined;
+    duration: number;
+    visibility: RecordingVisibility;
+  }> = nestedRecordings.flatMap((group) => {
+    let hasCompleted = false;
+    let hasRecording = false;
 
-      const sortedEntries = entries.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      );
+    const visibility = group[0]?.visibility;
 
-      const totalDuration = entries.reduce((sum, entry) => {
-        return sum + (entry.duration || 0);
-      }, 0);
+    let start = group[0]?.createdAt ?? new Date(0);
+    let duration = 0;
 
-      if (allCompleted) {
-        const oldestEntry = sortedEntries[0];
-        return {
-          fileName:
-            oldestEntry.fileName.split("/").pop() || oldestEntry.fileName,
-          status: "COMPLETED",
-          start: oldestEntry.createdAt,
-          duration: totalDuration,
-          visibility: oldestEntry.visibility,
-          firstSegmentId: oldestEntry.firstSegmentId ?? undefined,
-        };
-      } else {
-        const validEntry = sortedEntries.find(
-          (entry) => entry.status === "COMPLETED",
-        );
+    let largerSegment = undefined;
+    let largerSegmentId = undefined;
+    let firstSegmentId = undefined;
 
-        if (validEntry) {
-          return {
-            fileName:
-              validEntry.fileName.split("/").pop() || validEntry.fileName,
-            status: "PROCESSING",
-            start: validEntry.createdAt,
-            duration: totalDuration,
-            visibility: validEntry.visibility,
-            firstSegmentId: validEntry.firstSegmentId ?? undefined,
-          };
-        }
+    for (const item of group) {
+      if (item.status === RecordingQueueState.COMPLETED) {
+        hasCompleted = true;
+      } else if (item.status === RecordingQueueState.RECORDING) {
+        hasRecording = true;
       }
 
-      return null;
-    })
-    .filter((entry): entry is RecordingData => entry !== null);
+      duration += item.duration;
 
-  const recording = await getLastVideoFromLive(filteredEntries, userId);
-  if (recording) {
-    filteredEntries = filteredEntries.map((entry) => {
-      if (entry.fileName.includes(recording)) {
-        return { ...entry, status: "LIVE" };
+      firstSegmentId = item.firstSegmentId ?? undefined;
+
+      if (item.createdAt < start) {
+        start = item.createdAt;
       }
-      return entry;
-    });
-  }
 
-  response.recordings = filteredEntries;
+      const isEncoded =
+        item.status === RecordingQueueState.COMPLETED ||
+        item.status === RecordingQueueState.ENCODED;
+
+      if (
+        isEncoded &&
+        (largerSegment === undefined ||
+          item.segmentsIndex.length > largerSegment)
+      ) {
+        largerSegment = item.segmentsIndex.length;
+        largerSegmentId = item.id;
+      }
+    }
+
+    if (largerSegmentId === undefined) {
+      return [];
+    }
+
+    const status: RecordingType = hasCompleted
+      ? "COMPLETED"
+      : hasRecording
+        ? "LIVE"
+        : "PROCESSING";
+
+    return [
+      {
+        firstSegmentId,
+        status,
+        start,
+        duration,
+        visibility,
+        largerSegmentId,
+      },
+    ];
+  });
+
+  response.recordings = groupByFirstSegment;
 
   response.ok = true;
 
@@ -174,7 +186,7 @@ export const getRecordingsListAction = async (
         url: `videos/${userChannel.user.name}/${encodeURIComponent(
           btoa(
             JSON.stringify({
-              i: recording.fileName.replace(".mp4", ""),
+              i: recording.largerSegmentId,
               t: "n",
             }),
           ),
@@ -315,40 +327,6 @@ export const deleteRecordingAction = async (
   return response;
 };
 
-export const getLastVideoFromLive = async (
-  entries: Array<RecordingData>,
-  userIdPath: string,
-): Promise<string | null> => {
-  const entriesDate = await Promise.all(
-    entries.map(
-      async (e) => await getDateFromFileName(e.fileName.replace(".mp4", "")),
-    ),
-  );
-
-  const userId = getLastPathname(userIdPath);
-
-  const request = await fetch(
-    `${process.env.STREAM_API_URL}/v3/paths/get/${userId}` || "",
-  );
-
-  const responseReadyTime = (
-    (await request.json()) as { readyTime: Date | null }
-  ).readyTime;
-
-  if (responseReadyTime) {
-    return await dateToFilename(
-      entriesDate.find((entryDate) => {
-        const entryTime = new Date(entryDate).getTime();
-        const readyTime = new Date(responseReadyTime).getTime();
-        const timeDiff = Math.abs(entryTime - readyTime);
-        return timeDiff <= 10000; // ±10s
-      }),
-    );
-  }
-
-  return null;
-};
-
 export const saveRecordingAction = async (
   recording: Recording,
   userChannel: UserChannel,
@@ -465,8 +443,10 @@ export const changeDefaultRecordingVisibilityAction = async (
   try {
     await prisma.userSetting.upsert({
       where: {
-        key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
-        userId,
+        userId_key: {
+          key: USER_SETTING.DEFAULT_VISIBILITY_UNSAVED_RECORDINGS,
+          userId,
+        },
       },
       update: { value },
       create: {
@@ -555,7 +535,7 @@ export const storePastStreamsAction = async (
 
   try {
     await prisma.userSetting.upsert({
-      where: { key: USER_SETTING.STORE_PAST_STREAMS, userId },
+      where: { userId_key: { key: USER_SETTING.STORE_PAST_STREAMS, userId } },
       update: { value },
       create: { key: USER_SETTING.STORE_PAST_STREAMS, userId, value },
     });

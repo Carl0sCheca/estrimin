@@ -24,7 +24,10 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@scheduler/*": [
+        "./scheduler/src/*"
+      ],
     },
     "target": "ES2023"
   },

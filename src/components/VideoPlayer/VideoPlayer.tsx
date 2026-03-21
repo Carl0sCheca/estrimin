@@ -2,6 +2,7 @@
 
 import { ReactElement, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { type WhepPlayer, WhepPlayerInstance } from "whep-player";
 import { GetViewers } from "@/actions";
 import { PlayerState, VideoOverlay } from "@/components";
@@ -24,32 +25,27 @@ export const VideoPlayer = ({
   className,
 }: Props): ReactElement => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const playerRef = useRef<WhepPlayer | null>(null);
 
-  const clearCurrentInterval = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
-
-  const [viewersCount, setViewersCount] = useState(0);
   const [playerState, setPlayerState] = useState(PlayerState.OFFLINE);
   const searchParams = useSearchParams();
   const password = searchParams.get("password");
 
-  useEffect(() => {
-    const setNewInterval = (callback: () => void, duration: number) => {
-      clearCurrentInterval();
-      intervalRef.current = setInterval(callback, duration);
-    };
+  const { data: viewersCount = 0 } = useQuery({
+    queryKey: ["viewers", channelUserId],
+    queryFn: async () => {
+      const viewers = await GetViewers(channelUserId);
+      return viewers.ok && viewers.count ? viewers.count : 0;
+    },
+    refetchInterval: 60000,
+    enabled: playerState === PlayerState.ONLINE,
+  });
 
+  useEffect(() => {
     const closePlayer = async () => {
       if (!playerRef.current) {
         return;
       }
-      clearCurrentInterval();
       await playerRef.current.unload();
     };
 
@@ -73,33 +69,17 @@ export const VideoPlayer = ({
 
       player.onConnected(async () => {
         setPlayerState(PlayerState.ONLINE);
-
-        const viewers = await GetViewers(channelUserId);
-        if (viewers.ok && viewers.count) {
-          setViewersCount(viewers.count);
-        }
-
-        setNewInterval(async () => {
-          const viewers = await GetViewers(channelUserId);
-          if (viewers.ok && viewers.count) {
-            setViewersCount(viewers.count);
-          }
-        }, 60000);
       });
 
       player.onError(() => {
         setPlayerState(PlayerState.OFFLINE);
-        clearCurrentInterval();
       });
 
       player.onRetriesExceeded(() => {
         setPlayerState(PlayerState.OFFLINE);
-        clearCurrentInterval();
       });
 
-      return () => {
-        clearCurrentInterval();
-      };
+      return () => {};
     };
 
     startPlay();
@@ -107,7 +87,7 @@ export const VideoPlayer = ({
     return () => {
       closePlayer();
     };
-  }, [url, password, channelUserId]);
+  }, [url, password]);
 
   return (
     <>

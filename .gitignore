@@ -40,4 +40,7 @@ next-env.d.ts
 mediamtx.yml
 /videos
 dist
-/src/generated/**
+/src/generated
+
+# dev
+/traefik-config

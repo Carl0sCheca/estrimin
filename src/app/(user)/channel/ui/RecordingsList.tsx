@@ -34,6 +34,7 @@ import { IoLink, IoList } from "react-icons/io5";
 import { BiWorld } from "react-icons/bi";
 import { RecordingVisibility, UserSetting } from "@/generated/browser";
 import { FaCircle, FaRegClock } from "react-icons/fa";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   userChannel: UserChannel;
@@ -48,6 +49,22 @@ interface Props {
   userSettings: UserSetting[];
 }
 
+const fetchSavedStreams = async (
+  userChannel: UserChannel,
+  session: string,
+): Promise<Array<Recording>> => {
+  const responseRecordingsList = await getRecordingsListAction(
+    userChannel,
+    session,
+  );
+
+  if (responseRecordingsList.ok) {
+    return responseRecordingsList.recordings;
+  }
+
+  return [];
+};
+
 export const RecordingsList = ({
   userChannel,
   tooltipMouseEnter,
@@ -56,8 +73,15 @@ export const RecordingsList = ({
   session,
   userSettings,
 }: Props) => {
-  const [recordingList, setRecordingList] = useState<Array<Recording>>([]);
-  const [recordingListIsLoading, setRecordingListIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: recordingList, isLoading: recordingListIsLoading } = useQuery({
+    queryKey: ["channel", "savedStreams"],
+    queryFn: () => fetchSavedStreams(userChannel, session),
+    initialData: [],
+    refetchInterval: 30000,
+  });
+
   const [recordingListIsOpen, setRecordingListIsOpen] = useState(false);
 
   const [savingRecording, setSavingRecording] = useState<Array<string>>([]);
@@ -77,24 +101,6 @@ export const RecordingsList = ({
   const [openMoreOptionsId, setOpenMoreOptionsId] = useState<string | null>(
     null,
   );
-
-  useEffect(() => {
-    const getRecordingsList = async () => {
-      setRecordingListIsLoading(true);
-      const responseRecordingsList = await getRecordingsListAction(
-        userChannel,
-        session,
-      );
-
-      if (responseRecordingsList.ok) {
-        setRecordingList(responseRecordingsList.recordings);
-      }
-
-      setRecordingListIsLoading(false);
-    };
-
-    getRecordingsList();
-  }, [userChannel, session]);
 
   const [openSelectorId, setOpenSelectorId] = useState<string | null>(null);
 
@@ -192,14 +198,15 @@ export const RecordingsList = ({
                 showAlert(response.message || "Unexpected error", true);
               } else {
                 showAlert("Title changed");
-                setRecordingList((prevList) => {
-                  return prevList.map((rec) => {
-                    if (rec.id === changeTitleRecordingId) {
-                      return { ...rec, title: changeTitleString };
-                    }
-                    return rec;
-                  });
-                });
+                queryClient.setQueryData(
+                  ["channel", "savedStreams"],
+                  (prev: Recording[]) =>
+                    prev.map((rec) =>
+                      rec.id === changeTitleRecordingId
+                        ? { ...rec, title: changeTitleString }
+                        : rec,
+                    ),
+                );
               }
 
               setChangeTitleModalOpen(false);
@@ -311,13 +318,14 @@ export const RecordingsList = ({
                             ...e,
                             currentTarget,
                           });
-                          setRecordingList((list) =>
-                            list.map((r) => {
-                              if (r === recording) {
-                                r = response.recording as Recording;
-                              }
-                              return r;
-                            }),
+                          queryClient.setQueryData(
+                            ["channel", "savedStreams"],
+                            (prev: Recording[]) =>
+                              prev.map((r) =>
+                                r === recording
+                                  ? (response.recording as Recording)
+                                  : r,
+                              ),
                           );
                           showAlert("Saved stream");
                         } else {
@@ -393,8 +401,10 @@ export const RecordingsList = ({
                         );
 
                         if (response.ok) {
-                          setRecordingList((list) =>
-                            list.filter((item) => item !== recording),
+                          queryClient.setQueryData(
+                            ["channel", "savedStreams"],
+                            (prev: Recording[]) =>
+                              prev.filter((item) => item !== recording),
                           );
 
                           tooltipMouseLeave(event);

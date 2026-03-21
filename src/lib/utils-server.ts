@@ -184,15 +184,37 @@ export const hasPathname = async (urlString: string): Promise<boolean> => {
   }
 };
 
-export const getLastPathname = async (
+export const getLastUrlSegment = async (urlString: string) =>
+  getUrlSegment(-1, urlString);
+
+export const getUrlSegment = async (
+  index: number,
+  urlString: string,
+): Promise<string | undefined> =>
+  (await getAllUrlSegment(urlString))?.at(index);
+
+export const getAllPathUrl = async (
   urlString: string,
 ): Promise<string | undefined> => {
   try {
     const url = new URL(urlString);
-    const segments = url.pathname.split("/").filter((s) => s.length > 0);
-
-    return segments.pop();
+    return url.pathname;
   } catch {
     return undefined;
   }
+};
+
+export const getAllUrlSegment = async (
+  urlString: string,
+): Promise<Array<string> | undefined> => {
+  try {
+    const url = new URL(urlString);
+    return url.pathname.split("/").filter(Boolean);
+  } catch {
+    return undefined;
+  }
+};
+
+export const getFileNameFromPath = async (path: string) => {
+  return path.split("/").at(-1);
 };

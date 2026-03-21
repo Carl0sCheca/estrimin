@@ -1,4 +1,5 @@
-export const DEFAULT_SOCKET = process.env.ZEROMQ_SOCKET || "";
+export const DEFAULT_SOCKET =
+  process.env.ZEROMQ_SOCKET || "tcp://127.0.0.1:4000";
 
 export enum SOCK_COMMAND {
   LIST,
@@ -23,6 +24,7 @@ export interface Job {
 export interface FailedItems {
   id: number;
   fileName: string;
+  userName: string;
   error?: string;
   date?: Date;
 }

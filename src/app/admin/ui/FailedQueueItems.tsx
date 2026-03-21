@@ -7,8 +7,7 @@ import {
   RetryFailedQueueItem,
 } from "@/actions";
 import { Collapsible, MouseEnterEventOptions } from "@/components";
-import { FailedItems } from "@/interfaces/actions/scheduler";
-import { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IoReloadCircleSharp } from "react-icons/io5";
 
 interface Props {
@@ -16,67 +15,97 @@ interface Props {
     mouseEnter: (
       event: React.MouseEvent<HTMLElement>,
       text: string,
-      { defaultPosition, followCursor, extraGapY }?: MouseEnterEventOptions,
+      options?: MouseEnterEventOptions,
     ) => void;
     mouseLeave: (event: React.MouseEvent<HTMLElement>) => void;
   };
 }
 
 export const FailedQueueItems = ({ tooltip }: Props) => {
-  const [failedRecordings, setFailedRecordings] = useState<Array<FailedItems>>(
-    [],
-  );
-  const [errorItem, setErrorJob] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const [disabledQueueJobs, setDisabledQueueJobs] = useState(false);
+  const { data: failedItemsData, isLoading: isLoadingItems } = useQuery({
+    queryKey: ["admin", "queue", "failed", "items"],
+    queryFn: GetAllFailedQueueItems,
+    refetchInterval: 30000,
+  });
 
-  const getData = async () => {
-    try {
-      const [requestFailedItems, queueSiteSetting] = await Promise.all([
-        GetAllFailedQueueItems(),
-        GetQueueSiteSettingsAction(),
+  const { data: queueSettingsData, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ["admin", "queue", "failed", "settings"],
+    queryFn: GetQueueSiteSettingsAction,
+    refetchInterval: 30000,
+  });
+
+  const items = failedItemsData?.ok ? failedItemsData.items : [];
+  const errorItem = !!failedItemsData && !failedItemsData.ok;
+  const disabledQueueJobs = queueSettingsData?.ok ?? false;
+
+  const retryItemMutation = useMutation({
+    mutationFn: async (queueId: number) => {
+      await RetryFailedQueueItem(queueId);
+    },
+    onMutate: async (queueId) => {
+      await queryClient.cancelQueries({
+        queryKey: ["admin", "queue", "failed", "items"],
+      });
+
+      const previousData = queryClient.getQueryData([
+        "admin",
+        "queue",
+        "failed",
+        "items",
       ]);
 
-      if (requestFailedItems.ok) {
-        setErrorJob(false);
-        setFailedRecordings(requestFailedItems.items);
-      } else {
-        setErrorJob(true);
+      queryClient.setQueryData(
+        ["admin", "queue", "failed", "items"],
+        (old: typeof failedItemsData) => {
+          if (!old) return old;
+
+          return {
+            ...old,
+            items: old.items.filter((item) => item.id !== queueId),
+          };
+        },
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _queueId, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ["admin", "queue", "failed", "items"],
+          context.previousData,
+        );
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "queue", "failed", "items"],
+      });
+    },
+  });
 
-      setDisabledQueueJobs(queueSiteSetting.ok);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
-
-  useEffect(() => {
-    getData();
-    const intervalId = setInterval(getData, 30000);
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const handleRetryAll = async () => {
-    setLoading(true);
-    try {
+  const retryAllMutation = useMutation({
+    mutationFn: async () => {
       await RetryAllFailedQueueItems();
-      await getData();
-    } catch (error) {
-      console.error("Error starting all jobs:", error);
-    } finally {
-      setLoading(false);
-    }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["admin", "queue", "failed", "items"],
+      });
+    },
+  });
+
+  const handleRetryAll = () => {
+    retryAllMutation.mutate();
   };
 
-  const handleRetryItem = async (queueId: number) => {
-    try {
-      await RetryFailedQueueItem(queueId);
-      await getData();
-    } catch (error) {
-      console.error("Error retrying queue item:", error);
-    }
+  const handleRetryItem = (queueId: number) => {
+    retryItemMutation.mutate(queueId);
   };
+
+  const isQueryLoading = isLoadingItems || isLoadingSettings;
+  const isMutating = retryAllMutation.isPending || retryItemMutation.isPending;
 
   return (
     <>
@@ -86,36 +115,59 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
             <button
               onClick={handleRetryAll}
               disabled={
-                loading || disabledQueueJobs || failedRecordings.length === 0
+                isQueryLoading ||
+                isMutating ||
+                disabledQueueJobs ||
+                items.length === 0
               }
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <IoReloadCircleSharp size={24} />
               <span>
-                {loading
-                  ? "Starting..."
-                  : `Retry all failed items (${failedRecordings.length})`}
+                {isQueryLoading
+                  ? "Loading..."
+                  : isMutating
+                    ? "Starting..."
+                    : `Retry all failed items (${items.length})`}
               </span>
             </button>
           </div>
 
           <div className="space-y-2">
+            {isQueryLoading && (
+              <div className="text-primary-600 text-center font-bold">
+                Loading failed items...
+              </div>
+            )}
             {errorItem && (
               <div className="text-red-500 text-center font-bold">
                 Queue service unavailable
               </div>
             )}
-            {!errorItem &&
-              failedRecordings.map((item) => (
+            {!isQueryLoading &&
+              !errorItem &&
+              items.map((item) => (
                 <div
                   key={item.id}
                   className="flex items-center gap-1 p-3 bg-white border rounded-lg hover:shadow-md transition-shadow"
                 >
-                  <div
-                    className="w-4/8 truncate text-sm font-medium text-gray-900"
-                    title={`${item.fileName}`}
-                  >
-                    {item.fileName}
+                  <div className="w-4/8 truncate text-sm font-medium text-gray-900">
+                    <span
+                      className="font-bold"
+                      onMouseEnter={(e) =>
+                        tooltip.mouseEnter(e, `User: ${item.userName}`)
+                      }
+                      onMouseLeave={tooltip.mouseLeave}
+                    >
+                      {item.id}
+                    </span>{" "}
+                    -{" "}
+                    <span
+                      onMouseEnter={(e) => tooltip.mouseEnter(e, item.fileName)}
+                      onMouseLeave={tooltip.mouseLeave}
+                    >
+                      {item.fileName}
+                    </span>
                   </div>
 
                   <div className="w-3/8 text-xs text-gray-500">
@@ -131,9 +183,10 @@ export const FailedQueueItems = ({ tooltip }: Props) => {
                       onMouseEnter={(e) => tooltip.mouseEnter(e, "Retry")}
                       onMouseLeave={tooltip.mouseLeave}
                       onClick={() => handleRetryItem(item.id)}
-                      disabled={loading || disabledQueueJobs}
-                      className={`rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 hover:bg-gray-200 text-primary-600"
-                      }`}
+                      disabled={
+                        isQueryLoading || isMutating || disabledQueueJobs
+                      }
+                      className="cursor-pointer rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 hover:bg-gray-200 text-primary-600"
                     >
                       <IoReloadCircleSharp size={20} />
                     </button>

@@ -62,7 +62,7 @@ export interface RecordingDto {
   thumbnail: string;
   title: string;
   duration: string;
-  status: "COMPLETED" | "PROCESSING" | "LIVE" | "SAVED"; // unsaved: completed, processing and live
+  status: "COMPLETED" | "PROCESSING" | "LIVE" | "SAVED";
   date: Date;
   visibility: RecordingVisibility;
 }

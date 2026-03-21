@@ -143,7 +143,7 @@ export const AdminForm = ({ settings, baseUrl }: Props) => {
                   setButtonsState({ ...buttonsState, changeRole: false });
                 }}
                 disabled={buttonsState.changeRole}
-                className="flex w-1/5 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
+                className="cursor-pointer flex w-1/5 justify-center items-center text-lg bg-primary-600 hover:bg-primary-500 disabled:bg-primary-700 disabled:cursor-progress rounded-r-md text-white shadow-xs ring-0 ring-inset ring-gray-300 sm:leading-6"
               >
                 <div className={"relative flex text-center justify-center"}>
                   <div className="flex align-middle justify-center items-center text-base">

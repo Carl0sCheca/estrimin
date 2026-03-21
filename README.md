@@ -2,13 +2,15 @@
 
 1 - `docker compose -f docker-compose-dev.yml up -d`
 
-2 - `npm install`
+2 - `pnpm install`
 
-3 - `npx prisma migrate dev`
+3 - `pnpm prisma generate`
 
-4 - `npm run startup`
+4 - `pnpm prisma migrate dev`
 
-5 - `npm run dev`
+5 - `pnpm run startup`
+
+6 - `pnpm run dev`
 
 ### Default credentials for administrator account
 
@@ -33,6 +35,9 @@ pathDefaults:
   recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
   recordSegmentDuration: 1m
   recordDeleteAfter: 2d
+  runOnReady: curl http://localhost:3000/api/videos/startStreaming/$MTX_PATH
+  runOnNotReady: curl http://localhost:3000/api/videos/endStreaming/$MTX_PATH
+  runOnRecordSegmentCreate: curl http://localhost:3000/api/videos/segmentCreate/$MTX_PATH?segment=$MTX_SEGMENT_PATH
   runOnRecordSegmentComplete: curl http://localhost:3000/api/videos/segmentComplete/$MTX_PATH?segment=$MTX_SEGMENT_PATH&duration=$MTX_SEGMENT_DURATION
 ```
 

@@ -13,6 +13,7 @@ const s3ClientSingleton = () => {
     endpoint: process.env.S3_BUCKET_ENDPOINT,
     region: process.env.S3_REGION,
     forcePathStyle: true,
+    maxAttempts: 3,
   });
 };
 

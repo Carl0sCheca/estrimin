@@ -2,9 +2,8 @@
 
 import { getLiveChannelsAction } from "@/actions";
 import { Collapsible, Spinner } from "@/components";
-import { LiveChannelItem } from "@/interfaces";
 import { formatTimeAgo } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { IoMdPeople } from "react-icons/io";
 
 interface Props {
@@ -12,26 +11,15 @@ interface Props {
 }
 
 export const LiveChannels = ({ baseUrl }: Props) => {
-  const [liveChannels, setLiveChannels] = useState<Array<LiveChannelItem>>([]);
-  const [liveChannelsIsLoading, setLiveChannelsIsLoading] = useState(true);
-
-  useEffect(() => {
-    const getLiveChannels = async () => {
-      setLiveChannelsIsLoading(true);
-      const response = await getLiveChannelsAction();
-
-      setLiveChannels(response.items);
-      setLiveChannelsIsLoading(false);
-    };
-
-    getLiveChannels();
-
-    const intervalId = setInterval(async () => {
-      await getLiveChannels();
-    }, 30000);
-
-    return () => clearInterval(intervalId);
-  }, []);
+  const { data: liveChannels = [], isLoading: liveChannelsIsLoading } =
+    useQuery({
+      queryKey: ["admin", "live", "channels"],
+      queryFn: async () => {
+        const response = await getLiveChannelsAction();
+        return response.items;
+      },
+      refetchInterval: 30000,
+    });
 
   return (
     <Collapsible title="Live channels">

@@ -169,11 +169,14 @@ export const GetProcessingStatisticsAction =
 
       response.ok = true;
       response.completed = queueRecordings.filter(
-        (recording) => recording.status === "COMPLETED",
+        (recording) =>
+          recording.status === "COMPLETED" || recording.status === "MERGED",
       ).length;
       response.pending = queueRecordings.filter(
         (recording) =>
-          recording.status !== "COMPLETED" && recording.status !== "FAILED",
+          recording.status !== "COMPLETED" &&
+          recording.status !== "MERGED" &&
+          recording.status !== "FAILED",
       ).length;
       response.failed = queueRecordings.filter(
         (recording) => recording.status === "FAILED",
@@ -235,8 +238,10 @@ export const RetryAllFailedQueueItems = async () => {
       UPDATE "recordingQueue"
       SET 
         "attempts" = 0,
-        "status" = "error"::"RecordingQueueState",
-        "error" = NULL
+        "status" = "previousState",
+        "startedAt" = NOW(),
+        "hostname" = null,
+        "workerPid" = null
       WHERE "status" = ${RecordingQueueState.FAILED}
     `;
   } catch (e) {
@@ -250,8 +255,10 @@ export const RetryFailedQueueItem = async (id: number) => {
       UPDATE "recordingQueue"
       SET 
         "attempts" = 0,
-        "status" = "error"::"RecordingQueueState",
-        "error" = NULL
+        "status" = "previousState",
+        "startedAt" = NOW(),
+        "hostname" = null,
+        "workerPid" = null
       WHERE "status" = ${RecordingQueueState.FAILED}
       AND "id" = ${id}
     `;
@@ -278,21 +285,23 @@ export const GetAllFailedQueueItems =
 
     try {
       const items = await prisma.recordingQueue.findMany({
-        where: { status: "FAILED" },
+        where: { status: RecordingQueueState.FAILED },
         select: {
           finishedAt: true,
           fileName: true,
-          error: true,
+          errorState: true,
           id: true,
+          user: { select: { name: true } },
         },
       });
 
       response.items = items.map((item) => {
         return {
           id: item.id,
-          fileName: item.fileName,
+          fileName: item.fileName.replace("s3://", ""),
           date: item.finishedAt ?? undefined,
-          error: item.error ?? undefined,
+          error: item.errorState ?? undefined,
+          userName: item.user.name,
         };
       });
     } catch {
