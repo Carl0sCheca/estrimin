@@ -1,6 +1,6 @@
 {
   "name": "estrimin-web",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "private": true,
   "target": "ES2017",
   "type": "module",
