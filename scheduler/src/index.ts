@@ -31,21 +31,27 @@ import {
 const initShcheduler = async () => {
   if (!scheduler) return;
 
+  const disableUploadingQueue =
+    process.env.DISABLE_UPLOADING_QUEUE?.toLowerCase() === "true";
+
   const queues = [
     JOB_EXPIRED_RECORDINGS_QUEUE,
     JOB_RECORDING_QUEUE_TIMEOUT,
     JOB_RECORDING_QUEUE,
     JOB_RETRY_FAILED_QUEUE,
-    JOB_UPLOADING_QUEUE,
   ];
 
   const jobs = [
     queueJob,
     queueJobExpired,
-    queueUploadingJob,
     queueJobTimeout,
     queueRetryFailedJob,
   ];
+
+  if (!disableUploadingQueue) {
+    queues.push(JOB_UPLOADING_QUEUE);
+    jobs.push(queueUploadingJob);
+  }
 
   try {
     queues.forEach((queue) => {

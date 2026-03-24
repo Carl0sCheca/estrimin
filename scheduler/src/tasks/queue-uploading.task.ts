@@ -10,6 +10,13 @@ import { rmSync } from "fs";
 import { basename, join } from "path";
 
 export const queueTaskUploading = async () => {
+  const disableUploadingQueue =
+    process.env.DISABLE_UPLOADING_QUEUE?.toLowerCase() === "true";
+
+  if (disableUploadingQueue) {
+    return;
+  }
+
   if (
     ((
       await prisma.siteSetting.findUnique({
