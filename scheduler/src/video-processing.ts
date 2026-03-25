@@ -80,100 +80,33 @@ export const getVideoMetadata = async (filePath: string) => {
   }
 };
 
-export const getEncoderCandidates = async (): Promise<string[]> => {
-  const candidates: string[] = [];
-
-  try {
-    const { stdout } = await execAsync("ffmpeg -encoders -hide_banner");
-
-    const gpuEncoders = [
-      "h264_vaapi",
-      "hevc_vaapi",
-      "h264_nvenc",
-      "hevc_nvenc",
-      "h264_amf",
-      "hevc_amf",
-      "h264_qsv",
-      "hevc_qsv",
-      "h264_videotoolbox",
-      "hevc_videotoolbox",
-    ];
-
-    for (const encoder of gpuEncoders) {
-      if (stdout.includes(encoder)) {
-        candidates.push(encoder);
-      }
-    }
-
-    candidates.push("libx264");
-  } catch (error) {
-    console.error("Error checking GPU encoders:", error);
-    candidates.push("libx264");
-  }
-
-  return candidates;
-};
-
-const buildReencodeCommand = (
+export const reencodeWithOriginalSettings = async (
   inputFile: string,
   outputFile: string,
-  videoEncoder: string,
-  width: number,
-  height: number,
-  bitrate: number,
-): string[] => {
-  const reencodeCommand: string[] = ["-y", "-i", inputFile];
+  recordingId: number,
+) => {
+  const { width, height, bitrate } = await getVideoMetadata(inputFile);
 
-  let filterComplex = `scale=${width}:${height}:force_original_aspect_ratio=decrease`;
-
-  if (videoEncoder.includes("vaapi")) {
-    filterComplex = `scale=${width}:${height}:force_original_aspect_ratio=decrease,format=nv12,hwupload`;
-    reencodeCommand.push("-vaapi_device", "/dev/dri/renderD128");
-  }
-
-  reencodeCommand.push("-vf", filterComplex);
-
-  reencodeCommand.push("-c:v", videoEncoder);
-
-  if (videoEncoder === "libx264") {
-    reencodeCommand.push(
-      "-preset",
-      "fast",
-      "-b:v",
-      `${bitrate}k`,
-      "-maxrate",
-      `${bitrate}k`,
-      "-minrate",
-      `${bitrate}k`,
-      "-bufsize",
-      `${bitrate}k`,
-      "-nal-hrd",
-      "cbr",
-    );
-  } else if (videoEncoder.includes("nvenc")) {
-    reencodeCommand.push("-b:v", `${bitrate}k`, "-rc", "vbr");
-  } else if (videoEncoder.includes("vaapi")) {
-    reencodeCommand.push("-b:v", `${bitrate}k`);
-  } else if (videoEncoder.includes("amf")) {
-    reencodeCommand.push("-b:v", `${bitrate}k`);
-  } else if (videoEncoder.includes("qsv")) {
-    reencodeCommand.push("-b:v", `${bitrate}k`);
-  } else if (videoEncoder.includes("videotoolbox")) {
-    reencodeCommand.push("-b:v", `${bitrate}k`);
-  } else {
-    reencodeCommand.push(
-      "-b:v",
-      `${bitrate}k`,
-      "-maxrate",
-      `${bitrate}k`,
-      "-minrate",
-      `${bitrate}k`,
-      "-bufsize",
-      `${bitrate}k`,
-    );
-  }
-
-  reencodeCommand.push(
+  const reencodeCommand = [
+    "-y",
+    "-i",
+    inputFile,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "fast",
+    "-b:v",
+    `${bitrate}k`,
+    "-maxrate",
+    `${bitrate}k`,
+    "-minrate",
+    `${bitrate}k`,
+    "-bufsize",
+    `${bitrate}k`,
+    "-nal-hrd",
+    "cbr",
+    "-vf",
+    `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
     "-movflags",
     "+faststart",
     "-c:a",
@@ -181,90 +114,38 @@ const buildReencodeCommand = (
     "-f",
     "mp4",
     outputFile,
-  );
+  ];
 
-  return reencodeCommand;
-};
+  const ffmpegProcess = spawn("ffmpeg", reencodeCommand);
+  const pid = ffmpegProcess.pid;
 
-export const reencodeWithOriginalSettings = async (
-  inputFile: string,
-  outputFile: string,
-  recordingId: number,
-) => {
-  const { width, height, bitrate } = await getVideoMetadata(inputFile);
-  const encoderCandidates = await getEncoderCandidates();
+  await prisma.recordingQueue.update({
+    where: { id: recordingId },
+    data: {
+      workerPid: pid,
+      hostname: hostname(),
+    },
+  });
 
-  let lastError: Error | null = null;
+  return new Promise((resolve, reject) => {
+    ffmpegProcess.on("error", (err) => reject(err));
 
-  for (const encoder of encoderCandidates) {
-    try {
-      const reencodeCommand = buildReencodeCommand(
-        inputFile,
-        outputFile,
-        encoder,
-        width,
-        height,
-        bitrate,
-      );
-
-      const ffmpegProcess = spawn("ffmpeg", reencodeCommand);
-      const pid = ffmpegProcess.pid;
-
-      await prisma.recordingQueue.update({
-        where: { id: recordingId },
-        data: {
-          workerPid: pid,
-          hostname: hostname(),
-        },
-      });
-
-      let errorOutput = "";
-
-      await new Promise<void>((resolve, reject) => {
-        ffmpegProcess.stderr?.on("data", (data) => {
-          errorOutput += data.toString();
-        });
-
-        ffmpegProcess.on("error", (err) => reject(err));
-
-        ffmpegProcess.on("close", (code) => {
-          if (code !== 0) {
-            reject(
-              new Error(
-                `FFmpeg failed with code: ${code}${errorOutput ? "\n" + errorOutput.slice(-500) : ""}`,
-              ),
-            );
-          } else {
-            resolve();
-          }
-        });
-      });
+    ffmpegProcess.on("close", async (code) => {
+      if (code !== 0) {
+        return reject(new Error(`FFmpeg failed code: ${code}`));
+      }
 
       try {
         const validationCommand = `ffmpeg -v error -xerror -i ${outputFile} -f null -`;
         await execAsync(validationCommand);
+        resolve(true);
       } catch (e) {
-        throw new Error("Encoding failed validation: " + (e as Error).message);
+        reject(
+          new Error("Reencoding failed validation: " + (e as Error).message),
+        );
       }
-
-      return true;
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`✗ Encoding failed with ${encoder}:`);
-      console.warn(lastError.message);
-
-      if (encoder !== encoderCandidates[encoderCandidates.length - 1]) {
-        if (existsSync(outputFile)) {
-          rmSync(outputFile);
-        }
-        continue;
-      }
-    }
-  }
-
-  throw new Error(
-    `All encoding attempts failed. Last error: ${lastError?.message}`,
-  );
+    });
+  });
 };
 
 export const mergeVideos = async (
