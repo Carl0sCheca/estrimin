@@ -1,3 +1,4 @@
+import { StartAllScheduledJobAction } from "@/actions";
 import { RecordingQueueState } from "@/generated/enums";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest) {
   } catch {
     return new NextResponse(null, { status: 400 });
   }
+
+  StartAllScheduledJobAction();
 
   return new NextResponse(null, { status: 204 });
 }
