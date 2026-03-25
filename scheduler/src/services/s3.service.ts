@@ -13,6 +13,7 @@ import s3Client from "@/lib/s3-client";
 import * as fs from "fs";
 import { promisify } from "util";
 import { pipeline, Readable } from "stream";
+import path from "path";
 
 const streamPipeline = promisify(pipeline);
 
@@ -51,6 +52,8 @@ export const downloadFile = async (
     });
 
     const response = await s3Client?.send(command);
+
+    fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
 
     await streamPipeline(
       response?.Body as NodeJS.ReadableStream,
