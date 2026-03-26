@@ -48,12 +48,19 @@ RUN apk add --no-cache \
     openssl \
     curl \
     ffmpeg \
-    tini
+    tini \
+    tar \
+    mesa-va-gallium \
+    libva-utils \
+    mesa-dri-gallium
 
 RUN npm install -g pnpm@10.32.1
 
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+    adduser -S -D -H -u 1001 -G nodejs nodejs && \
+    addgroup -g 107 -S render && \
+    addgroup nodejs video && \
+    addgroup nodejs render
 
 COPY --from=builder --chown=nodejs:nodejs /app/.next ./.next
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
