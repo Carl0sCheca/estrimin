@@ -31,8 +31,7 @@ ADD COLUMN     "hostname" TEXT,
 ADD COLUMN     "mergingWithId" INTEGER,
 ADD COLUMN     "previousState" "RecordingQueueState",
 ADD COLUMN     "segmentsIndex" INTEGER[],
-ADD COLUMN     "workerPid" INTEGER,
-ALTER COLUMN "status" SET DEFAULT 'RECORDING';
+ADD COLUMN     "workerPid" INTEGER;
 
 -- AlterTable
 ALTER TABLE "userSetting" DROP CONSTRAINT "userSetting_pkey",
