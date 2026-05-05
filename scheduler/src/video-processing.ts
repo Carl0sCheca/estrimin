@@ -21,7 +21,10 @@ export const isStdError = (err: unknown): err is { stderr: ExecError } => {
   );
 };
 
-export const generateThumbnail = async (outputFile: string) => {
+export const generateThumbnail = async (
+  outputFile: string,
+  signal?: AbortSignal,
+) => {
   const getDurationCommand = [
     "ffprobe",
     "-v",
@@ -33,7 +36,9 @@ export const generateThumbnail = async (outputFile: string) => {
     outputFile,
   ].join(" ");
 
-  const { stdout: durationStdout } = await execAsync(getDurationCommand);
+  const { stdout: durationStdout } = await execAsync(getDurationCommand, {
+    signal,
+  });
   const duration = parseFloat(durationStdout.trim());
   const middleTime = duration / 2;
 
@@ -53,14 +58,17 @@ export const generateThumbnail = async (outputFile: string) => {
     outputFile.replace(".mp4", ".webp"),
   ].join(" ");
 
-  await execAsync(generateThumbnailCommand);
+  await execAsync(generateThumbnailCommand, { signal });
 };
 
-export const getVideoMetadata = async (filePath: string) => {
+export const getVideoMetadata = async (
+  filePath: string,
+  signal?: AbortSignal,
+) => {
   const ffprobeCommand = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,bit_rate -of json ${filePath}`;
 
   try {
-    const { stdout } = await execAsync(ffprobeCommand);
+    const { stdout } = await execAsync(ffprobeCommand, { signal });
     const metadata = JSON.parse(stdout);
 
     if (!metadata.streams || metadata.streams.length === 0) {
@@ -80,11 +88,15 @@ export const getVideoMetadata = async (filePath: string) => {
   }
 };
 
-export const getEncoderCandidates = async (): Promise<string[]> => {
+export const getEncoderCandidates = async (
+  signal?: AbortSignal,
+): Promise<string[]> => {
   const candidates: string[] = [];
 
   try {
-    const { stdout } = await execAsync("ffmpeg -encoders -hide_banner");
+    const { stdout } = await execAsync("ffmpeg -encoders -hide_banner", {
+      signal,
+    });
 
     const gpuEncoders = [
       "h264_vaapi",
@@ -190,9 +202,10 @@ export const reencodeWithOriginalSettings = async (
   inputFile: string,
   outputFile: string,
   recordingId: number,
+  signal?: AbortSignal,
 ) => {
-  const { width, height, bitrate } = await getVideoMetadata(inputFile);
-  const encoderCandidates = await getEncoderCandidates();
+  const { width, height, bitrate } = await getVideoMetadata(inputFile, signal);
+  const encoderCandidates = await getEncoderCandidates(signal);
 
   let lastError: Error | null = null;
 
@@ -207,7 +220,7 @@ export const reencodeWithOriginalSettings = async (
         bitrate,
       );
 
-      const ffmpegProcess = spawn("ffmpeg", reencodeCommand);
+      const ffmpegProcess = spawn("ffmpeg", reencodeCommand, { signal });
       const pid = ffmpegProcess.pid;
 
       await prisma.recordingQueue.update({
@@ -242,13 +255,33 @@ export const reencodeWithOriginalSettings = async (
 
       try {
         const validationCommand = `ffmpeg -v error -xerror -i ${outputFile} -f null -`;
-        await execAsync(validationCommand);
+        await execAsync(validationCommand, { signal });
       } catch (e) {
+        if (
+          signal?.aborted ||
+          (typeof e === "object" &&
+            e !== null &&
+            "name" in e &&
+            (e as { name?: string }).name === "AbortError")
+        ) {
+          throw e;
+        }
+
         throw new Error("Encoding failed validation: " + (e as Error).message);
       }
 
       return true;
     } catch (error) {
+      if (
+        signal?.aborted ||
+        (typeof error === "object" &&
+          error !== null &&
+          "name" in error &&
+          (error as { name?: string }).name === "AbortError")
+      ) {
+        throw error;
+      }
+
       lastError = error as Error;
       console.warn(`✗ Encoding failed with ${encoder}:`);
       console.warn(lastError.message);
@@ -270,6 +303,7 @@ export const reencodeWithOriginalSettings = async (
 export const mergeVideos = async (
   previousVideo: readonly [string, number],
   currentVideo: readonly [string, number],
+  signal?: AbortSignal,
 ): Promise<void> => {
   const listFileName = `${previousVideo[0]}_list.txt`;
   const outputFile = `${previousVideo[0]}.merged.mp4`;
@@ -295,7 +329,7 @@ export const mergeVideos = async (
       outputFile,
     ];
 
-    const ffmpegProcess = spawn("ffmpeg", mergeCommand);
+    const ffmpegProcess = spawn("ffmpeg", mergeCommand, { signal });
     const pid = ffmpegProcess.pid;
 
     await prisma.recordingQueue.update({
@@ -329,8 +363,18 @@ export const mergeVideos = async (
 
     renameSync(outputFile, previousVideo[0]);
 
-    await generateThumbnail(previousVideo[0]);
+    await generateThumbnail(previousVideo[0], signal);
   } catch (error) {
+    if (
+      signal?.aborted ||
+      (typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        (error as { name?: string }).name === "AbortError")
+    ) {
+      throw error;
+    }
+
     if (existsSync(outputFile)) rmSync(outputFile);
     if (existsSync(listFileName)) rmSync(listFileName);
 

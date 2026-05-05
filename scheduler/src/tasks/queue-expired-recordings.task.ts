@@ -1,25 +1,11 @@
 import { RecordingQueueState } from "@/generated/enums";
-import { SITE_SETTING } from "@/interfaces";
 import prisma from "@/lib/prisma";
-import { JOB_EXPIRED_RECORDINGS_QUEUE } from "@scheduler/jobs";
-import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
 import { rmSync } from "fs";
 import { join } from "path";
+import { throwIfJobAborted } from "../jobs/runtime";
 
-export const queueTaskExpiredRecordings = async () => {
-  if (
-    ((
-      await prisma.siteSetting.findUnique({
-        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
-      })
-    )?.value as boolean) ??
-    false
-  ) {
-    return;
-  }
-
-  await updateLastExecutionFromSettings(JOB_EXPIRED_RECORDINGS_QUEUE);
-  console.info(`Running queueTaskExpiredRecordings at ${new Date()}`);
+export const queueTaskExpiredRecordings = async (signal: AbortSignal) => {
+  throwIfJobAborted(signal);
 
   const deletedRecordings = await prisma.recordingQueue.deleteMany({
     where: {
@@ -48,6 +34,8 @@ export const queueTaskExpiredRecordings = async () => {
   if (deletedRecordings.count > 0) {
     console.info(`Deleted ${deletedRecordings.count} expired recordings`);
   }
+
+  throwIfJobAborted(signal);
 
   if (expiredRecordings.length > 0) {
     console.info(`Expired ${expiredRecordings.length} recordings`);

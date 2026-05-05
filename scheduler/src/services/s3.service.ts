@@ -21,6 +21,7 @@ export const uploadFile = async (
   key: string,
   filePath: string,
   contentType: string,
+  signal?: AbortSignal,
 ): Promise<boolean> => {
   try {
     const fileStream = fs.createReadStream(filePath);
@@ -32,10 +33,20 @@ export const uploadFile = async (
       ContentType: contentType,
     });
 
-    await s3Client?.send(command);
+    await s3Client?.send(command, { abortSignal: signal });
 
     return true;
   } catch (err) {
+    if (
+      signal?.aborted ||
+      (typeof err === "object" &&
+        err !== null &&
+        "name" in err &&
+        (err as { name?: string }).name === "AbortError")
+    ) {
+      throw err;
+    }
+
     console.error("Error uploading file from S3:", err);
     return false;
   }
@@ -44,6 +55,7 @@ export const uploadFile = async (
 export const downloadFile = async (
   key: string,
   localFilePath: string,
+  signal?: AbortSignal,
 ): Promise<void> => {
   try {
     const command = new GetObjectCommand({
@@ -51,15 +63,26 @@ export const downloadFile = async (
       Key: key,
     });
 
-    const response = await s3Client?.send(command);
+    const response = await s3Client?.send(command, { abortSignal: signal });
 
     fs.mkdirSync(path.dirname(localFilePath), { recursive: true });
 
     await streamPipeline(
       response?.Body as NodeJS.ReadableStream,
       fs.createWriteStream(localFilePath),
+      { signal },
     );
   } catch (err) {
+    if (
+      signal?.aborted ||
+      (typeof err === "object" &&
+        err !== null &&
+        "name" in err &&
+        (err as { name?: string }).name === "AbortError")
+    ) {
+      throw err;
+    }
+
     console.error("Error downloading file from S3:", err);
   }
 };

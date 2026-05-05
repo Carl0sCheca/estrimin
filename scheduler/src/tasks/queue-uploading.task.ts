@@ -1,15 +1,14 @@
 import { RecordingQueue } from "@/generated/client";
 import { RecordingQueueState } from "@/generated/enums";
-import { SITE_SETTING } from "@/interfaces";
 import prisma from "@/lib/prisma";
-import { JOB_RECORDING_QUEUE, JOB_UPLOADING_QUEUE } from "@scheduler/jobs";
+import { JOB_RECORDING_QUEUE } from "@scheduler/jobs";
 import { scheduler } from "@scheduler/scheduler";
-import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
 import { uploadFile } from "@scheduler/services/s3.service";
 import { rmSync } from "fs";
 import { basename, join } from "path";
+import { throwIfJobAborted } from "../jobs/runtime";
 
-export const queueTaskUploading = async () => {
+export const queueTaskUploading = async (signal: AbortSignal) => {
   const disableUploadingQueue =
     process.env.DISABLE_UPLOADING_QUEUE?.toLowerCase() === "true";
 
@@ -17,22 +16,9 @@ export const queueTaskUploading = async () => {
     return;
   }
 
-  if (
-    ((
-      await prisma.siteSetting.findUnique({
-        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
-      })
-    )?.value as boolean) ??
-    false
-  ) {
-    return;
-  }
-
-  console.info(`Running queueTaskUploading at ${new Date()}`);
-
-  await updateLastExecutionFromSettings(JOB_UPLOADING_QUEUE);
-
   while (true) {
+    throwIfJobAborted(signal);
+
     const recording = await prisma.$transaction(async (tx) => {
       const record = await tx.$queryRaw<Array<RecordingQueue>>`
       SELECT * FROM "recordingQueue"
@@ -62,6 +48,8 @@ export const queueTaskUploading = async () => {
       break;
     }
 
+    throwIfJobAborted(signal);
+
     const isUsingS3Bucket = process.env.S3_BUCKET_ENDPOINT;
 
     if (!isUsingS3Bucket) {
@@ -88,6 +76,7 @@ export const queueTaskUploading = async () => {
           basename(recording.fileName),
         ),
         "video/mp4",
+        signal,
       );
 
       if (fileUpload) {
@@ -124,6 +113,8 @@ export const queueTaskUploading = async () => {
         }
       }
     }
+
+    throwIfJobAborted(signal);
 
     scheduler.startById(JOB_RECORDING_QUEUE);
   }

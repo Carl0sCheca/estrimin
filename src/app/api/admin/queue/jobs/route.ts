@@ -1,14 +1,8 @@
 import { SITE_SETTING } from "@/interfaces";
-import {
-  DEFAULT_SOCKET,
-  SOCK_COMMAND,
-  type Command,
-} from "@/interfaces/actions/scheduler";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import * as zmq from "zeromq";
 
 export const runtime = "nodejs";
 
@@ -32,25 +26,7 @@ export const GET = async () => {
     return NextResponse.json({ ok: false, tasks: [] });
   }
 
-  const sock = new zmq.Request();
-  sock.receiveTimeout = 10000;
+  const tasks = await prisma.task.findMany();
 
-  try {
-    sock.connect(DEFAULT_SOCKET);
-
-    const command: Command = {
-      c: SOCK_COMMAND.LIST,
-    };
-
-    await sock.send(JSON.stringify(command));
-    const [result] = await sock.receive();
-
-    const tasks = JSON.parse(new TextDecoder().decode(result));
-
-    return NextResponse.json({ ok: true, tasks });
-  } catch {
-    return NextResponse.json({ ok: false, tasks: [] });
-  } finally {
-    sock.close();
-  }
+  return NextResponse.json({ ok: true, tasks });
 };

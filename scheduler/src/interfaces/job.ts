@@ -16,4 +16,5 @@ export interface ListedJob {
   status: JobStatus;
   isRunning: boolean;
   lastExecution?: Date;
+  hostname: string;
 }

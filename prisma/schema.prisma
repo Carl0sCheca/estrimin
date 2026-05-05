@@ -240,6 +240,28 @@ model RecordingQueue {
   @@map("recordingQueue")
 }
 
+model TaskMachine {
+  hostname  String
+  port      Int      @default(4000)
+  heartbeat DateTime
+
+  @@id([hostname, port])
+  @@map("taskMachine")
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  task      String
+  hostname  String
+  port      Int
+  lastRun   DateTime
+  isRunning Boolean
+
+  @@index([task])
+  @@index([hostname])
+  @@map("task")
+}
+
 model UserFollows {
   userId   String
   followId String

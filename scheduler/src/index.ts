@@ -8,7 +8,6 @@ import * as zmq from "zeromq";
 import { scheduler } from "./scheduler";
 
 import {
-  listCommand,
   startAllCommand,
   startCommand,
   stopAllCommand,
@@ -28,18 +27,18 @@ import {
   queueUploadingJob,
 } from "./jobs";
 
+export const ALL_QUEUES_JOBS = [
+  JOB_EXPIRED_RECORDINGS_QUEUE,
+  JOB_RECORDING_QUEUE_TIMEOUT,
+  JOB_RECORDING_QUEUE,
+  JOB_RETRY_FAILED_QUEUE,
+];
+
 const initShcheduler = async () => {
   if (!scheduler) return;
 
   const disableUploadingQueue =
     process.env.DISABLE_UPLOADING_QUEUE?.toLowerCase() === "true";
-
-  const queues = [
-    JOB_EXPIRED_RECORDINGS_QUEUE,
-    JOB_RECORDING_QUEUE_TIMEOUT,
-    JOB_RECORDING_QUEUE,
-    JOB_RETRY_FAILED_QUEUE,
-  ];
 
   const jobs = [
     queueJob,
@@ -49,12 +48,12 @@ const initShcheduler = async () => {
   ];
 
   if (!disableUploadingQueue) {
-    queues.push(JOB_UPLOADING_QUEUE);
+    ALL_QUEUES_JOBS.push(JOB_UPLOADING_QUEUE);
     jobs.push(queueUploadingJob);
   }
 
   try {
-    queues.forEach((queue) => {
+    ALL_QUEUES_JOBS.forEach((queue) => {
       scheduler.stopById(queue);
       scheduler.removeById(queue);
     });
@@ -81,9 +80,6 @@ const messagesFromEstrimin = async () => {
     const commandArg = command.a;
 
     switch (commandAction) {
-      case SOCK_COMMAND.LIST:
-        await listCommand(sock, scheduler);
-        break;
       case SOCK_COMMAND.STOP:
         await stopCommand(sock, scheduler, commandArg);
         break;
