@@ -1,3 +1,16 @@
+## About this project
+
+This is a personal project I use for my own purposes. The source code is available for anyone interested.
+
+This project uses [MediaMTX](https://github.com/bluenviron/mediamtx) for streaming and media handling.
+
+## Features
+
+- **Broadcasting & Viewing:** Website using WHIP/WHEP formats for ultra-low latency and high-performance streaming.
+- **Recordings:** Save your sessions automatically with S3-compatible storage support.
+- **Privacy Control:** Restrict access to specific people for both live broadcasts and recordings.
+- **Access Management:** Ability to disable public registration and use invitation links for new users.
+
 ### Dev
 
 1 - `docker compose -f docker-compose-dev.yml up -d`
