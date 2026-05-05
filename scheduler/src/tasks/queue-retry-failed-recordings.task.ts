@@ -1,14 +1,11 @@
 import { RecordingQueueState } from "@/generated/enums";
 import prisma from "@/lib/prisma";
-import { JOB_RETRY_FAILED_QUEUE } from "@scheduler/jobs";
-import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
 import { execSync } from "child_process";
 import { hostname } from "os";
+import { throwIfJobAborted } from "../jobs/runtime";
 
-export const queueTaskRetryFailedRecordings = async () => {
-  console.info(`Running queueTaskRetryFailedRecordings at ${new Date()}`);
-
-  await updateLastExecutionFromSettings(JOB_RETRY_FAILED_QUEUE);
+export const queueTaskRetryFailedRecordings = async (signal: AbortSignal) => {
+  throwIfJobAborted(signal);
 
   await prisma.recordingQueue.deleteMany({
     where: {
@@ -32,6 +29,8 @@ export const queueTaskRetryFailedRecordings = async () => {
   ];
 
   failedToRetry.forEach((recording) => {
+    throwIfJobAborted(signal);
+
     if (
       statesToKill.includes(recording.status) &&
       hostname() === recording.hostname &&

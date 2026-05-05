@@ -1,9 +1,6 @@
 import { RecordingQueue } from "@/generated/client";
 import { RecordingQueueState } from "@/generated/enums";
-import { SITE_SETTING } from "@/interfaces";
 import prisma from "@/lib/prisma";
-import { JOB_RECORDING_QUEUE } from "@scheduler/jobs";
-import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
 import {
   deleteFile,
   downloadFile,
@@ -16,8 +13,11 @@ import {
 } from "@scheduler/video-processing";
 import { renameSync, rmSync } from "fs";
 import { join } from "path";
+import { throwIfJobAborted } from "../jobs/runtime";
 
-const setPendingUploadedRecordings = async () => {
+const setPendingUploadedRecordings = async (signal: AbortSignal) => {
+  throwIfJobAborted(signal);
+
   try {
     await prisma.recordingQueue.updateMany({
       where: {
@@ -32,8 +32,10 @@ const setPendingUploadedRecordings = async () => {
   } catch {}
 };
 
-const encodingRecordings = async () => {
+const encodingRecordings = async (signal: AbortSignal) => {
   while (true) {
+    throwIfJobAborted(signal);
+
     const recording = await prisma.$transaction(async (tx) => {
       const record = await tx.$queryRaw<Array<RecordingQueue>>`
       SELECT * FROM "recordingQueue"
@@ -82,18 +84,27 @@ const encodingRecordings = async () => {
     }
 
     try {
+      throwIfJobAborted(signal);
+
       await reencodeWithOriginalSettings(
         localFile,
         localFile.replace(".mp4", ".encoded.mp4"),
         recording.id,
+        signal,
       );
+
+      throwIfJobAborted(signal);
 
       rmSync(localFile);
       renameSync(localFile.replace(".mp4", ".encoded.mp4"), localFile);
 
-      await generateThumbnail(localFile);
+      throwIfJobAborted(signal);
+
+      await generateThumbnail(localFile, signal);
 
       if (isUsingS3) {
+        throwIfJobAborted(signal);
+
         await prisma.recordingQueue.update({
           where: {
             id: recording.id,
@@ -108,12 +119,14 @@ const encodingRecordings = async () => {
           `recordings/${recording.userId}/${recordingFileName}`,
           localFile,
           "video/mp4",
+          signal,
         );
 
         await uploadFile(
           `recordings/${recording.userId}/${recordingFileName.replace(".mp4", ".webp")}`,
           localFile.replace(".mp4", ".webp"),
           "image/webp",
+          signal,
         );
 
         rmSync(localFile);
@@ -161,8 +174,10 @@ const encodingRecordings = async () => {
   }
 };
 
-const mergingRecordings = async () => {
+const mergingRecordings = async (signal: AbortSignal) => {
   while (true) {
+    throwIfJobAborted(signal);
+
     const pairData = await prisma.$transaction(async (tx) => {
       interface MergingQuery {
         id1: number;
@@ -252,16 +267,19 @@ const mergingRecordings = async () => {
         await downloadFile(
           `recordings/${userId}/${firstFileName}`,
           firstLocalPath,
+          signal,
         );
         await downloadFile(
           `recordings/${userId}/${secondFileName}`,
           secondLocalPath,
+          signal,
         );
       }
 
       await mergeVideos(
         [firstLocalPath, sortedSegments[0].id],
         [secondLocalPath, sortedSegments[1].id],
+        signal,
       );
 
       if (isUsingS3) {
@@ -289,12 +307,14 @@ const mergingRecordings = async () => {
           `recordings/${userId}/${firstFileName}`,
           firstLocalPath,
           "video/mp4",
+          signal,
         );
 
         await uploadFile(
           `recordings/${userId}/${firstFileName.replace(".mp4", ".webp")}`,
           firstLocalPath.replace(".mp4", ".webp"),
           "image/webp",
+          signal,
         );
 
         try {
@@ -398,7 +418,9 @@ const mergingRecordings = async () => {
   }
 };
 
-const completedRecordings = async () => {
+const completedRecordings = async (signal: AbortSignal) => {
+  throwIfJobAborted(signal);
+
   const completedSessions = await prisma.recordingQueue.findMany({
     where: { status: RecordingQueueState.COMPLETED },
     select: { firstSegmentId: true },
@@ -451,6 +473,8 @@ const completedRecordings = async () => {
   }, {});
 
   for (const [firstSegmentId, data] of Object.entries(sessions)) {
+    throwIfJobAborted(signal);
+
     if (data.REST > 0) {
       continue;
     }
@@ -497,27 +521,12 @@ const completedRecordings = async () => {
   }
 };
 
-export const queueTask = async () => {
-  if (
-    ((
-      await prisma.siteSetting.findUnique({
-        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
-      })
-    )?.value as boolean) ??
-    false
-  ) {
-    return;
-  }
+export const queueTask = async (signal: AbortSignal) => {
+  await setPendingUploadedRecordings(signal);
 
-  console.info(`Running queueTask at ${new Date()}`);
+  await encodingRecordings(signal);
 
-  await updateLastExecutionFromSettings(JOB_RECORDING_QUEUE);
+  await mergingRecordings(signal);
 
-  await setPendingUploadedRecordings();
-
-  await encodingRecordings();
-
-  await mergingRecordings();
-
-  await completedRecordings();
+  await completedRecordings(signal);
 };

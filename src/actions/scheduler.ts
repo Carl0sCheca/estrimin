@@ -70,15 +70,35 @@ export const StartAllScheduledJobAction = async (): Promise<void> => {
     return;
   }
 
-  const sock = new zmq.Request();
-  sock.connect(DEFAULT_SOCKET);
+  const availableHostnames = await prisma.taskMachine.findMany({
+    where: {
+      heartbeat: { gt: new Date(new Date().getTime() - 1000 * 5 * 60) },
+    },
+  });
 
-  const command: Command = {
-    c: SOCK_COMMAND.START_ALL,
-  };
+  for (const hn of availableHostnames) {
+    try {
+      const sock = new zmq.Request();
+      sock.receiveTimeout = 10000;
 
-  await sock.send(JSON.stringify(command));
-  sock.close();
+      sock.connect(`tcp://${hn.hostname}:${hn.port}`);
+
+      const command: Command = {
+        c: SOCK_COMMAND.START_ALL,
+      };
+
+      await sock.send(JSON.stringify(command));
+      const [result] = await sock.receive();
+      const response: Array<string> = JSON.parse(
+        new TextDecoder().decode(result),
+      );
+
+      sock.close();
+      if (response.length === 0) {
+        break;
+      }
+    } catch {}
+  }
 };
 
 export const StopAllScheduledJobAction = async (): Promise<void> => {
@@ -93,18 +113,32 @@ export const StopAllScheduledJobAction = async (): Promise<void> => {
     return;
   }
 
-  const sock = new zmq.Request();
-  sock.connect(DEFAULT_SOCKET);
+  const availableHostnames = await prisma.taskMachine.findMany({
+    where: {
+      heartbeat: { gt: new Date(new Date().getTime() - 1000 * 5 * 60) },
+    },
+  });
 
-  const command: Command = {
-    c: SOCK_COMMAND.STOP_ALL,
-  };
+  for (const hn of availableHostnames) {
+    try {
+      const sock = new zmq.Request();
+      sock.receiveTimeout = 10000;
+      sock.connect(`tcp://${hn.hostname}:${hn.port}`);
 
-  await sock.send(JSON.stringify(command));
-  sock.close();
+      const command: Command = {
+        c: SOCK_COMMAND.STOP_ALL,
+      };
+
+      await sock.send(JSON.stringify(command));
+      sock.close();
+    } catch {}
+  }
 };
 
-export const StartScheduledJobAction = async (id: string): Promise<void> => {
+export const StartScheduledJobAction = async (
+  id: string,
+  hostname: string,
+): Promise<void> => {
   if (
     ((
       await prisma.siteSetting.findUnique({
@@ -117,7 +151,8 @@ export const StartScheduledJobAction = async (id: string): Promise<void> => {
   }
 
   const sock = new zmq.Request();
-  sock.connect(DEFAULT_SOCKET);
+  sock.receiveTimeout = 10000;
+  sock.connect(`tcp://${hostname}:4000`);
 
   const command: Command = {
     c: SOCK_COMMAND.START,
@@ -128,7 +163,10 @@ export const StartScheduledJobAction = async (id: string): Promise<void> => {
   sock.close();
 };
 
-export const StopScheduledJobAction = async (id: string): Promise<void> => {
+export const StopScheduledJobAction = async (
+  id: string,
+  hostname: string,
+): Promise<void> => {
   if (
     ((
       await prisma.siteSetting.findUnique({
@@ -141,7 +179,8 @@ export const StopScheduledJobAction = async (id: string): Promise<void> => {
   }
 
   const sock = new zmq.Request();
-  sock.connect(DEFAULT_SOCKET);
+  sock.receiveTimeout = 10000;
+  sock.connect(`tcp://${hostname}:4000`);
 
   const command: Command = {
     c: SOCK_COMMAND.STOP,

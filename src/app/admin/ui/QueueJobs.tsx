@@ -9,13 +9,11 @@ import {
   StopAllScheduledJobAction,
   StopScheduledJobAction,
 } from "@/actions";
-import {
-  type GetAllTasksSchedulerResponse,
-  type Job,
-} from "@/interfaces/actions/scheduler";
+import { type GetAllTasksSchedulerResponse } from "@/interfaces/actions/scheduler";
 import { Collapsible, MouseEnterEventOptions, Toggle } from "@/components";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FaCircle, FaPause, FaPlay, FaStop } from "react-icons/fa";
+import { Task } from "@/generated/client";
 
 interface Props {
   tooltip: {
@@ -69,11 +67,15 @@ export const QueueJobs = ({ tooltip }: Props) => {
   const disabledQueueJobs = queueSettingsData?.ok ?? false;
 
   const toggleJobMutation = useMutation({
-    mutationFn: async (data: { jobId: string; isRunning: boolean }) => {
+    mutationFn: async (data: {
+      jobId: string;
+      isRunning: boolean;
+      hostname: string;
+    }) => {
       if (data.isRunning) {
-        await StopScheduledJobAction(data.jobId);
+        await StopScheduledJobAction(data.jobId, data.hostname);
       } else {
-        await StartScheduledJobAction(data.jobId);
+        await StartScheduledJobAction(data.jobId, data.hostname);
       }
     },
     onMutate: async (data) => {
@@ -95,8 +97,8 @@ export const QueueJobs = ({ tooltip }: Props) => {
 
           return {
             ...old,
-            tasks: old.tasks.map((job: Job) =>
-              job.id === data.jobId
+            tasks: old.tasks.map((job: Task) =>
+              job.task === data.jobId
                 ? {
                     ...job,
                     status: data.isRunning ? "stopped" : "running",
@@ -147,8 +149,12 @@ export const QueueJobs = ({ tooltip }: Props) => {
     },
   });
 
-  const handleToggleJob = (jobId: string, isRunning: boolean) => {
-    toggleJobMutation.mutate({ jobId, isRunning });
+  const handleToggleJob = (
+    jobId: string,
+    isRunning: boolean,
+    hostname: string,
+  ) => {
+    toggleJobMutation.mutate({ jobId, isRunning, hostname });
   };
 
   const handleStartAll = () => {
@@ -297,35 +303,35 @@ export const QueueJobs = ({ tooltip }: Props) => {
             )}
             {!isQueryLoading &&
               !errorJob &&
-              jobs.map((job: Job) => (
+              jobs.map((job: Task) => (
                 <div
                   key={job.id}
                   className="flex items-center gap-4 p-3 bg-white border rounded-lg hover:shadow-md transition-shadow"
                 >
                   <div
                     className="w-4/8 truncate text-sm font-medium text-gray-900"
-                    title={job.id}
+                    title={job.task}
                   >
-                    {job.id}
+                    {job.task}
                   </div>
 
                   <div className="w-1/8 flex justify-center">
                     <button
                       onClick={() =>
-                        handleToggleJob(job.id, job.status === "running")
+                        handleToggleJob(job.task, job.isRunning, job.hostname)
                       }
                       disabled={
                         isQueryLoading ||
                         isMutating ||
-                        (disabledQueueJobs && job.status === "stopped")
+                        (disabledQueueJobs && !job.isRunning)
                       }
                       className={`cursor-pointer p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        job.status === "running"
+                        job.isRunning
                           ? "bg-yellow-100 hover:bg-yellow-200 text-yellow-600"
                           : "bg-gray-100 hover:bg-gray-200 text-primary-600"
                       }`}
                     >
-                      {job.status === "running" ? (
+                      {job.isRunning ? (
                         <FaPause className="w-3 h-3" />
                       ) : (
                         <FaPlay className="w-3 h-3" />
@@ -337,7 +343,9 @@ export const QueueJobs = ({ tooltip }: Props) => {
                     {job.isRunning ? (
                       <div
                         className="flex items-center justify-center"
-                        onMouseEnter={(e) => tooltip.mouseEnter(e, "Running")}
+                        onMouseEnter={(e) =>
+                          tooltip.mouseEnter(e, `Running (${job.hostname})`)
+                        }
                         onMouseLeave={tooltip.mouseLeave}
                       >
                         <FaCircle className="w-3 h-3 text-green-500 animate-pulse" />
@@ -354,8 +362,8 @@ export const QueueJobs = ({ tooltip }: Props) => {
                   </div>
 
                   <div className="w-2/6 text-xs text-gray-500">
-                    {job.lastExecution ? (
-                      new Date(job.lastExecution).toLocaleString()
+                    {job.lastRun ? (
+                      new Date(job.lastRun).toLocaleString()
                     ) : (
                       <span className="text-gray-400">Never executed</span>
                     )}

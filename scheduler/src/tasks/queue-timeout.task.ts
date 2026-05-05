@@ -1,12 +1,10 @@
 import { RecordingQueue } from "@/generated/client";
 import { RecordingQueueState } from "@/generated/enums";
-import { SITE_SETTING } from "@/interfaces";
 import prisma from "@/lib/prisma";
-import { JOB_RECORDING_QUEUE_TIMEOUT } from "@scheduler/jobs";
-import { updateLastExecutionFromSettings } from "@scheduler/services/execution-tracker.service";
 import { deleteFile } from "@scheduler/services/s3.service";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
+import { throwIfJobAborted } from "../jobs/runtime";
 
 const markUploadingRecordingsAsFailed = async (): Promise<
   Array<RecordingQueue>
@@ -112,21 +110,8 @@ const cleanupFiles = async (
   );
 };
 
-export const queueTaskTimeout = async () => {
-  if (
-    ((
-      await prisma.siteSetting.findUnique({
-        where: { key: SITE_SETTING.DISABLE_QUEUE_JOBS },
-      })
-    )?.value as boolean) ??
-    false
-  ) {
-    return;
-  }
-
-  console.info(`Running queueTaskTimeout at ${new Date()}`);
-
-  await updateLastExecutionFromSettings(JOB_RECORDING_QUEUE_TIMEOUT);
+export const queueTaskTimeout = async (signal: AbortSignal) => {
+  throwIfJobAborted(signal);
 
   const isUsingS3Bucket = process.env.S3_BUCKET_ENDPOINT;
 
@@ -135,6 +120,8 @@ export const queueTaskTimeout = async () => {
   const recordingsEncoding = await markEncodingRecordingsAsFailed();
 
   const recordingsMerging = await markMergingRecordingsAsFailed();
+
+  throwIfJobAborted(signal);
 
   if (isUsingS3Bucket) {
     await cleanupFiles([

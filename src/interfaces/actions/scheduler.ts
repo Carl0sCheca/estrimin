@@ -1,5 +1,7 @@
-export const DEFAULT_SOCKET =
-  process.env.ZEROMQ_SOCKET || "tcp://127.0.0.1:4000";
+import { Task } from "@/generated/client";
+import { hostname } from "os";
+
+export const DEFAULT_SOCKET = `tcp://${hostname()}:4000`;
 
 export enum SOCK_COMMAND {
   LIST,
@@ -12,13 +14,6 @@ export enum SOCK_COMMAND {
 export interface Command {
   c: SOCK_COMMAND;
   a?: string;
-}
-
-export interface Job {
-  id: string;
-  status: "running" | "stopped";
-  isRunning: boolean;
-  lastExecution: Date;
 }
 
 export interface FailedItems {
@@ -46,7 +41,7 @@ export interface SetQueueSiteSettingsResponse {
 
 export interface GetAllTasksSchedulerResponse {
   ok: boolean;
-  tasks: Array<Job>;
+  tasks: Array<Task>;
 }
 
 export interface GetAllFailedQueueItemsResponse {
