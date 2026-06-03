@@ -1,10 +1,17 @@
 import prisma from "@/lib/prisma";
-import { exec, spawn } from "child_process";
+import { spawn, type ChildProcess } from "child_process";
 import { existsSync, renameSync, rmSync, writeFileSync } from "fs";
 import { hostname } from "os";
-import { promisify } from "util";
 
-const execAsync = promisify(exec);
+const TIMEOUT = {
+  FFPROBE_DURATION: 30_000,
+  FFPROBE_METADATA: 30_000,
+  ENCODER_LIST: 30_000,
+  THUMBNAIL: 60_000,
+  VALIDATION: 300_000,
+  REENCODE: 600_000,
+  MERGE: 600_000,
+} as const;
 
 interface ExecError extends Error {
   stderr?: string;
@@ -21,54 +28,193 @@ export const isStdError = (err: unknown): err is { stderr: ExecError } => {
   );
 };
 
+const isAbortError = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "name" in error &&
+  (error as { name: string }).name === "AbortError";
+
+const execFFmpeg = (
+  cmd: string,
+  args: string[],
+  { timeoutMs, signal }: { timeoutMs?: number; signal?: AbortSignal } = {},
+): Promise<{ stdout: string; stderr: string }> =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("The operation was aborted", "AbortError"));
+      return;
+    }
+
+    const child = spawn(cmd, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const killChild = () => child.kill("SIGTERM");
+
+    if (timeoutMs) timeoutId = setTimeout(killChild, timeoutMs);
+    signal?.addEventListener("abort", killChild, { once: true });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (d: Buffer) => {
+      stdout += d.toString();
+    });
+    child.stderr?.on("data", (d: Buffer) => {
+      stderr += d.toString();
+    });
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", killChild);
+    };
+
+    child.on("error", (err) => {
+      cleanup();
+      reject(err);
+    });
+
+    child.on("close", (code, sig) => {
+      cleanup();
+      if (sig !== null || code === null) {
+        reject(
+          signal?.aborted
+            ? new DOMException("The operation was aborted", "AbortError")
+            : new Error(`Process timed out after ${timeoutMs}ms`),
+        );
+        return;
+      }
+      if (code !== 0) {
+        const err: ExecError = new Error(
+          `Process exited with code ${code}${stderr ? "\n" + stderr.slice(-500) : ""}`,
+        );
+        err.stderr = stderr;
+        err.code = code;
+        reject(err);
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
+
+const runWithTimeout = (
+  child: ChildProcess,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      child.kill();
+      reject(new DOMException("The operation was aborted", "AbortError"));
+      return;
+    }
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const killChild = () => child.kill("SIGTERM");
+
+    timeoutId = setTimeout(killChild, timeoutMs);
+    signal?.addEventListener("abort", killChild, { once: true });
+
+    let stderr = "";
+    child.stderr?.on("data", (d: Buffer) => {
+      stderr += d.toString();
+    });
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", killChild);
+    };
+
+    child.on("error", (err) => {
+      cleanup();
+      reject(err);
+    });
+
+    child.on("close", (code, sig) => {
+      cleanup();
+      if (sig !== null || code === null) {
+        reject(
+          signal?.aborted
+            ? new DOMException("The operation was aborted", "AbortError")
+            : new Error(`Process timed out after ${timeoutMs}ms`),
+        );
+        return;
+      }
+      if (code !== 0) {
+        reject(
+          new Error(
+            `Process exited with code ${code}${stderr ? "\n" + stderr.slice(-500) : ""}`,
+          ),
+        );
+      } else {
+        resolve();
+      }
+    });
+  });
+
 export const generateThumbnail = async (
   outputFile: string,
   signal?: AbortSignal,
 ) => {
-  const getDurationCommand = [
+  const { stdout: durationStdout } = await execFFmpeg(
     "ffprobe",
-    "-v",
-    "error",
-    "-show_entries",
-    "format=duration",
-    "-of",
-    "default=noprint_wrappers=1:nokey=1",
-    outputFile,
-  ].join(" ");
+    [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      outputFile,
+    ],
+    { timeoutMs: TIMEOUT.FFPROBE_DURATION, signal },
+  );
 
-  const { stdout: durationStdout } = await execAsync(getDurationCommand, {
-    signal,
-  });
   const duration = parseFloat(durationStdout.trim());
   const middleTime = duration / 2;
 
-  const generateThumbnailCommand = [
+  await execFFmpeg(
     "ffmpeg",
-    "-y",
-    "-ss",
-    middleTime.toString(),
-    "-i",
-    outputFile,
-    "-vf",
-    "scale=320:320:force_original_aspect_ratio=decrease",
-    "-vframes",
-    "1",
-    "-qscale",
-    "50",
-    outputFile.replace(".mp4", ".webp"),
-  ].join(" ");
-
-  await execAsync(generateThumbnailCommand, { signal });
+    [
+      "-y",
+      "-ss",
+      middleTime.toString(),
+      "-i",
+      outputFile,
+      "-vf",
+      "scale=320:320:force_original_aspect_ratio=decrease",
+      "-vframes",
+      "1",
+      "-qscale",
+      "50",
+      outputFile.replace(".mp4", ".webp"),
+    ],
+    { timeoutMs: TIMEOUT.THUMBNAIL, signal },
+  );
 };
 
 export const getVideoMetadata = async (
   filePath: string,
   signal?: AbortSignal,
 ) => {
-  const ffprobeCommand = `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,bit_rate -of json ${filePath}`;
-
   try {
-    const { stdout } = await execAsync(ffprobeCommand, { signal });
+    const { stdout } = await execFFmpeg(
+      "ffprobe",
+      [
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height,bit_rate",
+        "-of",
+        "json",
+        filePath,
+      ],
+      { timeoutMs: TIMEOUT.FFPROBE_METADATA, signal },
+    );
+
     const metadata = JSON.parse(stdout);
 
     if (!metadata.streams || metadata.streams.length === 0) {
@@ -83,6 +229,8 @@ export const getVideoMetadata = async (
       bitrate: Math.floor(parseInt(videoStream.bit_rate) / 1000),
     };
   } catch (error) {
+    if (isAbortError(error)) throw error;
+
     console.error("Error obtaining metadata:", error);
     throw error;
   }
@@ -94,9 +242,14 @@ export const getEncoderCandidates = async (
   const candidates: string[] = [];
 
   try {
-    const { stdout } = await execAsync("ffmpeg -encoders -hide_banner", {
-      signal,
-    });
+    const { stdout } = await execFFmpeg(
+      "ffmpeg",
+      ["-encoders", "-hide_banner"],
+      {
+        timeoutMs: TIMEOUT.ENCODER_LIST,
+        signal,
+      },
+    );
 
     const gpuEncoders = [
       "h264_vaapi",
@@ -119,6 +272,8 @@ export const getEncoderCandidates = async (
 
     candidates.push("libx264");
   } catch (error) {
+    if (isAbortError(error)) throw error;
+
     console.error("Error checking GPU encoders:", error);
     candidates.push("libx264");
   }
@@ -220,7 +375,7 @@ export const reencodeWithOriginalSettings = async (
         bitrate,
       );
 
-      const ffmpegProcess = spawn("ffmpeg", reencodeCommand, { signal });
+      const ffmpegProcess = spawn("ffmpeg", reencodeCommand);
       const pid = ffmpegProcess.pid;
 
       await prisma.recordingQueue.update({
@@ -231,59 +386,20 @@ export const reencodeWithOriginalSettings = async (
         },
       });
 
-      let errorOutput = "";
+      await runWithTimeout(ffmpegProcess, TIMEOUT.REENCODE, signal);
 
-      await new Promise<void>((resolve, reject) => {
-        ffmpegProcess.stderr?.on("data", (data) => {
-          errorOutput += data.toString();
-        });
-
-        ffmpegProcess.on("error", (err) => reject(err));
-
-        ffmpegProcess.on("close", (code) => {
-          if (code !== 0) {
-            reject(
-              new Error(
-                `FFmpeg failed with code: ${code}${errorOutput ? "\n" + errorOutput.slice(-500) : ""}`,
-              ),
-            );
-          } else {
-            resolve();
-          }
-        });
-      });
-
-      try {
-        const validationCommand = `ffmpeg -v error -xerror -i ${outputFile} -f null -`;
-        await execAsync(validationCommand, { signal });
-      } catch (e) {
-        if (
-          signal?.aborted ||
-          (typeof e === "object" &&
-            e !== null &&
-            "name" in e &&
-            (e as { name?: string }).name === "AbortError")
-        ) {
-          throw e;
-        }
-
-        throw new Error("Encoding failed validation: " + (e as Error).message);
-      }
+      await execFFmpeg(
+        "ffmpeg",
+        ["-v", "error", "-xerror", "-i", outputFile, "-f", "null", "-"],
+        { timeoutMs: TIMEOUT.VALIDATION, signal },
+      );
 
       return true;
     } catch (error) {
-      if (
-        signal?.aborted ||
-        (typeof error === "object" &&
-          error !== null &&
-          "name" in error &&
-          (error as { name?: string }).name === "AbortError")
-      ) {
-        throw error;
-      }
+      if (isAbortError(error)) throw error;
 
       lastError = error as Error;
-      console.warn(`✗ Encoding failed with ${encoder}:`);
+      console.warn(`\u2717 Encoding failed with ${encoder}:`);
       console.warn(lastError.message);
 
       if (encoder !== encoderCandidates[encoderCandidates.length - 1]) {
@@ -329,7 +445,7 @@ export const mergeVideos = async (
       outputFile,
     ];
 
-    const ffmpegProcess = spawn("ffmpeg", mergeCommand, { signal });
+    const ffmpegProcess = spawn("ffmpeg", mergeCommand);
     const pid = ffmpegProcess.pid;
 
     await prisma.recordingQueue.update({
@@ -348,14 +464,7 @@ export const mergeVideos = async (
       },
     });
 
-    await new Promise((resolve, reject) => {
-      ffmpegProcess.on("error", (err) => reject(err));
-
-      ffmpegProcess.on("close", (code) => {
-        if (code === 0) resolve(true);
-        else reject(new Error(`FFmpeg merge failed with code: ${code}`));
-      });
-    });
+    await runWithTimeout(ffmpegProcess, TIMEOUT.MERGE, signal);
 
     if (existsSync(previousVideo[0])) rmSync(previousVideo[0]);
     if (existsSync(currentVideo[0])) rmSync(currentVideo[0]);
@@ -365,15 +474,7 @@ export const mergeVideos = async (
 
     await generateThumbnail(previousVideo[0], signal);
   } catch (error) {
-    if (
-      signal?.aborted ||
-      (typeof error === "object" &&
-        error !== null &&
-        "name" in error &&
-        (error as { name?: string }).name === "AbortError")
-    ) {
-      throw error;
-    }
+    if (isAbortError(error)) throw error;
 
     if (existsSync(outputFile)) rmSync(outputFile);
     if (existsSync(listFileName)) rmSync(listFileName);
