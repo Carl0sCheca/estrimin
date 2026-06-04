@@ -289,13 +289,32 @@ const buildReencodeCommand = (
   height: number,
   bitrate: number,
 ): string[] => {
-  const reencodeCommand: string[] = ["-y", "-i", inputFile];
-
-  let filterComplex = `scale=${width}:${height}:force_original_aspect_ratio=decrease`;
+  const reencodeCommand: string[] = ["-y"];
 
   if (videoEncoder.includes("vaapi")) {
-    filterComplex = `scale=${width}:${height}:force_original_aspect_ratio=decrease,format=nv12,hwupload`;
-    reencodeCommand.push("-vaapi_device", "/dev/dri/renderD128");
+    reencodeCommand.push(
+      "-vaapi_device",
+      "/dev/dri/renderD128",
+      "-hwaccel",
+      "vaapi",
+      "-hwaccel_output_format",
+      "vaapi",
+    );
+  } else if (videoEncoder.includes("nvenc")) {
+    reencodeCommand.push("-hwaccel", "cuda", "-hwaccel_output_format", "cuda");
+  } else if (videoEncoder.includes("qsv")) {
+    reencodeCommand.push("-hwaccel", "qsv", "-hwaccel_output_format", "qsv");
+  } else if (videoEncoder.includes("videotoolbox")) {
+    reencodeCommand.push("-hwaccel", "videotoolbox");
+  }
+
+  reencodeCommand.push("-i", inputFile);
+
+  let filterComplex: string;
+  if (videoEncoder.includes("vaapi")) {
+    filterComplex = `scale_vaapi=${width}:${height}:force_original_aspect_ratio=decrease`;
+  } else {
+    filterComplex = `scale=${width}:${height}:force_original_aspect_ratio=decrease`;
   }
 
   reencodeCommand.push("-vf", filterComplex);
