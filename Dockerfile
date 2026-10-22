@@ -1,4 +1,6 @@
-FROM node:25.8.1-alpine3.23 AS deps
+ARG NODE_VERSION=26.12.1-alpine3.24
+
+FROM node:${NODE_VERSION}} AS deps
 
 WORKDIR /app
 
@@ -16,7 +18,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 
-FROM node:25.8.1-alpine3.23 AS builder
+FROM node:${NODE_VERSION}} AS builder
 
 WORKDIR /app
 
@@ -40,7 +42,7 @@ RUN pnpm build
 RUN pnpm build:scheduler
 
 
-FROM node:25.8.1-alpine3.23 AS runner
+FROM node:${NODE_VERSION}} AS runner
 
 WORKDIR /app
 

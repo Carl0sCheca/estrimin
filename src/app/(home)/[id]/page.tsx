@@ -5,6 +5,8 @@ import NotFound from "@/app/not-found";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
+export const instant = false;
+
 interface Props {
   params: Promise<{
     id: string;
