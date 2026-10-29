@@ -11,7 +11,7 @@ RUN apk add --no-cache \
     curl \
     ffmpeg
 
-RUN npm install -g pnpm@10.32.1
+RUN npm install -g pnpm@10.33.4
 
 COPY package.json pnpm-lock.yaml ./
 
@@ -27,7 +27,7 @@ RUN apk add --no-cache \
     curl \
     ffmpeg
 
-RUN npm install -g pnpm@10.32.1
+RUN npm install -g pnpm@10.33.4
 
 COPY --from=deps /app/node_modules ./node_modules
 
@@ -56,7 +56,7 @@ RUN apk add --no-cache \
     libva-utils \
     mesa-dri-gallium
 
-RUN npm install -g pnpm@10.32.1
+RUN npm install -g pnpm@10.33.4
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S -D -H -u 1001 -G nodejs nodejs && \
