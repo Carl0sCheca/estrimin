@@ -75,6 +75,7 @@ COPY --from=builder --chown=nodejs:nodejs /app/scheduler ./scheduler
 COPY --from=builder --chown=nodejs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nodejs:nodejs /app/tsconfig.json ./tsconfig.json
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodejs:nodejs /app/next.config.mjs ./next.config.mjs
 
 
 ENV PNPM_HOME="/home/nodejs/.local/share/pnpm"
