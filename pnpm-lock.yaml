@@ -4899,12 +4899,6 @@ snapshots:
       pg-protocol: 1.11.0
       pg-types: 2.2.0
 
-  '@types/pg@8.23.1':
-    dependencies:
-      '@types/node': 25.7.0
-      pg-protocol: 1.11.0
-      pg-types: 2.2.0
-
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
       '@types/react': 19.3.0
