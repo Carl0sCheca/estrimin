@@ -9,11 +9,11 @@ import { redirect } from "next/navigation";
 import { FollowingManager } from "./_components/followingManager";
 import { LiveFollowing } from "./_components/liveFollowings";
 
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Following",
 };
-
-export const dynamic = "force-dynamic";
 
 export default async function FollowingPage() {
   const session = await auth.api.getSession({

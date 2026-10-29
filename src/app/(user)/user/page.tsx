@@ -5,6 +5,8 @@ import { User } from "@/generated/client";
 import { auth } from "@/lib/auth";
 import { UserForm } from "./_components/userForm";
 
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "User",
 };
