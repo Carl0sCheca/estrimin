@@ -77,12 +77,17 @@ COPY --from=builder --chown=nodejs:nodejs /app/tsconfig.json ./tsconfig.json
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 
 
+ENV PNPM_HOME="/home/nodejs/.local/share/pnpm"
+ENV PATH="${PNPM_HOME}:${PATH}"
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV="production"
+
+RUN mkdir -p /home/nodejs/.local/share/pnpm/store \
+    && chown -R nodejs:nodejs /home/nodejs/.local
+
 USER nodejs
 
 EXPOSE 3000
-
-ENV HOSTNAME="0.0.0.0"
-ENV NODE_ENV="production"
 
 ENTRYPOINT ["/sbin/tini", "--"]
 
