@@ -1,3 +1,4 @@
+verifyDepsBeforeRun: false
 allowBuilds:
   '@prisma/engines': true
   esbuild: true
