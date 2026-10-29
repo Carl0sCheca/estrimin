@@ -5,6 +5,8 @@ import { VideoList } from "./ui/videoList";
 import Link from "next/link";
 import { Logo } from "@/components";
 
+export const instant = false;
+
 interface Props {
   params: Promise<{
     id: string;

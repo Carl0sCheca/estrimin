@@ -4,8 +4,6 @@ import prisma from "@/lib/prisma";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
 export const GET = async () => {
   const sessionData = await auth.api.getSession({
     headers: await headers(),

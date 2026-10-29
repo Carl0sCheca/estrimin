@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { SITE_SETTING } from "@/interfaces";
 
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Register",
 };
@@ -13,8 +15,6 @@ interface Props {
     code: Array<string>;
   }>;
 }
-
-export const dynamic = "force-dynamic";
 
 export default async function RegisterPage(props: Props) {
   const params = await props.params;
