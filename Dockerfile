@@ -1,4 +1,5 @@
 ARG NODE_VERSION=26.12.1-alpine3.24
+ARG PNPM_VERSION=12.16.1
 
 FROM node:${NODE_VERSION} AS deps
 
@@ -11,7 +12,7 @@ RUN apk add --no-cache \
     curl \
     ffmpeg
 
-RUN npm install -g pnpm@10.33.4
+RUN npm install -g pnpm@{PNPM_VERSION}
 
 COPY package.json pnpm-lock.yaml ./
 
@@ -27,7 +28,7 @@ RUN apk add --no-cache \
     curl \
     ffmpeg
 
-RUN npm install -g pnpm@10.33.4
+RUN npm install -g pnpm@{PNPM_VERSION}
 
 COPY --from=deps /app/node_modules ./node_modules
 
@@ -56,7 +57,7 @@ RUN apk add --no-cache \
     libva-utils \
     mesa-dri-gallium
 
-RUN npm install -g pnpm@10.33.4
+RUN npm install -g pnpm@{PNPM_VERSION}
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S -D -H -u 1001 -G nodejs nodejs && \
